@@ -1,0 +1,257 @@
+// ============================================
+// 🧩 PuzzleRadar — Prisma Schema (Multi-Tenant)
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── TENANT / ORGANIZAÇÃO ───
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     Member[]
+  pools       Pool[]
+  apiKeys     ApiKey[]
+
+  @@map("organizations")
+}
+
+// ─── MEMBROS ───
+model Member {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MemberRole        @default(MEMBER)
+  joinedAt       DateTime          @default(now())
+
+  user           User             @relation(fields: [userId], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  contributions  Contribution[]
+
+  @@unique([userId, organizationId])
+  @@map("members")
+}
+
+enum MemberRole {
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+// ─── USUÁRIOS ───
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  username      String     @unique
+  passwordHash  String
+  displayName   String?
+  avatarUrl     String?
+  gpuModel      String?    // ex: "RTX 4090", "GTX 1660"
+  cpuModel      String?    // ex: "Ryzen 9 7950X"
+  hasGpu        Boolean    @default(false)
+  totalShares   Float      @default(0)  // Total de contribuição acumulada
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  memberships   Member[]
+  contributions Contribution[]
+  walletAddresses WalletAddress[]
+
+  @@map("users")
+}
+
+// ─── CARTEIRAS (para receber prêmios) ───
+model WalletAddress {
+  id        String @id @default(cuid())
+  userId    String
+  chain     ChainType
+  address   String
+  isPrimary Boolean @default(false)
+
+  user      User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, chain, address])
+  @@map("wallet_addresses")
+}
+
+enum ChainType {
+  BTC
+  ETH
+  SOL
+  OTHER
+}
+
+// ─── PUZZLES / DESAFIOS ───
+model Puzzle {
+  id              String        @id @default(cuid())
+  title           String
+  description     String?
+  chain           ChainType     @default(BTC)
+  puzzleNumber    Int?          // ex: puzzle #66 do Bitcoin Puzzle Transaction
+  targetAddress   String?       // Endereço BTC/ETH/SOL alvo
+  targetPublicKey  String?       // Chave pública (se conhecida)
+  bitRange        Int           // Número de bits (ex: 66)
+  rangeStart      String        // Hex do início do range
+  rangeEnd        String        // Hex do fim do range
+  prizeAmount     Float         // Valor do prêmio
+  prizeCurrency   String        @default("BTC")
+  difficultyScore Float         // Score calculado pela fórmula
+  difficultyLabel DifficultyLabel
+  status          PuzzleStatus  @default(ACTIVE)
+  sourceUrl       String?       // Link para o site original
+  sourceName      String?       // ex: "bitcoinpuzzles.io", "Bitcoin Puzzle Transaction"
+  solvedBy        String?       // Quem resolveu
+  solvedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  pools           Pool[]
+  ranges          Range[]
+  contributions   Contribution[]
+
+  @@map("puzzles")
+}
+
+enum DifficultyLabel {
+  EASY
+  MEDIUM
+  HARD
+  EXTREME
+}
+
+enum PuzzleStatus {
+  ACTIVE
+  IN_PROGRESS
+  SOLVED
+  EXPIRED
+  ARCHIVED
+}
+
+// ─── POOLS COLABORATIVOS ───
+model Pool {
+  id              String       @id @default(cuid())
+  organizationId  String
+  puzzleId        String
+  name            String
+  description     String?
+  strategy        PoolStrategy @default(RANGE_SPLIT)
+  totalRanges     Int          @default(0)
+  completedRanges Int          @default(0)
+  progressPercent Float        @default(0)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  puzzle          Puzzle       @relation(fields: [puzzleId], references: [id])
+  ranges          Range[]
+  contributions   Contribution[]
+
+  @@map("pools")
+}
+
+enum PoolStrategy {
+  RANGE_SPLIT      // Divide o range em pedaços iguais
+  RANDOM_SAMPLING  // Cada worker busca aleatoriamente
+  KANGAROO         // Pollard's Kangaroo (requer pubkey)
+}
+
+// ─── RANGES DE BUSCA ───
+model Range {
+  id              String          @id @default(cuid())
+  poolId          String
+  assigneeId      String?         // User ID do responsável
+  rangeStart      String          // Hex
+  rangeEnd        String          // Hex
+  status          RangeStatus     @default(PENDING)
+  keysChecked     Float           @default(0)  // Bilhões de chaves verificadas
+  startedAt       DateTime?
+  completedAt     DateTime?
+  result          RangeResult     @default(NOT_FOUND)
+  foundPrivateKey String?         // Se encontrou a chave!
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  pool            Pool            @relation(fields: [poolId], references: [id])
+  puzzle          Puzzle          @relation(fields: [puzzleId], references: [id], name: "PuzzleRanges")
+  assignee        User?           @relation(fields: [assigneeId], references: [id], name: "AssignedRanges")
+  contribution    Contribution?
+
+  @@map("ranges")
+}
+
+enum RangeStatus {
+  PENDING
+  ASSIGNED
+  RUNNING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum RangeResult {
+  NOT_FOUND
+  FOUND
+  ERROR
+}
+
+// ─── CONTRIBUIÇÕES (para divisão de prêmios) ───
+model Contribution {
+  id              String   @id @default(cuid())
+  userId          String
+  poolId          String
+  rangeId         String?  @unique
+  keysChecked     Float    // Bilhões de chaves verificadas
+  computeHours    Float    // Horas de computação doadas
+  gpuHours        Float    @default(0)
+  cpuHours        Float    @default(0)
+  shares          Float    // Ações calculadas para divisão do prêmio
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id])
+  pool            Pool     @relation(fields: [poolId], references: [id])
+  range          Range?   @relation(fields: [rangeId], references: [id])
+  puzzle          Puzzle   @relation(fields: [puzzleId], references: [id])
+
+  @@map("contributions")
+}
+
+// ─── API KEYS (para workers se conectarem) ───
+model ApiKey {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String       @unique
+  name            String
+  permissions     String       @default("worker")  // worker, admin
+  isActive        Boolean      @default(true)
+  lastUsedAt      DateTime?
+  createdAt       DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("api_keys")
+}
+
+// ─── LOGS DE ATIVIDADE ───
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@map("activity_logs")
+}
