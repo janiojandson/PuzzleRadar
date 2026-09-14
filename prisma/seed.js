@@ -1,7 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar — Seed Data
-// ============================================
-// Popula o banco com puzzles conhecidos
+// 🧩 PuzzleRadar — Seed Data (Puzzles & Hints)
 // ============================================
 
 const { PrismaClient } = require('@prisma/client');
@@ -10,7 +8,7 @@ const { calculateDifficultyScore } = require('../src/lib/difficultyEngine');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🧩 PuzzleRadar — Iniciando seed...');
+  console.log('🧩 PuzzleRadar — Iniciando seed de puzzles e configurações...');
   
   // ─── CRIAR ORGANIZAÇÃO PADRÃO ───
   const org = await prisma.organization.upsert({
@@ -19,7 +17,7 @@ async function main() {
     create: {
       name: 'PuzzleRadar Public Pool',
       slug: 'puzzleradar-public',
-      description: 'Pool pública colaborativa do PuzzleRadar'
+      description: 'Pool pública colaborativa de exaustão criptográfica'
     }
   });
   console.log(`✅ Organização criada: ${org.name}`);
@@ -34,7 +32,8 @@ async function main() {
       username: 'admin',
       passwordHash: await bcrypt.hash('changeme123', 12),
       displayName: 'Admin PuzzleRadar',
-      hasGpu: false
+      hasGpu: true,
+      gpuModel: 'NVIDIA RTX 4090'
     }
   });
   console.log(`✅ Admin criado: ${admin.username}`);
@@ -70,7 +69,7 @@ async function main() {
     { num: 65, bits: 65, prize: 6.6, solved: true, address: '1KCgMv8fo2TPBpddVi9jqmMmcne9uSNJ5F' },
     
     // Puzzles ATIVOS
-    { num: 66, bits: 66, prize: 6.6, solved: false, address: '13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so' },
+    { num: 66, bits: 66, prize: 6.6, solved: false, address: '13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so', hints: [{ type: 'bip39ChecksumFilter', discardRate: '93.75%' }] },
     { num: 67, bits: 67, prize: 6.6, solved: false, address: '1BY8GQbnueYofwSuFAT3USAhGjPrkxDdW9' },
     { num: 68, bits: 68, prize: 6.6, solved: false, address: '1MVDYgVaSN6iKKEsbzRUAYFhNJT1eLf2E3' },
     { num: 69, bits: 69, prize: 6.6, solved: false, address: '19vkiEajfhuZ8bs8Zu2jgmC6oqZbWqhxhG' },
@@ -97,12 +96,19 @@ async function main() {
       rangeStart,
       rangeEnd,
       prizeAmount: p.prize,
-      prizeCurrency: 'BTC'
+      prizeCurrency: 'BTC',
+      hints: p.hints || []
     });
     
     await prisma.puzzle.upsert({
       where: { id: `puzzle_btc_${p.num}` },
-      update: {},
+      update: {
+        difficultyScore: diff.score,
+        difficultyLabel: diff.difficulty,
+        hints: p.hints || null,
+        effectiveBits: diff.effectiveBits,
+        entropyReduction: parseFloat(diff.entropyReductionRatio)
+      },
       create: {
         id: `puzzle_btc_${p.num}`,
         title: `Bitcoin Puzzle #${p.num}`,
@@ -117,6 +123,9 @@ async function main() {
         prizeCurrency: 'BTC',
         difficultyScore: diff.score,
         difficultyLabel: diff.difficulty,
+        hints: p.hints || null,
+        effectiveBits: diff.effectiveBits,
+        entropyReduction: parseFloat(diff.entropyReductionRatio),
         status: p.solved ? 'SOLVED' : 'ACTIVE',
         sourceUrl: 'https://bitcoinpuzzles.io/pt/puzzles',
         sourceName: 'Bitcoin Puzzle Transaction'
@@ -124,18 +133,8 @@ async function main() {
     });
   }
   
-  console.log(`✅ ${bitcoinPuzzles.length} puzzles Bitcoin criados`);
-  
-  // ─── ESTATÍSTICAS ───
-  const totalPuzzles = await prisma.puzzle.count();
-  const activePuzzles = await prisma.puzzle.count({ where: { status: 'ACTIVE' } });
-  const solvedPuzzles = await prisma.puzzle.count({ where: { status: 'SOLVED' } });
-  
-  console.log('\n📊 Estatísticas:');
-  console.log(`   Total: ${totalPuzzles}`);
-  console.log(`   Ativos: ${activePuzzles}`);
-  console.log(`   Resolvidos: ${solvedPuzzles}`);
-  console.log('\n🧩 Seed concluído!');
+  console.log(`✅ ${bitcoinPuzzles.length} puzzles Bitcoin populados com scores e hints.`);
+  console.log('\n🧩 Seed concluído com sucesso!');
 }
 
 main()

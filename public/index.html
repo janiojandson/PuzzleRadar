@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧩 PuzzleRadar — Distributed Cryptographic Search Pool & Entropy Engine</title>
+  
+  <!-- Google Fonts & Tailwind CDN -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"Fira Code"', 'monospace']
+          },
+          colors: {
+            cypher: {
+              900: '#06090e',
+              800: '#0c131d',
+              700: '#141f2f',
+              600: '#1e2e45',
+              accent: '#00f2fe',
+              neon: '#10b981',
+              btc: '#f7931a',
+              eth: '#627eea',
+              sol: '#14f195',
+              card: 'rgba(15, 23, 42, 0.75)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #05070b;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(0, 242, 254, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(247, 147, 26, 0.05) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .glass-panel {
+      background: rgba(12, 19, 29, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-panel-glow {
+      background: rgba(14, 23, 38, 0.8);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
+    }
+    .terminal-box {
+      background: #040608;
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1e2e45;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="text-slate-200 min-h-screen flex flex-col selection:bg-cypher-neon selection:text-black">
+
+  <!-- Top Navigation Bar -->
+  <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cypher-btc via-amber-500 to-cypher-neon flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-amber-500/20">
+        🧩
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-extrabold text-xl tracking-tight text-white">Puzzle<span class="text-cypher-accent">Radar</span></span>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">v2.0 Saco Completo</span>
+        </div>
+        <p class="text-xs text-slate-400">Plataforma Distribuída de Exaustão Criptográfica</p>
+      </div>
+    </div>
+
+    <!-- Live Pool Metrics Header -->
+    <div class="hidden md:flex items-center gap-6">
+      <div class="text-right">
+        <div class="text-xs text-slate-400">Hashrate do Pool</div>
+        <div class="font-mono text-sm font-bold text-emerald-400 flex items-center justify-end gap-1.5" id="headerHashrate">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>-- GH/s</span>
+        </div>
+      </div>
+      <div class="h-8 w-px bg-white/10"></div>
+      <div class="text-right">
+        <div class="text-xs text-slate-400">Workers Ativos</div>
+        <div class="font-mono text-sm font-bold text-cyan-400" id="headerWorkers">0 online</div>
+      </div>
+      <div class="h-8 w-px bg-white/10"></div>
+      <div class="text-right">
+        <div class="text-xs text-slate-400">Prêmio Alvo (#66)</div>
+        <div class="font-mono text-sm font-bold text-amber-400">6.60 BTC (~$420K)</div>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <div>
+      <button onclick="switchTab('tab-workers')" class="px-4 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-bold transition shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+        <i data-lucide="cpu" class="w-4 h-4"></i>
+        <span>Conectar Worker</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2.5 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+    <button onclick="switchTab('tab-workers')" id="btn-tab-workers" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition bg-white/10 text-white border border-white/10">
+      <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+      <span>Worker Dashboard</span>
+    </button>
+    <button onclick="switchTab('tab-entropy')" id="btn-tab-entropy" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+      <span>Motor de Redução de Entropia</span>
+    </button>
+    <button onclick="switchTab('tab-pruning')" id="btn-tab-pruning" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="scissors" class="w-4 h-4 text-cyan-400"></i>
+      <span>Space Pruning (Histórico)</span>
+    </button>
+    <button onclick="switchTab('tab-puzzles')" id="btn-tab-puzzles" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="grid" class="w-4 h-4 text-purple-400"></i>
+      <span>Learning Lab & Puzzles</span>
+    </button>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full">
+
+    <!-- ==================== TAB 1: WORKER DASHBOARD ==================== -->
+    <section id="tab-workers" class="tab-content space-y-6">
+      <!-- Banner Onboarding -->
+      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 relative overflow-hidden">
+        <div class="relative z-10 max-w-3xl space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+            <i data-lucide="radio" class="w-3.5 h-3.5 animate-pulse"></i>
+            <span>Crowdsourcing Aberto — Junte-se ao Saco Completo</span>
+          </div>
+          <h1 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+            Doe seu poder de processamento. Ganhe <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Shares e Prêmios</span> em Bitcoin.
+          </h1>
+          <p class="text-sm lg:text-base text-slate-300">
+            Conecte sua GPU (RTX / GTX / AMD) ou CPU diretamente ao pool. O orquestrador distribui micro-fatias atômicas com poda de espaço e redução de entropia instantânea.
+          </p>
+
+          <div class="pt-2 flex flex-wrap items-center gap-4">
+            <button onclick="generateWorkerToken()" class="px-5 py-3 rounded-xl bg-cypher-neon hover:bg-emerald-400 text-black font-extrabold text-sm transition shadow-lg shadow-emerald-500/20 flex items-center gap-2">
+              <i data-lucide="key" class="w-4 h-4"></i>
+              <span>Gerar Meu Worker Token</span>
+            </button>
+            <a href="/solver/pool-client.js" download="pool-client.js" class="px-4 py-3 rounded-xl glass-panel hover:bg-white/10 text-white font-semibold text-sm transition border border-white/15 flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4 text-cyan-400"></i>
+              <span>Baixar pool-client.js</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Run Terminal Card -->
+      <div class="glass-panel rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="terminal" class="w-5 h-5 text-cyan-400"></i>
+            <h3 class="font-bold text-lg text-white">Comando Rápido para Rodar no Terminal</h3>
+          </div>
+          <span class="text-xs text-slate-400">Requer Node.js 18+</span>
+        </div>
+
+        <div class="terminal-box rounded-xl p-4 font-mono text-sm text-cyan-300 flex items-center justify-between gap-4 overflow-x-auto">
+          <code id="cliCommandText">node solver/pool-client.js --token=wrk_crowdsource_demo --apiUrl=http://localhost:3010</code>
+          <button onclick="copyCliCommand()" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition flex-shrink-0">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span id="copyBtnText">Copiar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Workers Grid -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+            <h3 class="font-bold text-lg text-white">Workers Conectados em Tempo Real</h3>
+          </div>
+          <span class="text-xs text-emerald-400 font-mono" id="workerCountBadge">0 Nós Minerando</span>
+        </div>
+
+        <div id="workersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Populated by JS -->
+          <div class="glass-panel rounded-xl p-5 border border-dashed border-white/10 text-center py-10 col-span-full">
+            <i data-lucide="cpu" class="w-8 h-8 text-slate-500 mx-auto mb-2"></i>
+            <p class="text-sm text-slate-400">Nenhum worker externo conectado no momento. Inicie seu script para aparecer aqui!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: ENTROPY ENGINE & HINTS ==================== -->
+    <section id="tab-entropy" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="max-w-3xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Motor de Redução de Entropia (O Campo de Dicas)</span>
+          </div>
+          <h2 class="text-2xl lg:text-3xl font-bold text-white">Feche o cerco da chave criptográfica em velocidade recorde</h2>
+          <p class="text-sm text-slate-400">
+            Adicione dicas parciais conhecidas (prefixos, sufixos, máscaras de bits ou filtros de semente BIP39). O orquestrador recalcula instantaneamente o espaço de busca e reduz a dificuldade matemática de séculos para dias.
+          </p>
+        </div>
+
+        <!-- Simulator Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+          <!-- Inputs -->
+          <div class="lg:col-span-2 space-y-4">
+            <div class="glass-panel rounded-xl p-5 space-y-4">
+              <h4 class="font-semibold text-sm text-slate-200 flex items-center gap-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+                <span>Configurar Dicas para o Puzzle #66 (66 bits)</span>
+              </h4>
+
+              <!-- Hint BIP39 Checksum -->
+              <label class="flex items-start gap-3 p-3.5 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition">
+                <input type="checkbox" id="hintBip39" checked onchange="simulateEntropy()" class="mt-1 w-4 h-4 text-emerald-500 rounded bg-slate-900 border-white/20">
+                <div>
+                  <div class="text-sm font-semibold text-white">Filtro de Checksum BIP39 (15/16 = 93,75% de Descarte)</div>
+                  <div class="text-xs text-slate-400">Elimina deterministicamente 4 bits de entropia inválidos pela validação SHA-256 do checksum de 12 palavras.</div>
+                </div>
+              </label>
+
+              <!-- Hint Fixed Prefix -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-300">Prefixo Hex Conhecido (ex: '2a' = 8 bits fixados)</label>
+                <input type="text" id="hintPrefix" placeholder="Ex: 2a" oninput="simulateEntropy()" class="w-full px-4 py-2.5 rounded-xl bg-cypher-900 border border-white/10 font-mono text-sm text-cyan-300 focus:outline-none focus:border-amber-400">
+              </div>
+
+              <!-- Hint Known Bits -->
+              <div class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-300">Bits Conhecidos Adicionais (Máscaras parciais)</label>
+                <input type="range" id="hintBits" min="0" max="30" value="12" oninput="document.getElementById('bitsVal').innerText = this.value; simulateEntropy()" class="w-full accent-amber-400">
+                <div class="flex justify-between text-xs text-slate-400 font-mono">
+                  <span>0 bits</span>
+                  <span class="text-amber-400 font-bold"><span id="bitsVal">12</span> bits conhecidos</span>
+                  <span>30 bits</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Entropy Score Card -->
+          <div class="glass-panel-glow rounded-xl p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Resultado do Cálculo de Entropia</span>
+              
+              <div>
+                <div class="text-xs text-slate-400">Bits Originais vs Efetivos</div>
+                <div class="text-3xl font-extrabold text-white font-mono flex items-baseline gap-2">
+                  <span class="line-through text-slate-500 text-xl">66</span>
+                  <span class="text-emerald-400" id="simEffectiveBits">50</span>
+                  <span class="text-xs text-emerald-400 font-sans font-bold" id="simReductionPercent">-24.2%</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="text-xs text-slate-400">Tempo Estimado (1x RTX 4090)</div>
+                <div class="text-xl font-bold text-cyan-300 font-mono" id="simTimeEst">~7.4 horas</div>
+              </div>
+
+              <div>
+                <div class="text-xs text-slate-400">Novo Score de Dificuldade</div>
+                <div class="text-xl font-bold text-emerald-400 font-mono" id="simScore">519.67 (MÉDIO 🟡)</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300">
+              ⚡ <strong>Supercomputação:</strong> Com a redução das dicas ativas, a busca se torna 100% viável em GPU individual ou pequeno pool!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: SPACE PRUNING ==================== -->
+    <section id="tab-pruning" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="max-w-3xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+            <i data-lucide="database" class="w-3.5 h-3.5"></i>
+            <span>Ingestão de Histórico de Pools Externas (Space Pruning)</span>
+          </div>
+          <h2 class="text-2xl lg:text-3xl font-bold text-white">Não desperdice 1 segundo reprocessando ranges já escaneados</h2>
+          <p class="text-sm text-slate-400">
+            Importe listas de fatias varridas por outras pools públicas no passado. O PuzzleRadar marca instantaneamente os bitmaps no Redis/PostgreSQL e poda o espaço para que os workers saltem direto para o território inexplorado.
+          </p>
+        </div>
+
+        <!-- Ingestion Form -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-4">
+            <div class="glass-panel rounded-xl p-5 space-y-4">
+              <h4 class="font-semibold text-sm text-slate-200">Importar Fatias / Chunks Já Testados</h4>
+              
+              <div class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-300">Selecione o Puzzle Alvo</label>
+                <select id="prunePuzzleSelect" class="w-full px-4 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-sm text-slate-200 focus:outline-none">
+                  <option value="puzzle_btc_66">Bitcoin Puzzle #66 (66 bits - 6.6 BTC)</option>
+                  <option value="puzzle_btc_67">Bitcoin Puzzle #67 (67 bits - 6.6 BTC)</option>
+                  <option value="puzzle_btc_68">Bitcoin Puzzle #68 (68 bits - 6.6 BTC)</option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="text-xs font-medium text-slate-300">Índices de Chunks ou Ranges Hex (separados por vírgula ou linhas)</label>
+                <textarea id="pruneInput" rows="4" placeholder="Exemplo: 101, 102, 103, 104, 105... ou 20000000-2000ffff" class="w-full px-4 py-2.5 rounded-xl bg-cypher-900 border border-white/10 font-mono text-xs text-cyan-300 focus:outline-none focus:border-cyan-400"></textarea>
+              </div>
+
+              <button onclick="submitPruningHistory()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-sm transition shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>Importar e Podar Espaço de Busca</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Pruning Status Card -->
+          <div class="glass-panel-glow rounded-xl p-5 space-y-4 flex flex-col justify-between">
+            <div class="space-y-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">Estado do Bitmap (Redis)</span>
+              
+              <div>
+                <div class="text-xs text-slate-400">Espaço Podado (Descartado)</div>
+                <div class="text-3xl font-extrabold text-cyan-300 font-mono" id="prunePercent">15.20%</div>
+              </div>
+
+              <div class="w-full bg-cypher-900 rounded-full h-3 overflow-hidden border border-white/10">
+                <div id="pruneProgressBar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 15.2%"></div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div class="p-2 rounded bg-white/5">
+                  <div class="text-slate-400">Fatias Podadas</div>
+                  <div class="font-bold text-white" id="pruneCount">152</div>
+                </div>
+                <div class="p-2 rounded bg-white/5">
+                  <div class="text-slate-400">Fatias a Minerar</div>
+                  <div class="font-bold text-emerald-400" id="pruneRemaining">848</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-300">
+              🛡️ Os workers nunca receberão fatias marcadas como podadas. Zero trabalho redundante!
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: PUZZLES & LEARNING LAB ==================== -->
+    <section id="tab-puzzles" class="tab-content hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Learning Lab & Bitcoin Puzzles (1 a 160)</h2>
+          <p class="text-sm text-slate-400">Pratique com puzzles já resolvidos (#1 a #65) e participe da caça aos ativos (#66+).</p>
+        </div>
+        
+        <!-- Filter buttons -->
+        <div class="flex items-center gap-2">
+          <button onclick="filterPuzzles('all')" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold text-white">Todos</button>
+          <button onclick="filterPuzzles('active')" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-amber-400">Ativos (#66+)</button>
+          <button onclick="filterPuzzles('solved')" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-emerald-400">Learning Lab (Resolvidos)</button>
+        </div>
+      </div>
+
+      <div id="puzzlesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="glass-panel border-t border-white/5 px-4 lg:px-8 py-4 text-center text-xs text-slate-500">
+    🧩 PuzzleRadar — Sistema Colaborativo de Busca Criptográfica & Exaustão de Chaves Privadas Bitcoin.
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

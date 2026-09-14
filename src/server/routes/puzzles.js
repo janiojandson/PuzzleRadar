@@ -1,60 +1,97 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Puzzles
+// 🧩 PuzzleRadar — Rotas de Puzzles & Redução de Entropia
 // ============================================
 
 const express = require('express');
-const { calculateDifficultyScore, getBitcoinPuzzleData } = require('../../lib/difficultyEngine');
-const { requireAuth } = require('../../lib/auth');
+const { calculateDifficultyScore, getBitcoinPuzzleData, calculateEntropyReduction } = require('../../lib/difficultyEngine');
+const prisma = require('../../lib/prisma');
 
 const router = express.Router();
 
-// GET /api/puzzles — Lista todos os puzzles com pontuação
+// Mock store em memória para hints dinâmicos de puzzles
+const puzzleHintsStore = new Map();
+
+// Inicializa hints padrões se desejado (ex: Puzzle #66)
+puzzleHintsStore.set('66', [
+  { type: 'bip39ChecksumFilter', discardRate: '93.75%' }
+]);
+
+/**
+ * GET /api/puzzles — Lista todos os puzzles com pontuação e suporte a hints
+ */
 router.get('/', async (req, res) => {
   try {
     const { chain, difficulty, status, minBits, maxBits } = req.query;
     
-    // TODO: Buscar do DB via Prisma com filtros
-    // Por enquanto, usar dados do Bitcoin Puzzle Transaction
     let puzzles = getBitcoinPuzzleData();
     
+    // Aplicar hints personalizados se existirem
+    puzzles = puzzles.map(p => {
+      const hints = puzzleHintsStore.get(String(p.puzzleNumber)) || [];
+      if (hints.length > 0) {
+        const recalculation = calculateDifficultyScore({
+          bitRange: p.bits,
+          rangeStart: p.rangeStart,
+          rangeEnd: p.rangeEnd,
+          prizeAmount: p.prize,
+          hints
+        });
+        return {
+          ...p,
+          ...recalculation,
+          hints
+        };
+      }
+      return {
+        ...p,
+        hints: []
+      };
+    });
+
     // Filtros
     if (chain) puzzles = puzzles.filter(p => p.chain === chain);
     if (difficulty) puzzles = puzzles.filter(p => p.difficulty === difficulty.toUpperCase());
     if (status === 'active') puzzles = puzzles.filter(p => !p.solved);
     if (status === 'solved') puzzles = puzzles.filter(p => p.solved);
-    if (minBits) puzzles = puzzles.filter(p => p.bits >= parseInt(minBits));
-    if (maxBits) puzzles = puzzles.filter(p => p.bits <= parseInt(maxBits));
+    if (minBits) puzzles = puzzles.filter(p => p.bits >= parseInt(minBits, 10));
+    if (maxBits) puzzles = puzzles.filter(p => p.bits <= parseInt(maxBits, 10));
     
     res.json({
       total: puzzles.length,
-      puzzles: puzzles.map(p => ({
-        puzzleNumber: p.puzzleNumber,
-        bits: p.bits,
-        prize: p.prize,
-        solved: p.solved,
-        difficultyScore: p.score,
-        difficultyLabel: p.label,
-        difficultyEmoji: p.emoji,
-        estimatedHoursRTX4090: p.estimatedHoursRTX4090,
-        viabilityCPU: p.viabilityCPU,
-        viabilityGPU: p.viabilityGPU,
-        viabilityPool: p.viabilityPool,
-        recommendedStrategy: p.recommendedStrategy
-      }))
+      puzzles
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/puzzles/:id — Detalhes de um puzzle
+/**
+ * GET /api/puzzles/:id — Detalhes de um puzzle específico
+ */
 router.get('/:id', async (req, res) => {
   try {
     const puzzles = getBitcoinPuzzleData();
-    const puzzle = puzzles.find(p => p.puzzleNumber === parseInt(req.params.id));
+    const puzzleIdParam = req.params.id;
+    const puzzleNum = parseInt(puzzleIdParam.replace(/\D/g, ''), 10) || parseInt(puzzleIdParam, 10);
+    
+    let puzzle = puzzles.find(p => p.puzzleNumber === puzzleNum);
     
     if (!puzzle) {
       return res.status(404).json({ error: 'Puzzle não encontrado', code: 'NOT_FOUND' });
+    }
+
+    const hints = puzzleHintsStore.get(String(puzzleNum)) || [];
+    if (hints.length > 0) {
+      const recalculation = calculateDifficultyScore({
+        bitRange: puzzle.bits,
+        rangeStart: puzzle.rangeStart,
+        rangeEnd: puzzle.rangeEnd,
+        prizeAmount: puzzle.prize,
+        hints
+      });
+      puzzle = { ...puzzle, ...recalculation, hints };
+    } else {
+      puzzle.hints = [];
     }
     
     res.json(puzzle);
@@ -63,52 +100,53 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/puzzles — Criar novo puzzle (admin)
-router.post('/', requireAuth, async (req, res) => {
+/**
+ * POST /api/puzzles/:id/hints — Adicionar ou atualizar Dicas (Hints) para Redução de Entropia
+ */
+router.post('/:id/hints', async (req, res) => {
   try {
-    const { title, chain, targetAddress, targetPublicKey, bitRange, rangeStart, rangeEnd, prizeAmount, prizeCurrency, sourceUrl, sourceName } = req.body;
-    
-    // Calcular dificuldade
-    const difficulty = calculateDifficultyScore({
-      bitRange,
-      rangeStart,
-      rangeEnd,
-      prizeAmount: prizeAmount || 0,
-      prizeCurrency: prizeCurrency || 'BTC'
+    const puzzleIdParam = req.params.id;
+    const puzzleNum = parseInt(puzzleIdParam.replace(/\D/g, ''), 10) || parseInt(puzzleIdParam, 10);
+    const { hints } = req.body;
+
+    if (!Array.isArray(hints)) {
+      return res.status(400).json({ error: 'hints deve ser um array de dicas válidas' });
+    }
+
+    puzzleHintsStore.set(String(puzzleNum), hints);
+
+    const puzzles = getBitcoinPuzzleData();
+    const basePuzzle = puzzles.find(p => p.puzzleNumber === puzzleNum) || { bits: 66, prize: 6.6 };
+
+    const recalculation = calculateDifficultyScore({
+      bitRange: basePuzzle.bits,
+      prizeAmount: basePuzzle.prize,
+      hints
     });
-    
-    // TODO: Salvar no DB via Prisma
-    
-    res.status(201).json({
-      title,
-      chain,
-      targetAddress,
-      bitRange,
-      difficultyScore: difficulty.score,
-      difficultyLabel: difficulty.label,
-      difficultyEmoji: difficulty.emoji,
-      estimatedHoursRTX4090: difficulty.estimatedHoursRTX4090,
-      viabilityCPU: difficulty.viabilityCPU,
-      viabilityGPU: difficulty.viabilityGPU,
-      viabilityPool: difficulty.viabilityPool,
-      recommendedStrategy: difficulty.recommendedStrategy
+
+    res.json({
+      success: true,
+      puzzleNumber: puzzleNum,
+      hints,
+      recalculation,
+      message: `Dicas aplicadas com sucesso! Entropia reduzida para ${recalculation.effectiveBits} bits efetivos.`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/puzzles/difficulty/calculate — Calcula dificuldade de um range
-router.post('/difficulty/calculate', (req, res) => {
+/**
+ * POST /api/puzzles/entropy/simulate — Simulador Interativo de Redução de Entropia
+ */
+router.post('/entropy/simulate', (req, res) => {
   try {
-    const { bitRange, rangeStart, rangeEnd, prizeAmount, prizeCurrency } = req.body;
+    const { bitRange = 66, prizeAmount = 6.6, hints = [] } = req.body;
     
     const result = calculateDifficultyScore({
-      bitRange,
-      rangeStart,
-      rangeEnd,
-      prizeAmount: prizeAmount || 0,
-      prizeCurrency: prizeCurrency || 'BTC'
+      bitRange: Number(bitRange),
+      prizeAmount: Number(prizeAmount),
+      hints
     });
     
     res.json(result);

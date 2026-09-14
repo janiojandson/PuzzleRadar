@@ -1,5 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar — Prisma Schema (Multi-Tenant)
+// 🧩 PuzzleRadar — Prisma Schema (Multi-Tenant & Entropy Pruned)
 // ============================================
 
 generator client {
@@ -69,8 +69,30 @@ model User {
   memberships   Member[]
   contributions Contribution[]
   walletAddresses WalletAddress[]
+  assignedRanges  Range[]         @relation("AssignedRanges")
+  workerTokens    WorkerToken[]
 
   @@map("users")
+}
+
+// ─── WORKER TOKENS (Crowdsourcing Onboarding) ───
+model WorkerToken {
+  id          String   @id @default(cuid())
+  userId      String?
+  token       String   @unique
+  name        String   @default("worker-node")
+  hardware    String   @default("GPU")
+  gpuModel    String?
+  cpuModel    String?
+  lastSeenAt  DateTime @default(now())
+  totalKeys   Float    @default(0)
+  totalShares Float    @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("worker_tokens")
 }
 
 // ─── CARTEIRAS (para receber prêmios) ───
@@ -96,31 +118,34 @@ enum ChainType {
 
 // ─── PUZZLES / DESAFIOS ───
 model Puzzle {
-  id              String        @id @default(cuid())
-  title           String
-  description     String?
-  chain           ChainType     @default(BTC)
-  puzzleNumber    Int?          // ex: puzzle #66 do Bitcoin Puzzle Transaction
-  targetAddress   String?       // Endereço BTC/ETH/SOL alvo
-  targetPublicKey  String?       // Chave pública (se conhecida)
-  bitRange        Int           // Número de bits (ex: 66)
-  rangeStart      String        // Hex do início do range
-  rangeEnd        String        // Hex do fim do range
-  prizeAmount     Float         // Valor do prêmio
-  prizeCurrency   String        @default("BTC")
-  difficultyScore Float         // Score calculado pela fórmula
-  difficultyLabel DifficultyLabel
-  status          PuzzleStatus  @default(ACTIVE)
-  sourceUrl       String?       // Link para o site original
-  sourceName      String?       // ex: "bitcoinpuzzles.io", "Bitcoin Puzzle Transaction"
-  solvedBy        String?       // Quem resolveu
-  solvedAt        DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String          @id @default(cuid())
+  title            String
+  description      String?
+  chain            ChainType       @default(BTC)
+  puzzleNumber     Int?            // ex: puzzle #66 do Bitcoin Puzzle Transaction
+  targetAddress    String?         // Endereço BTC/ETH/SOL alvo
+  targetPublicKey  String?         // Chave pública (se conhecida)
+  bitRange         Int             // Número de bits (ex: 66)
+  rangeStart       String          // Hex do início do range
+  rangeEnd         String          // Hex do fim do range
+  prizeAmount      Float           // Valor do prêmio
+  prizeCurrency    String          @default("BTC")
+  difficultyScore  Float           // Score calculado pela fórmula
+  difficultyLabel  DifficultyLabel
+  hints            Json?           // Array de Dicas (máscaras, BIP39, prefixos)
+  effectiveBits    Float?          // Bits após redução de entropia
+  entropyReduction Float?          // Porcentagem de redução
+  status           PuzzleStatus    @default(ACTIVE)
+  sourceUrl        String?         // Link para o site original
+  sourceName       String?         // ex: "bitcoinpuzzles.io", "Bitcoin Puzzle Transaction"
+  solvedBy         String?         // Quem resolveu
+  solvedAt         DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  pools           Pool[]
-  ranges          Range[]
-  contributions   Contribution[]
+  pools            Pool[]
+  ranges           Range[]         @relation("PuzzleRanges")
+  contributions    Contribution[]
 
   @@map("puzzles")
 }
@@ -173,10 +198,14 @@ enum PoolStrategy {
 model Range {
   id              String          @id @default(cuid())
   poolId          String
+  puzzleId        String?
   assigneeId      String?         // User ID do responsável
+  chunkIndex      Int             @default(0)
   rangeStart      String          // Hex
   rangeEnd        String          // Hex
   status          RangeStatus     @default(PENDING)
+  isPruned        Boolean         @default(false)
+  prunedReason    String?         // Ex: "Importado de Pool Externa", "Máscara Inválida"
   keysChecked     Float           @default(0)  // Bilhões de chaves verificadas
   startedAt       DateTime?
   completedAt     DateTime?
@@ -186,7 +215,7 @@ model Range {
   updatedAt       DateTime        @updatedAt
 
   pool            Pool            @relation(fields: [poolId], references: [id])
-  puzzle          Puzzle          @relation(fields: [puzzleId], references: [id], name: "PuzzleRanges")
+  puzzle          Puzzle?         @relation(fields: [puzzleId], references: [id], name: "PuzzleRanges")
   assignee        User?           @relation(fields: [assigneeId], references: [id], name: "AssignedRanges")
   contribution    Contribution?
 
@@ -198,6 +227,7 @@ enum RangeStatus {
   ASSIGNED
   RUNNING
   COMPLETED
+  PRUNED
   FAILED
   EXPIRED
 }
@@ -213,6 +243,7 @@ model Contribution {
   id              String   @id @default(cuid())
   userId          String
   poolId          String
+  puzzleId        String?
   rangeId         String?  @unique
   keysChecked     Float    // Bilhões de chaves verificadas
   computeHours    Float    // Horas de computação doadas
@@ -223,8 +254,10 @@ model Contribution {
 
   user            User     @relation(fields: [userId], references: [id])
   pool            Pool     @relation(fields: [poolId], references: [id])
-  range          Range?   @relation(fields: [rangeId], references: [id])
-  puzzle          Puzzle   @relation(fields: [puzzleId], references: [id])
+  range           Range?   @relation(fields: [rangeId], references: [id])
+  puzzle          Puzzle?  @relation(fields: [puzzleId], references: [id])
+  member          Member?  @relation(fields: [memberId], references: [id])
+  memberId        String?
 
   @@map("contributions")
 }

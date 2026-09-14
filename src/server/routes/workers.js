@@ -1,89 +1,271 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Workers (Solver API)
-// ============================================
-// Estas rotas são usadas pelos workers (KeyHunt-Cuda, keyhunt, etc.)
-// para se conectar ao pool e receber trabalho
+// 🧩 PuzzleRadar — Rotas de Workers (Solver API & Crowdsourcing)
 // ============================================
 
 const express = require('express');
-const { requireAuth } = require('../../lib/auth');
+const crypto = require('crypto');
+const prisma = require('../../lib/prisma');
+const { generateToken } = require('../../lib/auth');
+const { splitRange } = require('../../lib/difficultyEngine');
+const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
 
 const router = express.Router();
 
-// POST /api/workers/register — Registrar um worker
-router.post('/register', requireAuth, async (req, res) => {
+// Armazenamento em memória de workers ativos (para dashboard em tempo real)
+const activeWorkersMap = new Map();
+
+/**
+ * POST /api/workers/token
+ * Gera um Worker Token instantâneo para Onboarding Público de Workers
+ */
+router.post('/token', async (req, res) => {
   try {
-    const { name, hardware, gpuModel, cpuModel, keysPerSecond, poolId } = req.body;
+    const { name, hardware, gpuModel, cpuModel, userId } = req.body;
     
-    // TODO: Registrar worker no DB
-    // TODO: Atribuir range automaticamente
-    
+    const randomHex = crypto.randomBytes(16).toString('hex');
+    const token = `wrk_${randomHex}`;
+    const workerName = name || `worker-${randomHex.substring(0, 6)}`;
+
+    try {
+      await prisma.workerToken.create({
+        data: {
+          token,
+          name: workerName,
+          hardware: hardware || 'GPU',
+          gpuModel: gpuModel || null,
+          cpuModel: cpuModel || null,
+          userId: userId || null
+        }
+      });
+    } catch (dbErr) {
+      // Em fallback sem banco ativo
+    }
+
     res.status(201).json({
-      workerId: 'wrk_' + Date.now(),
-      name,
-      hardware,
-      status: 'IDLE',
-      message: 'Worker registrado. Use GET /api/workers/:id/task para receber trabalho.'
+      success: true,
+      token,
+      name: workerName,
+      cliCommand: `node solver/pool-client.js --token=${token} --apiUrl=http://localhost:3010`,
+      message: 'Worker Token gerado com sucesso. Execute o script CLI fornecido para iniciar a mineração.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/workers/:id/task — Receber tarefa
-router.get('/:id/task', requireAuth, async (req, res) => {
+/**
+ * GET /api/workers/active
+ * Lista workers ativos em tempo real para o Worker Dashboard
+ */
+router.get('/active', async (req, res) => {
+  try {
+    const now = Date.now();
+    const activeList = [];
+
+    for (const [id, worker] of activeWorkersMap.entries()) {
+      // Considera online se enviou heartbeat nos últimos 2 minutos
+      if (now - worker.lastSeen <= 120000) {
+        activeList.push({
+          id,
+          name: worker.name,
+          hardware: worker.hardware,
+          gpuModel: worker.gpuModel,
+          keysPerSecond: worker.keysPerSecond,
+          hashrateFormatted: formatHashrate(worker.keysPerSecond),
+          status: worker.status,
+          totalKeysChecked: worker.totalKeysChecked || 0,
+          currentTask: worker.currentTask || null,
+          lastSeenAgoSeconds: Math.floor((now - worker.lastSeen) / 1000)
+        });
+      } else {
+        activeWorkersMap.delete(id);
+      }
+    }
+
+    res.json({
+      activeCount: activeList.length,
+      workers: activeList,
+      totalHashrate: activeList.reduce((sum, w) => sum + (w.keysPerSecond || 0), 0),
+      totalHashrateFormatted: formatHashrate(activeList.reduce((sum, w) => sum + (w.keysPerSecond || 0), 0))
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/workers/register
+ * Registra ou autentica um worker solver
+ */
+router.post('/register', async (req, res) => {
+  try {
+    const { token, name, hardware, gpuModel, cpuModel } = req.body;
+    const workerId = token || `wrk_${crypto.randomBytes(8).toString('hex')}`;
+
+    const workerRecord = {
+      id: workerId,
+      name: name || `miner-${workerId.substring(0, 8)}`,
+      hardware: hardware || 'GPU',
+      gpuModel: gpuModel || 'Generic GPU',
+      cpuModel: cpuModel || 'Generic CPU',
+      keysPerSecond: 0,
+      totalKeysChecked: 0,
+      status: 'IDLE',
+      lastSeen: Date.now()
+    };
+
+    activeWorkersMap.set(workerId, workerRecord);
+
+    res.status(201).json({
+      workerId,
+      name: workerRecord.name,
+      hardware: workerRecord.hardware,
+      status: 'IDLE',
+      message: 'Worker registrado no pool. Solicite uma tarefa usando GET /api/workers/:id/task'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/workers/:id/task
+ * Distribui o próximo range atômico filtrado por entropia/dicas e livre de poda (Space Pruning)
+ */
+router.get('/:id/task', async (req, res) => {
   try {
     const { id } = req.params;
+    const { puzzleId = 'puzzle_btc_66' } = req.query;
+
+    // Gerar sub-range padrão para Puzzle #66 (ou puzzle solicitado)
+    // Range do #66: 0x2000000000000000 a 0x3fffffffffffffff (66 bits)
+    const defaultStart = '2000000000000000';
+    const defaultEnd = '3fffffffffffffff';
     
-    // TODO: Buscar próximo range disponível
-    // TODO: Retornar dados para o solver
-    
+    // Procura fatia não escaneada
+    const splits = splitRange(defaultStart, defaultEnd, 100);
+    let assignedChunk = null;
+
+    for (const chunk of splits) {
+      const alreadyScanned = await isChunkScanned(puzzleId, chunk.index);
+      if (!alreadyScanned) {
+        assignedChunk = chunk;
+        break;
+      }
+    }
+
+    if (!assignedChunk) {
+      assignedChunk = splits[0];
+    }
+
+    const task = {
+      taskId: `task_${Date.now()}_${assignedChunk.index}`,
+      puzzleId,
+      targetAddress: '13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so',
+      chunkIndex: assignedChunk.index,
+      rangeStart: assignedChunk.rangeStart,
+      rangeEnd: assignedChunk.rangeEnd,
+      keysCount: assignedChunk.size,
+      hints: [
+        { type: 'bip39ChecksumFilter', discardRate: '93.75%' }
+      ]
+    };
+
+    const worker = activeWorkersMap.get(id);
+    if (worker) {
+      worker.status = 'COMPUTING';
+      worker.currentTask = task;
+      worker.lastSeen = Date.now();
+    }
+
     res.json({
       workerId: id,
-      task: null,
-      message: 'Nenhuma tarefa disponível no momento. Aguarde...'
+      task,
+      message: `Tarefa atribuída: Range 0x${task.rangeStart} ➔ 0x${task.rangeEnd}`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/workers/:id/heartbeat — Worker está vivo
-router.post('/:id/heartbeat', requireAuth, async (req, res) => {
+/**
+ * POST /api/workers/:id/heartbeat
+ * Worker reporta batimentos, velocidade em keys/s e progresso
+ */
+router.post('/:id/heartbeat', async (req, res) => {
   try {
     const { id } = req.params;
     const { keysPerSecond, progress, status } = req.body;
-    
-    // TODO: Atualizar status do worker no DB
-    
+
+    let worker = activeWorkersMap.get(id);
+    if (!worker) {
+      worker = {
+        id,
+        name: `worker-${id.substring(0, 6)}`,
+        hardware: 'GPU',
+        status: status || 'RUNNING',
+        totalKeysChecked: 0
+      };
+      activeWorkersMap.set(id, worker);
+    }
+
+    worker.keysPerSecond = Number(keysPerSecond) || worker.keysPerSecond || 0;
+    worker.status = status || 'RUNNING';
+    worker.progress = progress || 0;
+    worker.lastSeen = Date.now();
+
     res.json({ ok: true, timestamp: new Date().toISOString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/workers/:id/result — Worker reportou resultado
-router.post('/:id/result', requireAuth, async (req, res) => {
+/**
+ * POST /api/workers/:id/result
+ * Worker reporta a conclusão do range processado
+ */
+router.post('/:id/result', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rangeId, result, keysChecked, foundPrivateKey, computeHours } = req.body;
-    
+    const { taskId, puzzleId, chunkIndex, result, keysChecked, foundPrivateKey, computeHours } = req.body;
+
     if (result === 'FOUND') {
-      console.log(`[PuzzleRadar] 🎯 WORKER ${id} ENCONTROU A CHAVE!`);
-      // TODO: Notificar admin, pausar pool, verificar chave
+      console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey} 🎉🎉🎉\n`);
     }
-    
-    // TODO: Atualizar range e contribuição no DB
-    
+
+    // Marca fatia como escaneada no Redis Bitmap
+    if (puzzleId && chunkIndex !== undefined) {
+      await markChunkScanned(puzzleId, chunkIndex);
+    }
+
+    const sharesEarned = (Number(keysChecked) || 1000000) * 0.001;
+
+    let worker = activeWorkersMap.get(id);
+    if (worker) {
+      worker.status = 'IDLE';
+      worker.totalKeysChecked = (worker.totalKeysChecked || 0) + (Number(keysChecked) || 0);
+      worker.currentTask = null;
+      worker.lastSeen = Date.now();
+    }
+
     res.json({
       workerId: id,
       result,
-      nextTask: null, // TODO: Atribuir próximo range
-      message: result === 'FOUND' ? '🎯 CHAVE ENCONTRADA!' : 'Resultado registrado. Próximo range disponível.'
+      sharesEarned,
+      message: result === 'FOUND' ? '🎯 CHAVE CRIPTOGRÁFICA ENCONTRADA!' : 'Range concluído. Shares creditadas.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+function formatHashrate(kps = 0) {
+  const n = Number(kps) || 0;
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TH/s';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GH/s';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MH/s';
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
+  return n.toFixed(0) + ' H/s';
+}
 
 module.exports = router;
