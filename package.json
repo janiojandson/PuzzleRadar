@@ -9,7 +9,7 @@
     "dev:worker": "node src/workers/worker.js",
     "build": "npx prisma generate",
     "start": "node src/server/index.js",
-    "test": "node tests/difficultyEngine.test.js && node tests/importHistory.test.js && node tests/e2eWorkerFlow.test.js",
+    "test": "node tests/difficultyEngine.test.js && node tests/importHistory.test.js && node tests/e2eWorkerFlow.test.js && node tests/v3Scale.test.js",
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",

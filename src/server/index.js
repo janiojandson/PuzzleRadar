@@ -1,5 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar — Server Principal (Express & API)
+// 🧩 PuzzleRadar v3.0 — Server Principal (Express & API)
 // ============================================
 
 require('dotenv').config();
@@ -16,6 +16,8 @@ const rangeRoutes = require('./routes/ranges');
 const contributionRoutes = require('./routes/contributions');
 const workerRoutes = require('./routes/workers');
 const dashboardRoutes = require('./routes/dashboard');
+const advisorRoutes = require('./routes/advisor');
+const nexusRoutes = require('./routes/nexus');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -25,24 +27,34 @@ app.use(compression());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-nexus-key']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Servir arquivos estáticos do frontend (se compilado)
+// Servir arquivos estáticos do frontend
 const frontendPublicPath = path.join(__dirname, '../../public');
-const frontendDistPath = path.join(__dirname, '../../dist');
+const solverPath = path.join(__dirname, '../../solver');
 app.use(express.static(frontendPublicPath));
-app.use(express.static(frontendDistPath));
+app.use('/solver', express.static(solverPath));
 
 // ─── HEALTH CHECK ───
 app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'PuzzleRadar',
-    version: '2.0.0',
-    features: ['crowdsourcing_workers', 'space_pruning', 'entropy_engine', 'bip39_checksum_filter'],
+    version: '3.0.0',
+    features: [
+      'crowdsourcing_workers',
+      'google_colab_farm',
+      'space_pruning',
+      'google_sheets_archive',
+      'entropy_engine',
+      'bip39_checksum_filter',
+      'ecdsa_bsgs_acceleration',
+      'ai_math_advisor',
+      'nexus_cerebro_integrated'
+    ],
     timestamp: new Date().toISOString()
   });
 });
@@ -55,25 +67,27 @@ app.use('/api/ranges', rangeRoutes);
 app.use('/api/contributions', contributionRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/advisor', advisorRoutes);
+app.use('/api/nexus', nexusRoutes);
 
-// ─── FALLBACK SPA ROUTE (para o frontend Next/React se buildado) ───
+// ─── FALLBACK SPA ROUTE ───
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return next();
   }
-  const indexPath = path.join(frontendDistPath, 'index.html');
+  const indexPath = path.join(frontendPublicPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
-      // Se ainda não houver dist/index.html, retorna mensagem JSON elegante
       res.status(200).json({
-        service: 'PuzzleRadar API Gateway',
+        service: 'PuzzleRadar v3.0 API Gateway',
         status: 'online',
         endpoints: [
           '/health',
           '/api/puzzles',
           '/api/workers/active',
           '/api/ranges/available',
-          '/api/dashboard'
+          '/api/advisor/chat',
+          '/api/nexus/status'
         ],
         documentation: 'https://github.com/janiojandson/PuzzleRadar'
       });
@@ -93,7 +107,7 @@ app.use((err, req, res, next) => {
 // ─── START SE EXECUTADO DIRETAMENTE ───
 if (require.main === module) {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🧩 PuzzleRadar Server rodando na porta ${PORT}`);
+    console.log(`🧩 PuzzleRadar v3.0 Server rodando na porta ${PORT}`);
     console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
   });
 }

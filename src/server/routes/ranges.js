@@ -1,13 +1,53 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Ranges & Space Pruning
+// 🧩 PuzzleRadar v3.0 — Rotas de Ranges & Space Pruning
 // ============================================
 
 const express = require('express');
 const { requireAuth } = require('../../lib/auth');
 const prisma = require('../../lib/prisma');
 const { markChunkScanned, bulkImportHistory, getPruningStats } = require('../../lib/redis');
+const { appendRangesToSheet, getSheetsStats } = require('../../lib/googleSheets');
 
 const router = express.Router();
+
+/**
+ * POST /api/ranges/archive-to-sheets — Arquiva fatias diretamente no Google Sheets (Serverless History)
+ */
+router.post('/archive-to-sheets', async (req, res) => {
+  try {
+    const { spreadsheetId, ranges, chunks, source } = req.body;
+    const items = Array.isArray(chunks) && chunks.length > 0 ? chunks : (Array.isArray(ranges) ? ranges : []);
+
+    if (items.length === 0) {
+      return res.status(400).json({ error: 'Nenhum range informado para arquivamento no Google Sheets.' });
+    }
+
+    const archiveResult = await appendRangesToSheet(spreadsheetId, items, source || 'Admin Space Pruning');
+    
+    // Atualiza também os bitmaps de poda
+    await bulkImportHistory('puzzle_btc_66', items, 10000);
+
+    res.json({
+      success: true,
+      message: `${archiveResult.totalArchived} fatias arquivadas no Google Sheets com sucesso.`,
+      archiveResult
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/ranges/sheets-stats — Retorna estatísticas de armazenamento no Google Sheets
+ */
+router.get('/sheets-stats', async (req, res) => {
+  try {
+    const stats = await getSheetsStats();
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * POST /api/ranges/import-history
@@ -30,7 +70,9 @@ router.post('/import-history', async (req, res) => {
     const totalSpace = Number(totalEstimatedChunks) || 10000;
     const pruningResult = await bulkImportHistory(puzzleId, itemsToImport, totalSpace);
 
-    // Se houver conexão com o banco, registra atividade no log
+    // Arquiva também no Google Sheets em background
+    appendRangesToSheet(undefined, itemsToImport, source || 'Pool Externa').catch(() => {});
+
     try {
       await prisma.activityLog.create({
         data: {
@@ -43,9 +85,7 @@ router.post('/import-history', async (req, res) => {
           }
         }
       });
-    } catch (dbErr) {
-      // Continuar mesmo se db offline
-    }
+    } catch (dbErr) {}
 
     res.json({
       success: true,
@@ -60,7 +100,6 @@ router.post('/import-history', async (req, res) => {
 
 /**
  * GET /api/ranges/pruning-stats/:puzzleId
- * Retorna estatísticas de poda do espaço de busca
  */
 router.get('/pruning-stats/:puzzleId', async (req, res) => {
   try {
@@ -75,7 +114,6 @@ router.get('/pruning-stats/:puzzleId', async (req, res) => {
 
 /**
  * GET /api/ranges/available
- * Ranges disponíveis para trabalho (exclui fatias já descartadas / PRUNED)
  */
 router.get('/available', async (req, res) => {
   try {
@@ -94,13 +132,12 @@ router.get('/available', async (req, res) => {
         orderBy: { chunkIndex: 'asc' }
       });
     } catch (dbErr) {
-      // Fallback para mock caso banco ainda esteja sem seed
       ranges = [
         {
           id: 'rng_sample_1',
           chunkIndex: 0,
-          rangeStart: '20000000000000000',
-          rangeEnd: '2000000000fffffff',
+          rangeStart: '2000000000000000',
+          rangeEnd: '2000000000ffffff',
           status: 'PENDING'
         }
       ];
@@ -118,7 +155,6 @@ router.get('/available', async (req, res) => {
 
 /**
  * POST /api/ranges/:id/claim
- * Reivindica um range para processamento por um worker
  */
 router.post('/:id/claim', async (req, res) => {
   try {
@@ -153,7 +189,6 @@ router.post('/:id/claim', async (req, res) => {
 
 /**
  * POST /api/ranges/:id/result
- * Reporta o resultado do range processado
  */
 router.post('/:id/result', async (req, res) => {
   try {
@@ -164,7 +199,6 @@ router.post('/:id/result', async (req, res) => {
       console.log(`[PuzzleRadar] 🎯 CHAVE ENCONTRADA no range ${id}! Notificando admin do pool...`);
     }
 
-    // Se informado chunkIndex, marca no bitmap Redis
     if (puzzleId && chunkIndex !== undefined) {
       await markChunkScanned(puzzleId, chunkIndex);
     }
@@ -182,9 +216,7 @@ router.post('/:id/result', async (req, res) => {
           foundPrivateKey: result === 'FOUND' ? foundPrivateKey : null
         }
       });
-    } catch (dbErr) {
-      // Silenciar erro em ambiente sem Postgres conectado
-    }
+    } catch (dbErr) {}
     
     res.json({
       rangeId: id,

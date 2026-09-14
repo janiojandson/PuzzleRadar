@@ -1,10 +1,11 @@
 // ============================================
-// 🧩 PuzzleRadar — Frontend Application Logic
+// 🧩 PuzzleRadar v3.0 — Frontend Application Logic
 // ============================================
 
-let currentTab = 'tab-workers';
+let currentTab = 'tab-colab';
 let currentToken = 'wrk_crowdsource_demo';
 let allPuzzlesData = [];
+let isChatOpen = false;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', () => {
@@ -12,13 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.lucide.createIcons();
   }
   
-  // Carrega dados iniciais
   fetchActiveWorkers();
   fetchPuzzles();
   simulateEntropy();
-  fetchPruningStats();
+  fetchSheetsStats();
 
-  // Polling em tempo real a cada 3 segundos
   setInterval(() => {
     fetchActiveWorkers();
   }, 3000);
@@ -47,6 +46,89 @@ function switchTab(tabId) {
 }
 
 /**
+ * Abre/Fecha o Modal do Consultor Matemático IA
+ */
+function toggleAdvisorChat() {
+  isChatOpen = !isChatOpen;
+  const modal = document.getElementById('advisorChatModal');
+  if (modal) {
+    if (isChatOpen) {
+      modal.classList.remove('hidden');
+      document.getElementById('advisorInput')?.focus();
+    } else {
+      modal.classList.add('hidden');
+    }
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+/**
+ * Envia mensagem para o Consultor Matemático IA
+ */
+async function sendAdvisorMessage(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('advisorInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  appendChatMessage('user', msg);
+  input.value = '';
+
+  const loadingId = appendChatMessage('ai', '⏳ Analisando cálculo matemático...');
+
+  try {
+    const res = await fetch('/api/advisor/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        context: {
+          totalHashrate: document.getElementById('headerHashrate')?.innerText || '42 GH/s',
+          activeWorkers: document.getElementById('headerWorkers')?.innerText || '1 online',
+          publicKeyExposed: document.getElementById('hintBSGS')?.checked || false
+        }
+      })
+    });
+
+    const data = await res.json();
+    updateChatMessage(loadingId, data.reply || 'Erro ao processar resposta.');
+  } catch (err) {
+    updateChatMessage(loadingId, `⚠️ Erro ao consultar IA: ${err.message}`);
+  }
+}
+
+function askQuickPrompt(text) {
+  document.getElementById('advisorInput').value = text;
+  sendAdvisorMessage();
+}
+
+function appendChatMessage(sender, text) {
+  const container = document.getElementById('advisorMessages');
+  if (!container) return;
+
+  const msgId = 'msg_' + Date.now();
+  const div = document.createElement('div');
+  div.id = msgId;
+  div.className = sender === 'user' 
+    ? 'p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 ml-6'
+    : 'p-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 mr-6';
+  
+  div.innerHTML = text.replace(/\n/g, '<br/>');
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return msgId;
+}
+
+function updateChatMessage(msgId, text) {
+  const el = document.getElementById(msgId);
+  if (el) {
+    el.innerHTML = text.replace(/\n/g, '<br/>');
+    const container = document.getElementById('advisorMessages');
+    if (container) container.scrollTop = container.scrollHeight;
+  }
+}
+
+/**
  * Gera Worker Token via API
  */
 async function generateWorkerToken() {
@@ -66,17 +148,13 @@ async function generateWorkerToken() {
       const origin = window.location.origin;
       const cmd = `node solver/pool-client.js --token=${data.token} --apiUrl=${origin}`;
       document.getElementById('cliCommandText').innerText = cmd;
-      
-      alert(`🎉 Worker Token gerado com sucesso!\n\nToken: ${data.token}\n\nO comando de terminal foi atualizado abaixo.`);
+      alert(`🎉 Worker Token gerado com sucesso!\n\nToken: ${data.token}\n\nO comando de terminal foi atualizado.`);
     }
   } catch (err) {
     console.error('Erro ao gerar token:', err);
   }
 }
 
-/**
- * Copia comando para a área de transferência
- */
 function copyCliCommand() {
   const cmd = document.getElementById('cliCommandText').innerText;
   navigator.clipboard.writeText(cmd).then(() => {
@@ -87,7 +165,7 @@ function copyCliCommand() {
 }
 
 /**
- * Busca workers ativos em tempo real
+ * Busca workers e nós Colab ativos em tempo real
  */
 async function fetchActiveWorkers() {
   try {
@@ -97,83 +175,81 @@ async function fetchActiveWorkers() {
     const count = data.activeCount || 0;
     const hashrate = data.totalHashrateFormatted || '0 H/s';
 
-    // Atualiza headers
     const headerH = document.getElementById('headerHashrate');
     if (headerH) headerH.innerHTML = `<span class="w-2 h-2 rounded-full ${count > 0 ? 'bg-emerald-400 animate-ping' : 'bg-slate-500'}"></span><span>${hashrate}</span>`;
 
     const headerW = document.getElementById('headerWorkers');
     if (headerW) headerW.innerText = `${count} ${count === 1 ? 'online' : 'online'}`;
 
-    const countBadge = document.getElementById('workerCountBadge');
-    if (countBadge) countBadge.innerText = `${count} ${count === 1 ? 'Nó Minerando' : 'Nós Minerando'}`;
+    const colabBadge = document.getElementById('colabFarmBadge');
+    if (colabBadge) colabBadge.innerText = `${count} ${count === 1 ? 'Conta Conectada' : 'Contas Conectadas'}`;
 
-    // Renderiza grid de workers
-    const container = document.getElementById('workersList');
-    if (!container) return;
-
-    if (count === 0) {
-      container.innerHTML = `
-        <div class="glass-panel rounded-xl p-5 border border-dashed border-white/10 text-center py-10 col-span-full">
-          <i data-lucide="cpu" class="w-8 h-8 text-slate-500 mx-auto mb-2"></i>
-          <p class="text-sm text-slate-400">Nenhum worker externo conectado no momento. Inicie seu script para minerar!</p>
-        </div>
-      `;
-    } else {
-      container.innerHTML = data.workers.map(w => `
-        <div class="glass-panel rounded-xl p-4 space-y-3 border border-emerald-500/20">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="font-bold text-white text-sm font-mono">${w.name}</span>
-            </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">${w.status}</span>
+    // Renderiza grid de nós Colab
+    const colabContainer = document.getElementById('colabNodesList');
+    if (colabContainer) {
+      if (count === 0) {
+        colabContainer.innerHTML = `
+          <div class="glass-panel rounded-xl p-5 border border-dashed border-white/10 text-center py-8 col-span-full">
+            <i data-lucide="server" class="w-8 h-8 text-slate-500 mx-auto mb-2"></i>
+            <p class="text-sm text-slate-400">Nenhuma conta Google Colab conectada no momento. Abra o notebook para começar a minerar!</p>
           </div>
+        `;
+      } else {
+        colabContainer.innerHTML = data.workers.map(w => `
+          <div class="glass-panel rounded-xl p-4 space-y-3 border border-emerald-500/20">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-white text-sm font-mono">${w.name}</span>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">GPU T4</span>
+            </div>
 
-          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-            <div class="p-2 rounded bg-white/5">
-              <div class="text-slate-400">Hashrate</div>
-              <div class="font-bold text-cyan-300">${w.hashrateFormatted}</div>
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div class="p-2 rounded bg-white/5">
+                <div class="text-slate-400">Hashrate</div>
+                <div class="font-bold text-cyan-300">${w.hashrateFormatted}</div>
+              </div>
+              <div class="p-2 rounded bg-white/5">
+                <div class="text-slate-400">VRAM / GPU</div>
+                <div class="font-bold text-slate-200">16GB T4</div>
+              </div>
             </div>
-            <div class="p-2 rounded bg-white/5">
-              <div class="text-slate-400">Hardware</div>
-              <div class="font-bold text-slate-200">${w.hardware}</div>
-            </div>
+
+            ${w.currentTask ? `
+              <div class="text-[11px] font-mono text-slate-400 bg-cypher-900 p-2 rounded truncate border border-white/5">
+                ↳ Fatia: 0x${w.currentTask.rangeStart} ➔ 0x${w.currentTask.rangeEnd}
+              </div>
+            ` : ''}
           </div>
+        `).join('');
+      }
+    }
 
-          ${w.currentTask ? `
-            <div class="text-[11px] font-mono text-slate-400 bg-cypher-900 p-2 rounded truncate border border-white/5">
-              ↳ Fatia: 0x${w.currentTask.rangeStart} ➔ 0x${w.currentTask.rangeEnd}
-            </div>
-          ` : ''}
-        </div>
-      `).join('');
+    // Renderiza grid de workers normais
+    const workerContainer = document.getElementById('workersList');
+    if (workerContainer && colabContainer) {
+      workerContainer.innerHTML = colabContainer.innerHTML;
     }
 
     if (window.lucide) window.lucide.createIcons();
-  } catch (err) {
-    // Silencia erros transitórios
-  }
+  } catch (err) {}
 }
 
 /**
- * Simula redução de entropia em tempo real
+ * Simula redução de entropia
  */
 async function simulateEntropy() {
   try {
     const bip39Checked = document.getElementById('hintBip39')?.checked;
+    const bsgsChecked = document.getElementById('hintBSGS')?.checked;
     const prefix = document.getElementById('hintPrefix')?.value?.trim();
     const knownBits = Number(document.getElementById('hintBits')?.value) || 0;
 
     const hints = [];
-    if (bip39Checked) {
-      hints.push({ type: 'bip39ChecksumFilter' });
-    }
-    if (prefix) {
-      hints.push({ type: 'fixedPrefix', value: prefix });
-    }
-    if (knownBits > 0) {
-      hints.push({ type: 'knownBits', count: knownBits });
-    }
+    if (bip39Checked) hints.push({ type: 'bip39ChecksumFilter' });
+    if (prefix) hints.push({ type: 'fixedPrefix', value: prefix });
+    if (knownBits > 0) hints.push({ type: 'knownBits', count: knownBits });
 
     const res = await fetch('/api/puzzles/entropy/simulate', {
       method: 'POST',
@@ -181,7 +257,8 @@ async function simulateEntropy() {
       body: JSON.stringify({
         bitRange: 66,
         prizeAmount: 6.6,
-        hints
+        hints,
+        publicKeyExposed: bsgsChecked
       })
     });
 
@@ -191,12 +268,12 @@ async function simulateEntropy() {
     document.getElementById('simReductionPercent').innerText = `-${data.entropyReductionRatio}`;
     
     let timeStr = '';
-    if (data.estimatedHoursRTX4090 < 1) {
-      timeStr = `${(data.estimatedHoursRTX4090 * 60).toFixed(1)} minutos`;
-    } else if (data.estimatedDaysRTX4090 < 365) {
-      timeStr = `~${data.estimatedDaysRTX4090.toFixed(2)} dias`;
+    if (data.estimatedHoursColabFarm5x < 1) {
+      timeStr = `${(data.estimatedHoursColabFarm5x * 60).toFixed(1)} minutos`;
+    } else if (data.estimatedHoursColabFarm5x / 24 < 365) {
+      timeStr = `~${(data.estimatedHoursColabFarm5x / 24).toFixed(2)} dias`;
     } else {
-      timeStr = `~${data.estimatedYearsRTX4090.toFixed(1)} anos`;
+      timeStr = `~${(data.estimatedHoursColabFarm5x / 8760).toFixed(1)} anos`;
     }
     document.getElementById('simTimeEst').innerText = timeStr;
     document.getElementById('simScore').innerText = `${data.score} (${data.label} ${data.emoji})`;
@@ -207,45 +284,39 @@ async function simulateEntropy() {
 }
 
 /**
- * Busca estatísticas de space pruning
+ * Busca estatísticas de Google Sheets
  */
-async function fetchPruningStats() {
+async function fetchSheetsStats() {
   try {
-    const res = await fetch('/api/ranges/pruning-stats/puzzle_btc_66?total=1000');
+    const res = await fetch('/api/ranges/sheets-stats');
     const data = await res.json();
-
-    document.getElementById('prunePercent').innerText = `${data.prunedPercent}%`;
-    document.getElementById('pruneProgressBar').style.width = `${data.prunedPercent}%`;
-    document.getElementById('pruneCount').innerText = data.scannedChunks;
-    document.getElementById('pruneRemaining').innerText = data.remainingChunks;
-  } catch (err) {
-    // Ignorar
-  }
+    const countEl = document.getElementById('sheetsTotalArchived');
+    if (countEl) countEl.innerText = data.totalArchivedRanges || 152;
+  } catch (e) {}
 }
 
 /**
- * Envia histórico de fatias para o Space Pruning
+ * Envia histórico de fatias para o Google Sheets
  */
-async function submitPruningHistory() {
+async function submitSheetsArchive() {
   try {
-    const puzzleId = document.getElementById('prunePuzzleSelect').value;
     const rawInput = document.getElementById('pruneInput').value.trim();
+    const spreadsheetId = document.getElementById('sheetsIdInput')?.value.trim() || undefined;
 
     if (!rawInput) {
-      alert('Por favor, informe ao menos uma fatia ou lista de índices de chunks.');
+      alert('Por favor, informe ao menos uma fatia ou lista de ranges.');
       return;
     }
 
-    // Processa linhas ou vírgulas
     const items = rawInput.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
 
-    const res = await fetch('/api/ranges/import-history', {
+    const res = await fetch('/api/ranges/archive-to-sheets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        puzzleId,
+        spreadsheetId,
         chunks: items,
-        totalEstimatedChunks: 1000
+        source: 'Google Colab Farm Ingestion'
       })
     });
 
@@ -253,15 +324,15 @@ async function submitPruningHistory() {
     if (data.success) {
       alert(`✅ ${data.message}`);
       document.getElementById('pruneInput').value = '';
-      fetchPruningStats();
+      fetchSheetsStats();
     }
   } catch (err) {
-    alert('Erro ao importar histórico: ' + err.message);
+    alert('Erro ao arquivar no Google Sheets: ' + err.message);
   }
 }
 
 /**
- * Busca lista de puzzles
+ * Busca e renderiza puzzles multi-moedas
  */
 async function fetchPuzzles() {
   try {
@@ -274,16 +345,11 @@ async function fetchPuzzles() {
   }
 }
 
-/**
- * Filtra e renderiza lista de puzzles
- */
-function filterPuzzles(filterType) {
-  if (filterType === 'active') {
-    renderPuzzles(allPuzzlesData.filter(p => !p.solved));
-  } else if (filterType === 'solved') {
-    renderPuzzles(allPuzzlesData.filter(p => p.solved));
-  } else {
+function filterPuzzles(chainFilter) {
+  if (chainFilter === 'all') {
     renderPuzzles(allPuzzlesData);
+  } else {
+    renderPuzzles(allPuzzlesData.filter(p => p.chain === chainFilter));
   }
 }
 
@@ -296,23 +362,30 @@ function renderPuzzles(puzzles) {
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-lg">${p.emoji}</span>
-          <span class="font-extrabold text-white text-base">Bitcoin Puzzle #${p.puzzleNumber}</span>
+          <span class="font-extrabold text-white text-base">${p.title || p.chain + ' Puzzle #' + p.puzzleNumber}</span>
         </div>
         <span class="px-2 py-0.5 rounded text-[10px] font-bold ${p.solved ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'} uppercase">
-          ${p.solved ? 'RESOLVIDO (Lab)' : 'ATIVO 🔥'}
+          ${p.solved ? 'RESOLVIDO' : 'ATIVO 🔥'}
         </span>
       </div>
 
       <div class="grid grid-cols-2 gap-2 text-xs font-mono">
         <div class="p-2 rounded bg-white/5">
-          <div class="text-slate-400">Entropia</div>
-          <div class="font-bold text-cyan-300">${p.bits} bits</div>
+          <div class="text-slate-400">Moeda / Bits</div>
+          <div class="font-bold text-cyan-300">${p.chain} (${p.bits} bits)</div>
         </div>
         <div class="p-2 rounded bg-white/5">
           <div class="text-slate-400">Prêmio</div>
-          <div class="font-bold text-amber-400">${p.prize} BTC</div>
+          <div class="font-bold text-amber-400">${p.prize} ${p.prizeCurrency || p.chain}</div>
         </div>
       </div>
+
+      ${p.publicKeyExposed ? `
+        <div class="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] font-mono text-amber-300 flex items-center gap-1.5">
+          <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+          <span>Chave Pública Exposta ➔ Aceleração BSGS O(√N)</span>
+        </div>
+      ` : ''}
 
       <div class="text-xs text-slate-400 font-mono space-y-1">
         <div>Score: <strong class="text-white">${p.score}</strong> (${p.label})</div>
@@ -320,4 +393,5 @@ function renderPuzzles(puzzles) {
       </div>
     </div>
   `).join('');
+  if (window.lucide) window.lucide.createIcons();
 }
