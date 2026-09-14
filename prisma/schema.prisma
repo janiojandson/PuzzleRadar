@@ -1,5 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar — Prisma Schema (Multi-Tenant & Entropy Pruned)
+// 🧩 PuzzleRadar — Prisma Schema (Fleet, Intelligence Hub & Multi-Chain)
 // ============================================
 
 generator client {
@@ -51,7 +51,7 @@ enum MemberRole {
   VIEWER
 }
 
-// ─── USUÁRIOS ───
+// ─── USUÁRIOS (Pessoas que gerenciam frotas) ───
 model User {
   id            String     @id @default(cuid())
   email         String     @unique
@@ -59,10 +59,10 @@ model User {
   passwordHash  String
   displayName   String?
   avatarUrl     String?
-  gpuModel      String?    // ex: "RTX 4090", "GTX 1660"
-  cpuModel      String?    // ex: "Ryzen 9 7950X"
+  gpuModel      String?    // ex: "RTX 4090", "Tesla T4 Farm"
+  cpuModel      String?
   hasGpu        Boolean    @default(false)
-  totalShares   Float      @default(0)  // Total de contribuição acumulada
+  totalShares   Float      @default(0)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -71,11 +71,91 @@ model User {
   walletAddresses WalletAddress[]
   assignedRanges  Range[]         @relation("AssignedRanges")
   workerTokens    WorkerToken[]
+  fleetNodes      FleetNode[]
+  discoveryHints  DiscoveryHint[]
 
   @@map("users")
 }
 
-// ─── WORKER TOKENS (Crowdsourcing Onboarding) ───
+// ─── FLEET NODES (Gerenciamento de Frotas de Máquinas e Colabs) ───
+model FleetNode {
+  id               String      @id @default(cuid())
+  userId           String?
+  nodeToken        String      @unique
+  name             String      // ex: "colab-conta-01", "rig-rtx4090-sp"
+  accountTag       String?     // ex: "google-conta-principal", "conta-02-janio"
+  hardwareType     String      @default("GPU_TESLA_T4") // GPU_TESLA_T4, GPU_RTX, CPU
+  gpuModel         String?     @default("NVIDIA Tesla T4")
+  vramGB           Int?        @default(16)
+  ipAddress        String?
+  currentHashrate  Float       @default(0) // chaves por segundo
+  totalKeysChecked Float       @default(0)
+  totalShares      Float       @default(0)
+  currentTaskId    String?
+  status           FleetStatus @default(IDLE)
+  lastPing         DateTime    @default(now())
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user             User?       @relation(fields: [userId], references: [id])
+
+  @@map("fleet_nodes")
+}
+
+enum FleetStatus {
+  IDLE
+  MINING
+  BENCHMARKING
+  OFFLINE
+  ERROR
+}
+
+// ─── DISCOVERY HINTS (Mural Central de Inteligência e Pistas Criptográficas) ───
+model DiscoveryHint {
+  id             String     @id @default(cuid())
+  puzzleId       String?
+  userId         String?
+  title          String     // ex: "Descoberta de 8 palavras da semente ETH #101"
+  hintType       HintType   @default(SEED_WORDS)
+  fragment       String?    // Hex ou texto do fragmento
+  seedWords      String?    // Palavras BIP39 conhecidas separadas por espaço
+  knownBitsCount Int?       @default(0)
+  confidence     Float      @default(100.0) // Confiança %
+  authorName     String     @default("Cypherpunk Miner")
+  isVerified     Boolean    @default(true)
+  metadata       Json?
+  createdAt      DateTime   @default(now())
+
+  user           User?      @relation(fields: [userId], references: [id])
+  puzzle         Puzzle?    @relation(fields: [puzzleId], references: [id])
+
+  @@map("discovery_hints")
+}
+
+enum HintType {
+  SEED_WORDS
+  MASK_PREFIX
+  MASK_SUFFIX
+  PUBLIC_KEY
+  BIT_PATTERN
+}
+
+// ─── PUBLIC RANGE IMPORTS (Registro de Ingestão de Alianças Públicas) ───
+model PublicRangeImport {
+  id              String       @id @default(cuid())
+  puzzleId        String
+  sourceName      String       // ex: "bitcoinpuzzles.io", "BTC Challenge Pool"
+  sourceUrl       String?
+  rangesCount     Int          @default(0)
+  prunedPercent   Float        @default(0)
+  syncedToSheets  Boolean      @default(true)
+  spreadsheetId   String?
+  importedAt      DateTime     @default(now())
+
+  @@map("public_range_imports")
+}
+
+// ─── WORKER TOKENS ───
 model WorkerToken {
   id          String   @id @default(cuid())
   userId      String?
@@ -95,7 +175,7 @@ model WorkerToken {
   @@map("worker_tokens")
 }
 
-// ─── CARTEIRAS (para receber prêmios) ───
+// ─── CARTEIRAS ───
 model WalletAddress {
   id        String @id @default(cuid())
   userId    String
@@ -116,29 +196,30 @@ enum ChainType {
   OTHER
 }
 
-// ─── PUZZLES / DESAFIOS ───
+// ─── PUZZLES / DESAFIOS MULTI-MOEDAS ───
 model Puzzle {
   id               String          @id @default(cuid())
   title            String
   description      String?
   chain            ChainType       @default(BTC)
-  puzzleNumber     Int?            // ex: puzzle #66 do Bitcoin Puzzle Transaction
-  targetAddress    String?         // Endereço BTC/ETH/SOL alvo
-  targetPublicKey  String?         // Chave pública (se conhecida)
-  bitRange         Int             // Número de bits (ex: 66)
-  rangeStart       String          // Hex do início do range
-  rangeEnd         String          // Hex do fim do range
-  prizeAmount      Float           // Valor do prêmio
+  puzzleNumber     Int?
+  targetAddress    String?
+  targetPublicKey  String?
+  bitRange         Int
+  rangeStart       String
+  rangeEnd         String
+  prizeAmount      Float
   prizeCurrency    String          @default("BTC")
-  difficultyScore  Float           // Score calculado pela fórmula
+  difficultyScore  Float
   difficultyLabel  DifficultyLabel
-  hints            Json?           // Array de Dicas (máscaras, BIP39, prefixos)
-  effectiveBits    Float?          // Bits após redução de entropia
-  entropyReduction Float?          // Porcentagem de redução
+  hints            Json?
+  effectiveBits    Float?
+  entropyReduction Float?
+  publicKeyExposed Boolean         @default(false)
   status           PuzzleStatus    @default(ACTIVE)
-  sourceUrl        String?         // Link para o site original
-  sourceName       String?         // ex: "bitcoinpuzzles.io", "Bitcoin Puzzle Transaction"
-  solvedBy         String?         // Quem resolveu
+  sourceUrl        String?
+  sourceName       String?
+  solvedBy         String?
   solvedAt         DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
@@ -146,6 +227,7 @@ model Puzzle {
   pools            Pool[]
   ranges           Range[]         @relation("PuzzleRanges")
   contributions    Contribution[]
+  discoveryHints   DiscoveryHint[]
 
   @@map("puzzles")
 }
@@ -189,9 +271,10 @@ model Pool {
 }
 
 enum PoolStrategy {
-  RANGE_SPLIT      // Divide o range em pedaços iguais
-  RANDOM_SAMPLING  // Cada worker busca aleatoriamente
-  KANGAROO         // Pollard's Kangaroo (requer pubkey)
+  RANGE_SPLIT
+  RANDOM_SAMPLING
+  KANGAROO
+  BSGS_ECDSA
 }
 
 // ─── RANGES DE BUSCA ───
@@ -199,18 +282,18 @@ model Range {
   id              String          @id @default(cuid())
   poolId          String
   puzzleId        String?
-  assigneeId      String?         // User ID do responsável
+  assigneeId      String?
   chunkIndex      Int             @default(0)
-  rangeStart      String          // Hex
-  rangeEnd        String          // Hex
+  rangeStart      String
+  rangeEnd        String
   status          RangeStatus     @default(PENDING)
   isPruned        Boolean         @default(false)
-  prunedReason    String?         // Ex: "Importado de Pool Externa", "Máscara Inválida"
-  keysChecked     Float           @default(0)  // Bilhões de chaves verificadas
+  prunedReason    String?
+  keysChecked     Float           @default(0)
   startedAt       DateTime?
   completedAt     DateTime?
   result          RangeResult     @default(NOT_FOUND)
-  foundPrivateKey String?         // Se encontrou a chave!
+  foundPrivateKey String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -238,18 +321,18 @@ enum RangeResult {
   ERROR
 }
 
-// ─── CONTRIBUIÇÕES (para divisão de prêmios) ───
+// ─── CONTRIBUIÇÕES ───
 model Contribution {
   id              String   @id @default(cuid())
   userId          String
   poolId          String
   puzzleId        String?
   rangeId         String?  @unique
-  keysChecked     Float    // Bilhões de chaves verificadas
-  computeHours    Float    // Horas de computação doadas
+  keysChecked     Float
+  computeHours    Float
   gpuHours        Float    @default(0)
   cpuHours        Float    @default(0)
-  shares          Float    // Ações calculadas para divisão do prêmio
+  shares          Float
   createdAt       DateTime @default(now())
 
   user            User     @relation(fields: [userId], references: [id])
@@ -262,13 +345,13 @@ model Contribution {
   @@map("contributions")
 }
 
-// ─── API KEYS (para workers se conectarem) ───
+// ─── API KEYS ───
 model ApiKey {
   id              String       @id @default(cuid())
   organizationId  String
   key             String       @unique
   name            String
-  permissions     String       @default("worker")  // worker, admin
+  permissions     String       @default("worker")
   isActive        Boolean      @default(true)
   lastUsedAt      DateTime?
   createdAt       DateTime     @default(now())

@@ -1,29 +1,26 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Puzzles & Redução de Entropia
+// 🧩 PuzzleRadar — Rotas de Puzzles (com Paginação Server-Side)
 // ============================================
 
 const express = require('express');
-const { calculateDifficultyScore, getBitcoinPuzzleData, calculateEntropyReduction } = require('../../lib/difficultyEngine');
+const { calculateDifficultyScore, getMultiChainPuzzleData } = require('../../lib/difficultyEngine');
 const prisma = require('../../lib/prisma');
 
 const router = express.Router();
 
-// Mock store em memória para hints dinâmicos de puzzles
 const puzzleHintsStore = new Map();
-
-// Inicializa hints padrões se desejado (ex: Puzzle #66)
 puzzleHintsStore.set('66', [
   { type: 'bip39ChecksumFilter', discardRate: '93.75%' }
 ]);
 
 /**
- * GET /api/puzzles — Lista todos os puzzles com pontuação e suporte a hints
+ * GET /api/puzzles — Lista puzzles com Paginação Server-Side, Filtros e Busca
  */
 router.get('/', async (req, res) => {
   try {
-    const { chain, difficulty, status, minBits, maxBits } = req.query;
+    const { chain, difficulty, status, search, page = 1, limit = 9 } = req.query;
     
-    let puzzles = getBitcoinPuzzleData();
+    let puzzles = getMultiChainPuzzleData();
     
     // Aplicar hints personalizados se existirem
     puzzles = puzzles.map(p => {
@@ -34,7 +31,8 @@ router.get('/', async (req, res) => {
           rangeStart: p.rangeStart,
           rangeEnd: p.rangeEnd,
           prizeAmount: p.prize,
-          hints
+          hints,
+          publicKeyExposed: p.publicKeyExposed
         });
         return {
           ...p,
@@ -49,16 +47,36 @@ router.get('/', async (req, res) => {
     });
 
     // Filtros
-    if (chain) puzzles = puzzles.filter(p => p.chain === chain);
-    if (difficulty) puzzles = puzzles.filter(p => p.difficulty === difficulty.toUpperCase());
+    if (chain && chain !== 'all') {
+      puzzles = puzzles.filter(p => p.chain.toUpperCase() === chain.toUpperCase());
+    }
+    if (difficulty && difficulty !== 'all') {
+      puzzles = puzzles.filter(p => p.difficulty.toUpperCase() === difficulty.toUpperCase());
+    }
     if (status === 'active') puzzles = puzzles.filter(p => !p.solved);
     if (status === 'solved') puzzles = puzzles.filter(p => p.solved);
-    if (minBits) puzzles = puzzles.filter(p => p.bits >= parseInt(minBits, 10));
-    if (maxBits) puzzles = puzzles.filter(p => p.bits <= parseInt(maxBits, 10));
-    
+    if (search) {
+      const q = search.toLowerCase();
+      puzzles = puzzles.filter(p => 
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.targetAddress && p.targetAddress.toLowerCase().includes(q)) ||
+        (String(p.puzzleNumber).includes(q))
+      );
+    }
+
+    const total = puzzles.length;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 9);
+    const startIndex = (pageNum - 1) * limitNum;
+    const endIndex = startIndex + limitNum;
+    const paginatedPuzzles = puzzles.slice(startIndex, endIndex);
+
     res.json({
-      total: puzzles.length,
-      puzzles
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      puzzles: paginatedPuzzles
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -66,11 +84,11 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * GET /api/puzzles/:id — Detalhes de um puzzle específico
+ * GET /api/puzzles/:id — Detalhes de um puzzle
  */
 router.get('/:id', async (req, res) => {
   try {
-    const puzzles = getBitcoinPuzzleData();
+    const puzzles = getMultiChainPuzzleData();
     const puzzleIdParam = req.params.id;
     const puzzleNum = parseInt(puzzleIdParam.replace(/\D/g, ''), 10) || parseInt(puzzleIdParam, 10);
     
@@ -87,7 +105,8 @@ router.get('/:id', async (req, res) => {
         rangeStart: puzzle.rangeStart,
         rangeEnd: puzzle.rangeEnd,
         prizeAmount: puzzle.prize,
-        hints
+        hints,
+        publicKeyExposed: puzzle.publicKeyExposed
       });
       puzzle = { ...puzzle, ...recalculation, hints };
     } else {
@@ -101,7 +120,7 @@ router.get('/:id', async (req, res) => {
 });
 
 /**
- * POST /api/puzzles/:id/hints — Adicionar ou atualizar Dicas (Hints) para Redução de Entropia
+ * POST /api/puzzles/:id/hints
  */
 router.post('/:id/hints', async (req, res) => {
   try {
@@ -115,7 +134,7 @@ router.post('/:id/hints', async (req, res) => {
 
     puzzleHintsStore.set(String(puzzleNum), hints);
 
-    const puzzles = getBitcoinPuzzleData();
+    const puzzles = getMultiChainPuzzleData();
     const basePuzzle = puzzles.find(p => p.puzzleNumber === puzzleNum) || { bits: 66, prize: 6.6 };
 
     const recalculation = calculateDifficultyScore({
@@ -129,7 +148,7 @@ router.post('/:id/hints', async (req, res) => {
       puzzleNumber: puzzleNum,
       hints,
       recalculation,
-      message: `Dicas aplicadas com sucesso! Entropia reduzida para ${recalculation.effectiveBits} bits efetivos.`
+      message: `Dicas aplicadas! Entropia reduzida para ${recalculation.effectiveBits} bits efetivos.`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -137,16 +156,17 @@ router.post('/:id/hints', async (req, res) => {
 });
 
 /**
- * POST /api/puzzles/entropy/simulate — Simulador Interativo de Redução de Entropia
+ * POST /api/puzzles/entropy/simulate
  */
 router.post('/entropy/simulate', (req, res) => {
   try {
-    const { bitRange = 66, prizeAmount = 6.6, hints = [] } = req.body;
+    const { bitRange = 66, prizeAmount = 6.6, hints = [], publicKeyExposed = false } = req.body;
     
     const result = calculateDifficultyScore({
       bitRange: Number(bitRange),
       prizeAmount: Number(prizeAmount),
-      hints
+      hints,
+      publicKeyExposed: Boolean(publicKeyExposed)
     });
     
     res.json(result);

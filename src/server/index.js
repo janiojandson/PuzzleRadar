@@ -18,6 +18,9 @@ const workerRoutes = require('./routes/workers');
 const dashboardRoutes = require('./routes/dashboard');
 const advisorRoutes = require('./routes/advisor');
 const nexusRoutes = require('./routes/nexus');
+const discoveriesRoutes = require('./routes/discoveries');
+const fleetRoutes = require('./routes/fleet');
+const sandboxRoutes = require('./routes/sandbox');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -47,11 +50,13 @@ app.get('/health', (req, res) => {
     features: [
       'crowdsourcing_workers',
       'google_colab_farm',
+      'fleet_management_multi_account',
       'space_pruning',
       'google_sheets_archive',
-      'entropy_engine',
-      'bip39_checksum_filter',
-      'ecdsa_bsgs_acceleration',
+      'intelligence_hub_discoveries',
+      'solvers_cpp_repository',
+      'learning_lab_sandbox',
+      'paginated_multi_chain_puzzles',
       'ai_math_advisor',
       'nexus_cerebro_integrated'
     ],
@@ -69,6 +74,9 @@ app.use('/api/workers', workerRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/advisor', advisorRoutes);
 app.use('/api/nexus', nexusRoutes);
+app.use('/api/discoveries', discoveriesRoutes);
+app.use('/api/fleet', fleetRoutes);
+app.use('/api/sandbox', sandboxRoutes);
 
 // ─── FALLBACK SPA ROUTE ───
 app.get('*', (req, res, next) => {
@@ -84,6 +92,9 @@ app.get('*', (req, res, next) => {
         endpoints: [
           '/health',
           '/api/puzzles',
+          '/api/fleet',
+          '/api/discoveries',
+          '/api/sandbox/puzzles',
           '/api/workers/active',
           '/api/ranges/available',
           '/api/advisor/chat',
