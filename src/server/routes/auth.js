@@ -12,17 +12,21 @@ const router = express.Router();
 // Repositório persistente de usuários em memória (fallback / sync com Prisma)
 const usersStore = new Map();
 
-// Criação do Admin Master padrão
+// Configuração do Administrador Master via Variáveis de Ambiente (Segurança sem Hardcode)
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@puzzleradar.io').trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123456';
+const ADMIN_WORKER_TOKEN = process.env.ADMIN_WORKER_TOKEN || 'pzk_admin_master_gpu_token';
+
 (async () => {
-  const adminHash = await bcrypt.hash('admin123456', 10);
-  usersStore.set('admin@puzzleradar.io', {
+  const adminHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+  usersStore.set(ADMIN_EMAIL, {
     id: 'usr_admin_master',
     name: 'Admin Master',
-    email: 'admin@puzzleradar.io',
+    email: ADMIN_EMAIL,
     username: 'admin',
     passwordHash: adminHash,
     role: 'ADMIN',
-    workerToken: 'pzk_admin_master_gpu_token',
+    workerToken: ADMIN_WORKER_TOKEN,
     activePlan: 'ENTERPRISE_ADMIN',
     totalShares: 0,
     createdAt: new Date().toISOString()

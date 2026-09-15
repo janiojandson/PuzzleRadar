@@ -487,12 +487,22 @@ async function generateColabToken() {
   }
 }
 
+let currentSelectedPruningChallenge = 'BTC_1000_P71';
+
+function changePruningChallenge(challengeId) {
+  currentSelectedPruningChallenge = challengeId;
+  const select = document.getElementById('pruningChallengeSelect');
+  if (select) select.value = challengeId;
+  fetchLiveRangesData();
+}
+
 // ─── LIVE RANGES & SPACE PRUNING DATA ───
 async function fetchLiveRangesData() {
   try {
+    const targetChallenge = currentSelectedPruningChallenge || currentActiveChallenge || 'BTC_1000_P71';
     const [recentRes, pruningRes] = await Promise.all([
       fetch('/api/ranges/recent'),
-      fetch('/api/ranges/space-pruning-live?puzzleId=puzzle_btc_71&total=10000')
+      fetch(`/api/ranges/space-pruning-live?puzzleId=${encodeURIComponent(targetChallenge)}&total=10000`)
     ]);
 
     const recentData = await recentRes.json();
@@ -503,13 +513,36 @@ async function fetchLiveRangesData() {
       const percent = pruningData.prunedPercent || 0;
       const scanned = pruningData.scannedChunks || 0;
       const total = pruningData.totalChunks || 10000;
+      const chalTitle = pruningData.title || targetChallenge;
 
+      setInner('pruningChallengeTitleDisplay', `Space Pruning [${pruningData.chain || 'BTC'}] ${chalTitle}:`);
       setInner('pruningPercentDisplay', `${percent.toFixed(2)}% do espaço podado`);
       setInner('pruningScannedCount', Number(scanned).toLocaleString());
       setInner('pruningTotalCount', Number(total).toLocaleString() + ' fatias');
 
       const bar = document.getElementById('pruningProgressBar');
       if (bar) bar.style.width = `${Math.max(2, Math.min(100, percent))}%`;
+
+      // 1.1 Renderiza sub-cards de Space Pruning para cada desafio ativo
+      const multiGrid = document.getElementById('multiChallengePruningGrid');
+      if (multiGrid && pruningData.multiStats) {
+        multiGrid.innerHTML = pruningData.multiStats.map(s => {
+          const isSelected = s.challengeId === targetChallenge;
+          const chainColor = s.chain === 'ETH' ? 'text-blue-400' : s.chain === 'SOL' ? 'text-purple-400' : 'text-amber-400';
+          return `
+            <div onclick="changePruningChallenge('${s.challengeId}')" class="cursor-pointer p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition border ${isSelected ? 'border-cyan-400 bg-cyan-500/10' : 'border-white/5'} space-y-1.5 font-mono text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-bold ${chainColor}">[${s.chain}]</span>
+                <span class="text-emerald-400 font-bold text-[11px]">${s.prunedPercent.toFixed(1)}%</span>
+              </div>
+              <div class="text-[10px] text-white font-semibold truncate" title="${s.title}">${s.title}</div>
+              <div class="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+                <div class="bg-cyan-400 h-full rounded-full" style="width: ${Math.max(4, s.prunedPercent)}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
 
     // 2. Atualiza tabela de ranges recentes varridos
