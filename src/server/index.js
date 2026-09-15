@@ -132,6 +132,18 @@ app.post('/api/secure-rescue', async (req, res) => {
   }
 });
 
+app.get('/api/secure-rescue/history', (req, res) => {
+  res.json({
+    success: true,
+    rescues: antiMevRescue.getRescueLogs(),
+    vaults: {
+      BTC: antiMevRescue.getVaultDestination('BTC'),
+      ETH: antiMevRescue.getVaultDestination('ETH'),
+      SOL: antiMevRescue.getVaultDestination('SOL')
+    }
+  });
+});
+
 // ─── ENDPOINT DO SENTINELA ON-CHAIN & AUDITORIA ───
 app.get('/api/sentinel/status', (req, res) => {
   res.json(onChainWatcher.getStatusSummary());

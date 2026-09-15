@@ -541,7 +541,7 @@ function calculateTargetROI(challenge = {}, fleetHashrate = 42000000000, gpuPowe
   if (isNonceReuse) {
     effectiveOperations = 1;
     algorithmType = 'O(1) Cálculo Algébrico Instantâneo';
-    complexityType = 'O(1) Instantâneo';
+    complexityType = 'O(1) Instantaneo';
   } else if (isKangaroo) {
     const halfBits = (bits / 2) + 1;
     effectiveOperations = Math.pow(2, Math.min(halfBits, 62));

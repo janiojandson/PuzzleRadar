@@ -578,30 +578,51 @@ async function fetchPoolStats() {
   } catch (_) {}
 }
 
-async function triggerSimulatedWorkerStep() {
-  const btn = document.getElementById('btnSimulatePoS');
-  if (btn) btn.disabled = true;
-
+async function fetchRescueHistory() {
   try {
-    const res = await fetch('/api/pool/simulate-worker-step', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        workerToken: currentUser?.workerToken || 'wrk_web_simulator',
-        workerName: currentUser?.name ? `${currentUser.name} (Web GPU)` : 'Simulador Web GPU',
-        challengeId: 'BTC_1000_P71'
-      })
-    });
+    const res = await fetch('/api/secure-rescue/history');
     const data = await res.json();
-    if (data.success) {
-      await fetchPoolStats();
-      await fetchLiveRangesData();
+    if (!data.success) return;
+
+    if (data.vaults) {
+      if (data.vaults.BTC) setInner('displayVaultBtc', data.vaults.BTC);
+      if (data.vaults.ETH) setInner('displayVaultEth', data.vaults.ETH);
+      if (data.vaults.SOL) setInner('displayVaultSol', data.vaults.SOL);
     }
-  } catch (err) {
-    alert('Erro ao simular: ' + err.message);
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+
+    const container = document.getElementById('confirmedRescuesContainer');
+    if (!container) return;
+
+    const rescues = data.rescues || [];
+    if (rescues.length === 0) {
+      container.innerHTML = `
+        <div class="flex items-center gap-3 text-slate-400">
+          <i data-lucide="shield" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span>Nenhum resgate pendente. O túnel privado de resgate automático está armado e pronto para disparar a transferência imediata assim que qualquer nó da frota encontrar uma chave autêntica.</span>
+        </div>`;
+    } else {
+      container.innerHTML = rescues.map(r => `
+        <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1.5 font-mono text-[11px] mb-2">
+          <div class="flex items-center justify-between">
+            <span class="text-emerald-300 font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>✅ RESGATE PRIVADO EXECUTADO COM SUCESSO</span>
+            </span>
+            <span class="text-slate-400">${new Date(r.timestamp).toLocaleString()}</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
+            <div><span class="text-slate-500">Desafio:</span> <strong class="text-white">${r.challengeId} (${r.chain})</strong></div>
+            <div><span class="text-slate-500">Protocolo:</span> <span class="text-cyan-300">${r.protectionProtocol}</span></div>
+            <div class="truncate"><span class="text-slate-500">Origem:</span> ${r.targetAddress}</div>
+            <div class="truncate"><span class="text-slate-500">Destino (Vault):</span> <span class="text-emerald-400 font-bold">${r.destinationAddress}</span></div>
+            <div class="col-span-full truncate"><span class="text-slate-500">Tx Hash / Bundle:</span> <span class="text-amber-400">${r.txHash}</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+  } catch (_) {}
 }
 
 function calculateSubscriberYield() {
@@ -643,11 +664,17 @@ async function fetchAnalystFeed() {
       ...(feedData.pending || [])
     ];
 
-    // Merge with advisor recommendations
+    // Merge with advisor recommendations e ordena do mais fácil/lucrativo ao mais difícil
     const allItems = [
-      ...advisorRecommendations.filter(r => r.chain !== 'BTC' || r.puzzleNumber > 160),
+      ...advisorRecommendations.filter(r => r.chain !== 'BTC' || r.puzzleNumber > 160 || r.challengeId === 'BTC_SATOSHI_NONCE_REUSE'),
       ...opportunities
     ];
+
+    allItems.sort((a, b) => {
+      const roiA = a.roi ? (a.roi.roi_per_day_usd || 0) : 0;
+      const roiB = b.roi ? (b.roi.roi_per_day_usd || 0) : 0;
+      return roiB - roiA;
+    });
 
     if (allItems.length === 0) {
       grid.innerHTML = `
@@ -749,12 +776,14 @@ function copyText(text) {
 
 // Inicializações periódicas a cada 4 segundos
 setInterval(fetchAnalystFeed, 10000);
+setInterval(fetchRescueHistory, 10000);
 setInterval(fetchPoolStats, 4000);
 setInterval(fetchLiveRangesData, 4000);
 
 // Polling inicial de carga
 setTimeout(() => {
   fetchAnalystFeed();
+  fetchRescueHistory();
   fetchPoolStats();
   fetchLiveRangesData();
   calculateSubscriberYield();

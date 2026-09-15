@@ -685,6 +685,71 @@
             </table>
           </div>
         </div>
+        <!-- Cold Vault & Confirmed Rescue Transfers Panel -->
+        <div class="space-y-4 pt-4 border-t border-white/10">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                <i data-lucide="lock" class="w-4 h-4 text-cyan-400"></i>
+                <span>Cofre Frio & Relays de Resgate Anti-MEV (Destinos Registrados)</span>
+              </h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">Endereços de custódia imutáveis configurados para recebimento direto de chaves encontradas.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>PROTEÇÃO ATIVA</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Vault Addresses Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="p-3.5 rounded-xl bg-cypher-950 border border-amber-500/20 space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-amber-400 font-bold flex items-center gap-1">
+                  <span>₿</span> Bitcoin Vault (Sparrow)
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">SegWit Native</span>
+              </div>
+              <div id="displayVaultBtc" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">bc1q4ea075c0ypxuw7w28j5cl8k7l6ga7qzsaxda56</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-cypher-950 border border-blue-500/20 space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-blue-400 font-bold flex items-center gap-1">
+                  <span>Ξ</span> Ethereum Vault
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">Flashbots Protect</span>
+              </div>
+              <div id="displayVaultEth" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">0xf5f3e4750c1bFa26677daD29FcdeaD6f71A742e0</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-cypher-950 border border-purple-500/20 space-y-1">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-purple-400 font-bold flex items-center gap-1">
+                  <span>◎</span> Solana Vault
+                </span>
+                <span class="text-[10px] text-slate-500 font-mono">Direct ed25519</span>
+              </div>
+              <div id="displayVaultSol" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">FBx2SKLDLsdeLM8owxU8MNVPKAfJpLpmpHHRgiZDqBoi</div>
+            </div>
+          </div>
+
+          <!-- Confirmed Rescues & Transfers Stream -->
+          <div class="space-y-2">
+            <h4 class="font-bold text-white text-xs flex items-center gap-2">
+              <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>Histórico de Resgates e Transferências Confirmadas</span>
+            </h4>
+            <div id="confirmedRescuesContainer" class="p-4 rounded-xl bg-cypher-950 border border-white/5 text-xs text-slate-400">
+              <div class="flex items-center gap-3 text-slate-400">
+                <i data-lucide="shield" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span>Nenhum resgate pendente. O túnel privado de resgate automático está armado e pronto para disparar a transferência imediata assim que qualquer nó da frota encontrar uma chave autêntica.</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 

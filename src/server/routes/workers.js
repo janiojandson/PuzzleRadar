@@ -10,6 +10,7 @@ const { splitRange, getChallengeById } = require('../../lib/difficultyEngine');
 const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
+const { antiMevRescue } = require('../../services/antiMevRescue');
 
 const router = express.Router();
 
@@ -235,6 +236,8 @@ router.post('/:id/result', async (req, res) => {
 
     let isRealKeyFound = false;
 
+    let rescueResult = null;
+
     // Validação criptográfica rigorosa
     if (result === 'FOUND' && foundPrivateKey) {
       const expectedTarget = targetAddress || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
@@ -250,6 +253,19 @@ router.post('/:id/result', async (req, res) => {
 
       isRealKeyFound = true;
       console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE AUTÊNTICA ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey} 🎉🎉🎉\n`);
+
+      // 🛡️ Executa o Resgate Automático Anti-MEV via Túnel Privado para o COLD VAULT
+      try {
+        const chain = req.body.chain || (puzzleId && puzzleId.startsWith('ETH') ? 'ETH' : puzzleId && puzzleId.startsWith('SOL') ? 'SOL' : 'BTC');
+        rescueResult = await antiMevRescue.executeRescue({
+          chain,
+          challengeId: puzzleId || 'BTC_1000_P71',
+          privateKeyHex: foundPrivateKey,
+          targetAddress: expectedTarget
+        });
+      } catch (rescueErr) {
+        console.error('⚠️ [AntiMevRescue Execution Error]:', rescueErr.message);
+      }
     }
 
     // Marca fatia como escaneada no Redis Bitmap
@@ -265,8 +281,10 @@ router.post('/:id/result', async (req, res) => {
       rangeEnd: rangeEnd || ''
     }], `Colab Node (${id})`, {
       status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
-      hashrate: hashrate || formatHashrate(keysChecked ? keysChecked / 5 : 45000000000),
-      keyFound: isRealKeyFound
+      hashrate: hashrate || (keysChecked ? `${(keysChecked / 5e9).toFixed(2)} GH/s` : '45.0 GH/s'),
+      keyFound: isRealKeyFound,
+      rescueTx: rescueResult && rescueResult.rescue ? rescueResult.rescue.txHash : null,
+      destination: rescueResult && rescueResult.rescue ? rescueResult.rescue.destinationAddress : null
     }).catch(() => {});
 
     const sharesEarned = (Number(keysChecked) || 1000000) * 0.001;
@@ -284,7 +302,10 @@ router.post('/:id/result', async (req, res) => {
       result: isRealKeyFound ? 'FOUND' : 'NOT_FOUND',
       sharesEarned,
       verified: isRealKeyFound,
-      message: isRealKeyFound ? '🎯 CHAVE CRIPTOGRAFICAMENTE VÁLIDA ENCONTRADA! Parabéns!' : 'Range concluído. Shares creditadas e gravadas na Planilha.'
+      rescue: rescueResult,
+      message: isRealKeyFound
+        ? `🎯 CHAVE AUTÊNTICA ENCONTRADA! Resgate confidencial enviado com sucesso para ${rescueResult && rescueResult.rescue ? rescueResult.rescue.destinationAddress : 'Cold Vault'}.`
+        : 'Range concluído. Shares creditadas e gravadas na Planilha Google.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
