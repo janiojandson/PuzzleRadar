@@ -110,8 +110,48 @@ function verifyDiscoveryProof(privateKeyHex, expectedAddressOrPubKey) {
   }
 }
 
+/**
+ * Valida matematicamente se uma Chave Pública em Hex corresponde ao Endereço Bitcoin alvo
+ * Endereço = Base58Check(0x00 || RIPEMD160(SHA256(PubKey)))
+ */
+function verifyPubKeyToAddress(pubKeyHex, expectedAddress) {
+  try {
+    if (!pubKeyHex || !expectedAddress) {
+      return { isValid: false, reason: 'Chave pública ou endereço ausente' };
+    }
+    const cleanPub = pubKeyHex.trim().replace(/^0x/i, '');
+    const pubBuf = Buffer.from(cleanPub, 'hex');
+
+    // SHA256 seguido de RIPEMD160
+    const sha = crypto.createHash('sha256').update(pubBuf).digest();
+    const ripe = crypto.createHash('ripemd160').update(sha).digest();
+    const payload = Buffer.concat([Buffer.from([0x00]), ripe]);
+    
+    // Checksum de 4 bytes
+    const check = crypto.createHash('sha256').update(
+      crypto.createHash('sha256').update(payload).digest()
+    ).digest().subarray(0, 4);
+
+    const derivedAddress = base58Encode(Buffer.concat([payload, check]));
+    const isValid = derivedAddress.toLowerCase() === expectedAddress.trim().toLowerCase();
+
+    return {
+      isValid,
+      derivedAddress,
+      expectedAddress: expectedAddress.trim(),
+      reason: isValid ? 'Matematicamente verificado' : 'Divergência entre chave pública e endereço'
+    };
+  } catch (err) {
+    return {
+      isValid: false,
+      reason: err.message
+    };
+  }
+}
+
 module.exports = {
   deriveBitcoinAddress,
   verifyDiscoveryProof,
+  verifyPubKeyToAddress,
   normalizePrivateKey
 };

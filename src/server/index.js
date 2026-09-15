@@ -66,11 +66,17 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Services
+const { onChainWatcher } = require('../services/onChainWatcher');
+const { antiMevRescue } = require('../services/antiMevRescue');
+const { honeypotShield } = require('../services/honeypotShield');
+
 // ─── ROTAS DA API ───
 app.use('/api/auth', authRoutes);
 app.use('/api/puzzles', puzzleRoutes);
 app.use('/api/puzzle1000btc', puzzle1000btcRoutes);
 app.use('/api/pools', poolRoutes);
+app.use('/api/pool', poolRoutes); // Alias para /api/pool/job, /api/pool/submit-point
 app.use('/api/ranges', rangeRoutes);
 app.use('/api/contributions', contributionRoutes);
 app.use('/api/workers', workerRoutes);
@@ -80,6 +86,30 @@ app.use('/api/nexus', nexusRoutes);
 app.use('/api/discoveries', discoveriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 app.use('/api/sandbox', sandboxRoutes);
+
+// ─── ENDPOINT DE RESGATE SEGURO (ANTI-MEV) ───
+app.post('/api/secure-rescue', async (req, res) => {
+  try {
+    const result = await antiMevRescue.executeRescue(req.body);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── ENDPOINT DO SENTINELA ON-CHAIN & AUDITORIA ───
+app.get('/api/sentinel/status', (req, res) => {
+  res.json(onChainWatcher.getStatusSummary());
+});
+
+app.get('/api/honeypot/audit', async (req, res) => {
+  const { address, chain } = req.query;
+  const audit = await honeypotShield.auditContractChallenge(address, chain);
+  res.json(audit);
+});
 
 // ─── FALLBACK SPA ROUTE ───
 app.get('*', (req, res, next) => {
@@ -96,13 +126,13 @@ app.get('*', (req, res, next) => {
           '/health',
           '/api/puzzles',
           '/api/puzzle1000btc',
+          '/api/pool/job',
+          '/api/pool/stats',
+          '/api/secure-rescue',
+          '/api/sentinel/status',
           '/api/fleet',
           '/api/discoveries',
-          '/api/sandbox/puzzles',
-          '/api/workers/active',
-          '/api/ranges/available',
-          '/api/advisor/chat',
-          '/api/nexus/status'
+          '/api/sandbox/puzzles'
         ],
         documentation: 'https://github.com/janiojandson/PuzzleRadar'
       });
@@ -121,9 +151,13 @@ app.use((err, req, res, next) => {
 
 // ─── START SE EXECUTADO DIRETAMENTE ───
 if (require.main === module) {
+  // Inicia o sentinela on-chain em segundo plano
+  onChainWatcher.start();
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🧩 PuzzleRadar v3.0 Server rodando na porta ${PORT}`);
     console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🛡️ Sentinela On-Chain & Anti-MEV Engine Ativos`);
   });
 }
 

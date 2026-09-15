@@ -39,6 +39,7 @@ function postToGoogleWebhook(url, payload) {
       const dataString = JSON.stringify(payload);
       const urlObj = new URL(url);
 
+      const webhookSecret = process.env.SHEETS_WEBHOOK_SECRET || 'PR_SECURE_WEBHOOK_2026';
       const options = {
         hostname: urlObj.hostname,
         port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
@@ -46,7 +47,8 @@ function postToGoogleWebhook(url, payload) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(dataString)
+          'Content-Length': Buffer.byteLength(dataString),
+          'x-webhook-token': webhookSecret
         }
       };
 
@@ -113,9 +115,10 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
 
     formattedRows.push([timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, source, 'PRUNED_SCANNED']);
 
-    // Dispara para o Webhook do Google Apps Script com metadados completos
+    // Dispara para o Webhook do Google Apps Script com metadados completos e autenticação
     if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
       postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
+        secretToken: process.env.SHEETS_WEBHOOK_SECRET || 'PR_SECURE_WEBHOOK_2026',
         chain,
         challengeId,
         puzzleId: challengeId,

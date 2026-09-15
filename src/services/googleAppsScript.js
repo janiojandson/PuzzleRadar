@@ -2228,11 +2228,23 @@ function popularPlanilhaPuzzles1000BTC() {
   SpreadsheetApp.getActiveSpreadsheet().toast("Planilha 100% preenchida com Puzzles BTC, ETH, SOL e Multi-Chain Tracking!", "PuzzleRadar", 5);
 }
 
-/** Webhook para receber dados do Node.js / Python / C++ Workers */
+/** Webhook para receber dados do Node.js / Python / C++ Workers com Proteção de Token Secreto */
 function doPost(e) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Ranges_Varredura");
     const data = JSON.parse(e.postData.contents);
+    const configuredSecret = "PR_SECURE_WEBHOOK_2026"; // Substitua ou configure nas Propriedades do Script
+    
+    // Verificação de Token de Segurança (Anti-Spam / Anti-Abuso)
+    const clientSecret = data.secretToken || data.secret_token || (e.parameter && e.parameter.secretToken);
+    if (configuredSecret && clientSecret !== configuredSecret) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: "error", 
+        code: 401, 
+        message: "HTTP 401: Unauthorized - Invalid or missing secretToken" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Ranges_Varredura");
     const chain = data.chain || (data.challengeId && data.challengeId.includes("ETH") ? "ETH" : data.challengeId && data.challengeId.includes("SOL") ? "SOL" : "BTC");
     const challengeId = data.challengeId || data.challenge_id || data.puzzleId || "BTC_1000_P71";
     
@@ -2250,7 +2262,7 @@ function doPost(e) {
       data.keyFound ? "🚨 CHAVE ENCONTRADA!" : "Nada"
     ]]);
     
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Log inserido no cluster multi-chain" }))
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Log inserido no cluster multi-chain autenticado" }))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
