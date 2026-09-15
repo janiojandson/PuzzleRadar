@@ -12,6 +12,18 @@ let telemetryEventSource = null;
 let currentActiveChain = 'BTC';
 let currentActiveChallenge = 'BTC_1000_P71';
 let currentActiveTitle = 'Puzzle #71 (7.1 BTC)';
+let allMultiChainChallenges = [];
+let currentSecondaryTarget = {
+  id: 'BTC_SATOSHI_NONCE_REUSE',
+  chain: 'BTC',
+  title: 'Bitcoin ECDSA Nonce Reuse',
+  prize: '1.20 BTC',
+  prizeUSD: 78000,
+  complexity: 'O(1) Instantâneo',
+  filter: 'Cálculo Algébrico O(1)',
+  time: 'Instantâneo',
+  scanned: 100
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
@@ -249,7 +261,7 @@ function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
 
   const colabCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const localCmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  const kaggleCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --threads=4 --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const kaggleCmd = `!pip install --no-cache-dir -q requests ecdsa base58 pycryptodome\n!curl -sSL --retry 3 ${origin}/solver/colab_worker.py -o colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const linuxCmd = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
 
   const colabOneLiner = document.getElementById('colabOneLinerCode');
@@ -308,6 +320,8 @@ async function fetchMultiChainData() {
       const roiB = b.roi ? (b.roi.roi_per_day_usd || 0) : 0;
       return roiB - roiA;
     });
+
+    allMultiChainChallenges = others;
 
     const container = document.getElementById('multiChainCardsGrid');
     if (!container) return;
@@ -395,6 +409,8 @@ async function fetchFleetData() {
     const count = data.activeCount || 0;
     const hashrate = data.totalHashrateFormatted || '0 H/s';
     setInner('headerHashrate', hashrate);
+    setInner('dashGlobalHashrate', hashrate);
+    setInner('dashActiveNodes', `${count} Ativos`);
 
     const container = document.getElementById('fleetNodesList');
     if (!container) return;
@@ -532,6 +548,79 @@ function updateDynamicChallengeDropdowns(challenges = []) {
     });
     if (prevCalc) calcSelect.value = prevCalc;
   }
+
+  // 3. Dropdown do Alvo Secundário na Central de Comando
+  const secSelect = document.getElementById('dashSecChallengeDropdown');
+  if (secSelect) {
+    const prevSec = secSelect.value || currentSecondaryTarget.id;
+    const existingSec = Array.from(secSelect.options).map(o => o.value);
+    challenges.forEach(c => {
+      const id = c.challengeId || `BTC_1000_P${c.puzzleNumber || c.num || 71}`;
+      if (!existingSec.includes(id)) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.innerText = `[${c.chain || 'BTC'}] ${c.title || id} (${c.prize || ''} ${c.prizeCurrency || c.chain || ''})`.trim();
+        secSelect.appendChild(opt);
+      }
+    });
+    if (prevSec) secSelect.value = prevSec;
+  }
+}
+
+// ─── ALVO SECUNDÁRIO DINÂMICO & ATACAR ───
+function changeSecondaryTarget(challengeId) {
+  const challenge = allMultiChainChallenges.find(c => (c.challengeId === challengeId || c.id === challengeId)) || {
+    challengeId: challengeId,
+    title: challengeId,
+    chain: challengeId.startsWith('ETH') ? 'ETH' : challengeId.startsWith('SOL') ? 'SOL' : 'BTC',
+    prize: '1.20 BTC',
+    prizeCurrency: 'BTC',
+    difficultyLabel: 'O(1) Instantâneo',
+    scannedPercent: 100
+  };
+
+  const prizeStr = `${challenge.prize || '1.0'} ${challenge.prizeCurrency || challenge.chain || ''}`.trim();
+  const prizeUsd = challenge.roi?.prizeUSD || challenge.prizeUSD || 78000;
+  const complexity = challenge.roi?.algorithmType || challenge.difficultyLabel || 'O(1) Instantâneo';
+  const filter = challenge.roi?.bip39ChecksumFilter || challenge.algorithmType || 'Cálculo Algébrico O(1)';
+  const timeEst = challenge.roi?.formattedFleetTime || challenge.difficultyLabel || 'Instantâneo';
+  const scanned = challenge.scannedPercent !== undefined ? challenge.scannedPercent : 100;
+
+  currentSecondaryTarget = {
+    id: challenge.challengeId || challengeId,
+    chain: challenge.chain || 'BTC',
+    title: challenge.title || challengeId,
+    prize: prizeStr,
+    prizeUSD: prizeUsd,
+    complexity: complexity,
+    filter: filter,
+    time: timeEst,
+    scanned: scanned
+  };
+
+  setInner('dashSecTitle', currentSecondaryTarget.title);
+  setInner('dashSecPrize', `Prêmio: ${currentSecondaryTarget.prize} (~$${Number(prizeUsd).toLocaleString()} USD)`);
+  setInner('dashSecBadgePrize', currentSecondaryTarget.prize);
+  setInner('dashSecComplexity', currentSecondaryTarget.complexity);
+  setInner('dashSecFilter', currentSecondaryTarget.filter);
+  setInner('dashSecTime', currentSecondaryTarget.time);
+  setInner('dashSecScanned', `${currentSecondaryTarget.scanned}%`);
+
+  const bar = document.getElementById('dashSecProgressBar');
+  if (bar) bar.style.width = `${Math.min(100, Math.max(5, currentSecondaryTarget.scanned))}%`;
+
+  const dropdown = document.getElementById('dashSecChallengeDropdown');
+  if (dropdown && dropdown.value !== challengeId) {
+    dropdown.value = challengeId;
+  }
+}
+
+function attackSecondaryTarget() {
+  const id = currentSecondaryTarget.id || 'BTC_SATOSHI_NONCE_REUSE';
+  const chain = currentSecondaryTarget.chain || 'BTC';
+  const title = currentSecondaryTarget.title || id;
+  const prize = currentSecondaryTarget.prize || '';
+  setMultiChainTarget(chain, id, title, prize);
 }
 
 let currentSelectedPruningChallenge = 'BTC_1000_P71';

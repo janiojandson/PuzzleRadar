@@ -16,8 +16,10 @@ import subprocess
 import threading
 import shutil
 
+import random
+
 DEFAULT_API_URL = os.getenv("PUZZLERADAR_API", "https://puzzleradar-production.up.railway.app")
-DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME", f"colab-gpu-{int(time.time()) % 10000}")
+DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME", f"colab-gpu-{random.randint(1000, 9999)}")
 DEFAULT_HARDWARE = "Google Colab NVIDIA GPU (Tesla T4 / V100 / A100)"
 DEFAULT_CHAIN = "BTC"
 DEFAULT_CHALLENGE = "BTC_1000_P71"
@@ -52,9 +54,10 @@ class CudaSolverManager:
         return False
 
 class ColabFarmWorker:
-    def __init__(self, api_url=DEFAULT_API_URL, node_name=DEFAULT_NODE_NAME, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE):
+    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE):
         self.api_url = api_url.rstrip('/')
-        self.node_name = node_name
+        self.instance_id = f"inst_{int(time.time())}_{random.randint(1000, 9999)}"
+        self.node_name = node_name or f"colab-gpu-{random.randint(1000, 9999)}"
         self.token = token
         self.chain = chain
         self.challenge_id = challenge_id
@@ -71,6 +74,7 @@ class ColabFarmWorker:
     def register(self):
         print(f"\n=======================================================")
         print(f"🚀 [PuzzleRadar Multi-Chain] Nó Ativo: {self.node_name}")
+        print(f"🆔 Instância ID: {self.instance_id}")
         print(f"🌐 Central: {self.api_url}")
         print(f"🔗 Rede / Blockchain: {self.chain}")
         print(f"🎯 Desafio Alvo: {self.challenge_id}")
@@ -97,6 +101,7 @@ class ColabFarmWorker:
                 f"{self.api_url}/api/workers/register",
                 json={
                     "token": self.token,
+                    "instanceId": f"{self.token}_{self.instance_id}",
                     "name": self.node_name,
                     "chain": self.chain,
                     "challenge_id": self.challenge_id,
@@ -106,10 +111,10 @@ class ColabFarmWorker:
                 timeout=10
             )
             reg_data = reg_res.json()
-            self.worker_id = reg_data.get("workerId", self.token)
+            self.worker_id = reg_data.get("workerId", f"{self.token}_{self.instance_id}")
             print(f"✅ Nó Registrado com Sucesso no Pool: ID {self.worker_id}\n")
         except Exception as e:
-            self.worker_id = self.token
+            self.worker_id = f"{self.token}_{self.instance_id}"
             print(f"⚠️ Registro offline/fallback: {e}")
 
     def get_task(self):

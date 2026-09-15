@@ -102,12 +102,15 @@ router.get('/active', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { token, name, hardware, gpuModel, cpuModel, chain, challenge_id, challengeId } = req.body;
-    const workerId = token || `wrk_${crypto.randomBytes(8).toString('hex')}`;
+    const { token, name, hardware, gpuModel, cpuModel, chain, challenge_id, challengeId, instanceId: clientInstanceId } = req.body;
+    
+    // Suporta múltiplas instâncias (ex: 7 Colabs) usando o mesmo token de usuário
+    const nodeInstanceId = clientInstanceId || (name ? `${token || 'wrk'}_${name}` : `${token || 'wrk'}_${crypto.randomBytes(4).toString('hex')}`);
 
     const workerRecord = {
-      id: workerId,
-      name: name || `miner-${workerId.substring(0, 8)}`,
+      id: nodeInstanceId,
+      userToken: token || null,
+      name: name || `miner-${crypto.randomBytes(3).toString('hex')}`,
       hardware: hardware || 'GPU',
       gpuModel: gpuModel || 'Generic GPU',
       cpuModel: cpuModel || 'Generic CPU',
@@ -120,10 +123,10 @@ router.post('/register', async (req, res) => {
       lastSeen: Date.now()
     };
 
-    activeWorkersMap.set(workerId, workerRecord);
+    activeWorkersMap.set(nodeInstanceId, workerRecord);
 
     res.status(201).json({
-      workerId,
+      workerId: nodeInstanceId,
       name: workerRecord.name,
       hardware: workerRecord.hardware,
       status: 'IDLE',
