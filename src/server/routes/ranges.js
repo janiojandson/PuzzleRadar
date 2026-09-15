@@ -189,25 +189,22 @@ router.get('/space-pruning-live', async (req, res) => {
     const stats = await getPruningStats(targetKey, total);
     const sheetsStats = await getSheetsStats();
 
-    // Calcula também o progresso para os principais desafios monitorados
-    const trackedTargets = ['BTC_1000_P71', 'BTC_SATOSHI_NONCE_REUSE', 'ETH_VANITY_32', 'SOL_VANITY_PREFIX_36', 'ETH_BIP39_SEED_RECOVERY'];
+    // Calcula dinamicamente o progresso para todos os desafios monitorados ativos
+    const allPuzzles = getMultiChainPuzzleData().filter(p => !p.solved);
     const multiStats = [];
 
-    for (const tid of trackedTargets) {
-      const chal = getChallengeById(tid);
-      if (chal) {
-        const cKey = chal.challengeId || tid;
-        const pStats = await getPruningStats(cKey, 10000);
-        multiStats.push({
-          challengeId: cKey,
-          chain: chal.chain || 'BTC',
-          title: chal.title || cKey,
-          prize: chal.prize ? `${chal.prize} ${chal.prizeCurrency || chal.chain}` : '',
-          scannedChunks: pStats.scannedChunks,
-          totalChunks: pStats.totalChunks,
-          prunedPercent: pStats.prunedPercent
-        });
-      }
+    for (const chal of allPuzzles) {
+      const cKey = chal.challengeId || `BTC_1000_P${chal.puzzleNumber || 71}`;
+      const pStats = await getPruningStats(cKey, 10000);
+      multiStats.push({
+        challengeId: cKey,
+        chain: chal.chain || 'BTC',
+        title: chal.title || cKey,
+        prize: chal.prize ? `${chal.prize} ${chal.prizeCurrency || chal.chain}` : '',
+        scannedChunks: pStats.scannedChunks,
+        totalChunks: pStats.totalChunks,
+        prunedPercent: pStats.prunedPercent
+      });
     }
 
     res.json({

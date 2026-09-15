@@ -369,6 +369,9 @@ async function fetchMultiChainData() {
         </div>
       `;
     }).join('');
+    // Sincroniza todos os desafios nos dropdowns dinâmicos
+    updateDynamicChallengeDropdowns(others);
+
     if (window.lucide) window.lucide.createIcons();
   } catch (err) {
     console.error('Erro ao carregar multi-chain com ROI:', err);
@@ -487,6 +490,50 @@ async function generateColabToken() {
   }
 }
 
+// ─── DYNAMIC CHALLENGE DROPDOWNS SYNCHRONIZATION ───
+function updateDynamicChallengeDropdowns(challenges = []) {
+  if (!Array.isArray(challenges) || challenges.length === 0) return;
+
+  // 1. Dropdown do Space Pruning
+  const pruningSelect = document.getElementById('pruningChallengeSelect');
+  if (pruningSelect) {
+    const prevSelected = pruningSelect.value || currentSelectedPruningChallenge;
+    const existingOptions = Array.from(pruningSelect.options).map(o => o.value);
+    
+    // Atualiza opções preservando seleção
+    challenges.forEach(c => {
+      const id = c.challengeId || `BTC_1000_P${c.puzzleNumber || c.num || 71}`;
+      if (!existingOptions.includes(id)) {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.innerText = `${c.chain || 'BTC'} - ${c.title || id} (${c.prize || ''} ${c.prizeCurrency || c.chain || ''})`.trim();
+        pruningSelect.appendChild(opt);
+      }
+    });
+
+    if (prevSelected) pruningSelect.value = prevSelected;
+  }
+
+  // 2. Dropdown do Calculador de Rendimento (PoS Yield)
+  const calcSelect = document.getElementById('calcChallengeSelect');
+  if (calcSelect) {
+    const prevCalc = calcSelect.value;
+    challenges.forEach(c => {
+      const id = c.challengeId || `BTC_1000_P${c.puzzleNumber || c.num || 71}`;
+      const existing = Array.from(calcSelect.options).some(o => o.value === id || o.dataset.id === id);
+      if (!existing && (c.prizeUSD || (c.roi && c.roi.prizeUSD))) {
+        const prizeUsd = c.roi?.prizeUSD || c.prizeUSD || 0;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.dataset.usd = prizeUsd;
+        opt.innerText = `${c.title || id} (${c.prize || ''} ${c.prizeCurrency || c.chain} ~ $${Number(prizeUsd).toLocaleString()} USD)`;
+        calcSelect.appendChild(opt);
+      }
+    });
+    if (prevCalc) calcSelect.value = prevCalc;
+  }
+}
+
 let currentSelectedPruningChallenge = 'BTC_1000_P71';
 
 function changePruningChallenge(challengeId) {
@@ -507,6 +554,11 @@ async function fetchLiveRangesData() {
 
     const recentData = await recentRes.json();
     const pruningData = await pruningRes.json();
+
+    // Sincroniza dinamicamente o dropdown com todos os desafios retornados pela API
+    if (pruningData && pruningData.multiStats) {
+      updateDynamicChallengeDropdowns(pruningData.multiStats);
+    }
 
     // 1. Atualiza métricas de Space Pruning
     if (pruningData) {
@@ -697,12 +749,20 @@ async function fetchRescueHistory() {
 
 function calculateSubscriberYield() {
   const ghRate = parseFloat(document.getElementById('calcHardwareSelect')?.value || '18');
-  const challengeVal = document.getElementById('calcChallengeSelect')?.value || '7.1_BTC';
+  const selectEl = document.getElementById('calcChallengeSelect');
+  const selectedOption = selectEl?.options[selectEl.selectedIndex];
+  const challengeVal = selectEl?.value || '7.1_BTC';
 
   let totalPrizeUSD = 461500;
-  if (challengeVal === '1.2_BTC') totalPrizeUSD = 78000;
-  if (challengeVal === '5.0_ETH') totalPrizeUSD = 16000;
-  if (challengeVal === '15.0_SOL') totalPrizeUSD = 2700;
+  if (selectedOption && selectedOption.dataset && selectedOption.dataset.usd) {
+    totalPrizeUSD = parseFloat(selectedOption.dataset.usd) || 461500;
+  } else if (challengeVal === '1.2_BTC' || challengeVal.includes('NONCE')) {
+    totalPrizeUSD = 78000;
+  } else if (challengeVal === '5.0_ETH' || challengeVal.includes('BIP39')) {
+    totalPrizeUSD = 16000;
+  } else if (challengeVal === '15.0_SOL' || challengeVal.includes('SOL_VANITY')) {
+    totalPrizeUSD = 2700;
+  }
 
   // Participação estimada assumindo pool de 200 GH/s
   const assumedPoolPower = 200;
