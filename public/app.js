@@ -675,6 +675,133 @@ function updateChatMessage(msgId, text) {
   if (el) el.innerHTML = text.replace(/\n/g, '<br/>');
 }
 
+// ─── AUTHENTICATION & USER SESSION ───
+let currentAuthTab = 'login';
+let currentUser = null;
+
+function openAuthModal(mode = 'login') {
+  switchAuthTab(mode);
+  const modal = document.getElementById('authModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeAuthModal() {
+  const modal = document.getElementById('authModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function switchAuthTab(tab) {
+  currentAuthTab = tab;
+  const loginBtn = document.getElementById('authTabLogin');
+  const regBtn = document.getElementById('authTabRegister');
+  const nameField = document.getElementById('authNameField');
+  const title = document.getElementById('authModalTitle');
+  const submitBtn = document.getElementById('authSubmitBtn');
+
+  if (tab === 'login') {
+    if (loginBtn) loginBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black';
+    if (regBtn) regBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white';
+    if (nameField) nameField.classList.add('hidden');
+    if (title) title.innerText = 'Entrar no PuzzleRadar';
+    if (submitBtn) submitBtn.innerText = 'Entrar na Conta';
+  } else {
+    if (regBtn) regBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black';
+    if (loginBtn) loginBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white';
+    if (nameField) nameField.classList.remove('hidden');
+    if (title) title.innerText = 'Criar Conta de Minerador';
+    if (submitBtn) submitBtn.innerText = 'Gerar Token & Cadastrar';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('authEmailInput')?.value.trim();
+  const password = document.getElementById('authPasswordInput')?.value.trim();
+  const name = document.getElementById('authNameInput')?.value.trim();
+
+  const endpoint = currentAuthTab === 'register' ? '/api/auth/register' : '/api/auth/login';
+  const payload = currentAuthTab === 'register' ? { email, password, name } : { email, password };
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      alert(`⚠️ ${data.error || 'Falha na autenticação'}`);
+      return;
+    }
+
+    localStorage.setItem('pzk_jwt_token', data.token);
+    currentUser = data.user;
+    updateAuthUI();
+    closeAuthModal();
+
+    alert(`🎉 Bem-vindo, ${currentUser.name || currentUser.username}!\nSeu Token de Mineração Exclusivo: ${currentUser.workerToken}`);
+  } catch (err) {
+    alert(`Erro de conexão: ${err.message}`);
+  }
+}
+
+function updateAuthUI() {
+  const unauthBox = document.getElementById('unauthHeaderActions');
+  const authPill = document.getElementById('authUserPill');
+  const nameDisp = document.getElementById('authUserNameDisplay');
+  const roleDisp = document.getElementById('authUserRoleDisplay');
+
+  if (currentUser) {
+    if (unauthBox) unauthBox.classList.add('hidden');
+    if (authPill) authPill.classList.remove('hidden');
+    if (authPill) authPill.classList.add('flex');
+    if (nameDisp) nameDisp.innerText = currentUser.name || currentUser.username;
+    if (roleDisp) {
+      roleDisp.innerText = currentUser.role || 'USER';
+      roleDisp.className = currentUser.role === 'ADMIN'
+        ? 'px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30'
+        : 'px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
+    }
+
+    // Injeta o workerToken exclusivo do usuário no comando e botões
+    if (currentUser.workerToken) {
+      const cli = document.getElementById('colabCliCode');
+      if (cli) {
+        cli.innerText = `python solver/colab_worker.py --api=${window.location.origin} --token=${currentUser.workerToken} --chain=BTC --challenge=BTC_1000_P71`;
+      }
+    }
+  } else {
+    if (unauthBox) unauthBox.classList.remove('hidden');
+    if (authPill) authPill.classList.add('hidden');
+    if (authPill) authPill.classList.remove('flex');
+  }
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function logoutUser() {
+  localStorage.removeItem('pzk_jwt_token');
+  currentUser = null;
+  updateAuthUI();
+  alert('Você saiu da sua conta.');
+}
+
+async function checkAuthSession() {
+  const token = localStorage.getItem('pzk_jwt_token');
+  if (!token) return;
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      updateAuthUI();
+    } else {
+      localStorage.removeItem('pzk_jwt_token');
+    }
+  } catch (_) {}
+}
+
 // ─── HELPERS ───
 function setInner(id, val) {
   const el = document.getElementById(id);
@@ -689,3 +816,6 @@ function copyCommand(id) {
   const text = document.getElementById(id)?.innerText;
   if (text) copyText(text);
 }
+
+// Inicializa checagem de sessão
+checkAuthSession();

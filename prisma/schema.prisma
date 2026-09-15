@@ -54,10 +54,14 @@ enum MemberRole {
 // ─── USUÁRIOS (Pessoas que gerenciam frotas) ───
 model User {
   id            String     @id @default(cuid())
+  name          String?
   email         String     @unique
   username      String     @unique
   passwordHash  String
   displayName   String?
+  role          UserRole   @default(USER)
+  workerToken   String?    @unique
+  activePlan    String     @default("FREE_COMMUNITY")
   avatarUrl     String?
   gpuModel      String?    // ex: "RTX 4090", "Tesla T4 Farm"
   cpuModel      String?
@@ -75,6 +79,12 @@ model User {
   discoveryHints  DiscoveryHint[]
 
   @@map("users")
+}
+
+enum UserRole {
+  USER
+  SUBSCRIBER
+  ADMIN
 }
 
 // ─── FLEET NODES (Gerenciamento de Frotas de Máquinas e Colabs) ───

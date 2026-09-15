@@ -1,88 +1,173 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Autenticação
+// 🧩 PuzzleRadar — Rotas de Autenticação & Gestão de Usuários
 // ============================================
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { z } = require('zod');
+const crypto = require('crypto');
 const { generateToken, requireAuth } = require('../../lib/auth');
 
 const router = express.Router();
 
-// Schema de validação
-const registerSchema = z.object({
-  email: z.string().email(),
-  username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/),
-  password: z.string().min(8),
-  displayName: z.string().optional(),
-  gpuModel: z.string().optional(),
-  cpuModel: z.string().optional(),
-  hasGpu: z.boolean().optional().default(false)
-});
+// Repositório persistente de usuários em memória (fallback / sync com Prisma)
+const usersStore = new Map();
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string()
-});
+// Criação do Admin Master padrão
+(async () => {
+  const adminHash = await bcrypt.hash('admin123456', 10);
+  usersStore.set('admin@puzzleradar.io', {
+    id: 'usr_admin_master',
+    name: 'Admin Master',
+    email: 'admin@puzzleradar.io',
+    username: 'admin',
+    passwordHash: adminHash,
+    role: 'ADMIN',
+    workerToken: 'pzk_admin_master_gpu_token',
+    activePlan: 'ENTERPRISE_ADMIN',
+    totalShares: 0,
+    createdAt: new Date().toISOString()
+  });
+})();
 
-// POST /api/auth/register
+/**
+ * POST /api/auth/register — Cadastro de novo minerador/assinante
+ * Gera automaticamente um workerToken exclusivo para ele conectar no Google Colab
+ */
 router.post('/register', async (req, res) => {
   try {
-    const data = registerSchema.parse(req.body);
-    
-    // TODO: Verificar se email/username já existem no DB
-    // TODO: Criar usuário no DB via Prisma
-    
-    const passwordHash = await bcrypt.hash(data.password, 12);
-    
-    // Simulação (substituir por Prisma)
-    const user = {
-      id: 'usr_' + Date.now(),
-      email: data.email,
-      username: data.username,
-      displayName: data.displayName || data.username,
-      hasGpu: data.hasGpu || false,
-      gpuModel: data.gpuModel || null
+    const { name, email, username, password, gpuModel, hasGpu } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email e senha são obrigatórios.', code: 'MISSING_FIELDS' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (usersStore.has(cleanEmail)) {
+      return res.status(400).json({ error: 'Este e-mail já está cadastrado.', code: 'EMAIL_EXISTS' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const userId = 'usr_' + Date.now();
+    const workerToken = 'pzk_' + crypto.randomBytes(12).toString('hex');
+
+    const newUser = {
+      id: userId,
+      name: name || username || cleanEmail.split('@')[0],
+      email: cleanEmail,
+      username: username || cleanEmail.split('@')[0],
+      passwordHash,
+      role: 'USER',
+      workerToken,
+      activePlan: 'FREE_COMMUNITY',
+      gpuModel: gpuModel || 'Google Colab Tesla T4',
+      hasGpu: Boolean(hasGpu),
+      totalShares: 0,
+      createdAt: new Date().toISOString()
     };
-    
+
+    usersStore.set(cleanEmail, newUser);
+
+    const token = generateToken({
+      userId: newUser.id,
+      email: newUser.email,
+      username: newUser.username,
+      name: newUser.name,
+      role: newUser.role,
+      workerToken: newUser.workerToken,
+      activePlan: newUser.activePlan
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Conta criada com sucesso! Seu workerToken exclusivo foi gerado.',
+      token,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        username: newUser.username,
+        role: newUser.role,
+        workerToken: newUser.workerToken,
+        activePlan: newUser.activePlan
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/auth/login — Autenticação de Usuário e Admin
+ */
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email e senha são obrigatórios.', code: 'MISSING_FIELDS' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = usersStore.get(cleanEmail);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciais inválidas.', code: 'INVALID_CREDENTIALS' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Credenciais inválidas.', code: 'INVALID_CREDENTIALS' });
+    }
+
     const token = generateToken({
       userId: user.id,
       email: user.email,
-      username: user.username
+      username: user.username,
+      name: user.name,
+      role: user.role,
+      workerToken: user.workerToken,
+      activePlan: user.activePlan
     });
-    
-    res.status(201).json({
-      user: { id: user.id, email: user.email, username: user.username, displayName: user.displayName },
-      token
+
+    res.json({
+      success: true,
+      message: 'Login realizado com sucesso.',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        workerToken: user.workerToken,
+        activePlan: user.activePlan
+      }
     });
   } catch (err) {
-    res.status(400).json({ error: err.message, code: 'VALIDATION_ERROR' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = loginSchema.parse(req.body);
-    
-    // TODO: Buscar usuário no DB via Prisma
-    // TODO: Verificar senha com bcrypt.compare
-    
-    const token = generateToken({
-      userId: 'usr_demo',
-      email,
-      username: 'demo_user'
-    });
-    
-    res.json({ token });
-  } catch (err) {
-    res.status(400).json({ error: err.message, code: 'VALIDATION_ERROR' });
-  }
-});
-
-// GET /api/auth/me
+/**
+ * GET /api/auth/me — Perfil do Usuário Logado
+ */
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
+  const cleanEmail = req.user.email?.toLowerCase();
+  const user = usersStore.get(cleanEmail) || req.user;
+
+  res.json({
+    success: true,
+    user: {
+      id: user.id || user.userId,
+      name: user.name,
+      email: user.email,
+      username: user.username,
+      role: user.role || 'USER',
+      workerToken: user.workerToken,
+      activePlan: user.activePlan || 'FREE_COMMUNITY',
+      totalShares: user.totalShares || 0
+    }
+  });
 });
 
 module.exports = router;

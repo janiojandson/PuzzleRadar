@@ -39,7 +39,7 @@ function postToGoogleWebhook(url, payload) {
       const dataString = JSON.stringify(payload);
       const urlObj = new URL(url);
 
-      const webhookSecret = process.env.SHEETS_WEBHOOK_SECRET || 'PR_SECURE_WEBHOOK_2026';
+      const configuredSecret = process.env.SHEETS_WEBHOOK_SECRET || process.env.JWT_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
       const options = {
         hostname: urlObj.hostname,
         port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
@@ -48,7 +48,7 @@ function postToGoogleWebhook(url, payload) {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(dataString),
-          'x-webhook-token': webhookSecret
+          'x-webhook-token': configuredSecret
         }
       };
 
@@ -118,7 +118,7 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
     // Dispara para o Webhook do Google Apps Script com metadados completos e autenticação
     if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
       postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
-        secretToken: process.env.SHEETS_WEBHOOK_SECRET || 'PR_SECURE_WEBHOOK_2026',
+        secretToken: process.env.SHEETS_WEBHOOK_SECRET || process.env.JWT_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production',
         chain,
         challengeId,
         puzzleId: challengeId,

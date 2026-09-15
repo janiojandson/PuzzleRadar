@@ -114,17 +114,25 @@
       </div>
     </div>
 
-    <!-- Action Links -->
+    <!-- Action Links & Auth Controls -->
     <div class="flex items-center gap-2">
-      <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg" target="_blank" rel="noopener noreferrer" class="px-3 py-2 text-xs font-semibold rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition flex items-center gap-1.5">
-        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-        <span class="hidden sm:inline">Planilha Google</span>
-      </a>
-      <a href="https://colab.research.google.com/github/janiojandson/PuzzleRadar/blob/main/solver/colab_worker.ipynb" target="_blank" rel="noopener noreferrer" class="px-3 py-2 text-xs font-semibold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5">
-        <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-3.5 h-3.5" alt="Colab">
-        <span class="hidden sm:inline">GPU Colab</span>
-      </a>
-      <button onclick="toggleAdvisorChat()" class="px-3.5 py-2 text-xs font-extrabold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
+      <div id="unauthHeaderActions" class="flex items-center gap-2">
+        <button onclick="openAuthModal('login')" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/15 text-white transition border border-white/10">
+          Entrar
+        </button>
+        <button onclick="openAuthModal('register')" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black transition shadow-lg shadow-emerald-500/20">
+          Cadastrar Grátis
+        </button>
+      </div>
+
+      <div id="authUserPill" class="hidden items-center gap-2 p-1.5 pl-3 rounded-xl bg-white/5 border border-white/10 font-mono text-xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="authUserNameDisplay" class="font-bold text-white">Minerador</span>
+        <span id="authUserRoleDisplay" class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">USER</span>
+        <button onclick="logoutUser()" title="Sair da conta" class="p-1 hover:text-red-400 text-slate-400"><i data-lucide="log-out" class="w-3.5 h-3.5"></i></button>
+      </div>
+
+      <button onclick="toggleAdvisorChat()" class="px-3.5 py-2 text-xs font-extrabold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-black transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
         <i data-lucide="bot" class="w-4 h-4"></i>
         <span>Consultor IA</span>
       </button>
@@ -449,25 +457,27 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 4: RANGES & GOOGLE SHEETS ==================== -->
+    <!-- ==================== TAB 4: RANGES & AUDITORIA DE VARREDURA ==================== -->
     <section id="tab-ranges" class="tab-content hidden space-y-6">
       <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-2 max-w-3xl">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold">
-              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-              <span>Sincronização Bidirecional com Google Sheets</span>
+              <i data-lucide="database" class="w-3.5 h-3.5 text-blue-400"></i>
+              <span>Espelho de Armazenamento Auditado (Backend Seguro)</span>
             </div>
-            <h2 class="text-3xl font-extrabold text-white">Registro Anti-Colisão (Ranges_Varredura)</h2>
+            <h2 class="text-3xl font-extrabold text-white">Registro Anti-Colisão de Ranges Varridos</h2>
             <p class="text-sm text-slate-300">
-              Cada fatia concluída por qualquer worker do cluster é despachada em tempo real para a planilha Google oficial (<strong>1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg</strong>).
+              Auditoria em tempo real de blocos já escaneados pelo cluster. Cada fatia concluída recebe quarentena de redundância via Space Pruning e é persistida no cofre de dados protegido.
             </p>
           </div>
 
-          <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg" target="_blank" rel="noopener noreferrer" class="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
-            <i data-lucide="external-link" class="w-4 h-4"></i>
-            <span>Abrir Planilha no Google Drive</span>
-          </a>
+          <div class="flex items-center gap-2">
+            <div class="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+              <span>Sincronização Ativa: 100% Blindada</span>
+            </div>
+          </div>
         </div>
 
         <!-- Live Ranges Table -->
@@ -578,6 +588,46 @@
         <i data-lucide="send" class="w-4 h-4"></i>
       </button>
     </form>
+  </div>
+
+  <!-- Modal de Autenticação (Login / Cadastro) -->
+  <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel-glow w-full max-w-md rounded-2xl p-6 border border-emerald-500/30 space-y-5 relative">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="space-y-1">
+        <h3 id="authModalTitle" class="text-xl font-bold text-white">Entrar no PuzzleRadar</h3>
+        <p class="text-xs text-slate-400">Acesse seu painel com token exclusivo de mineração.</p>
+      </div>
+
+      <div class="flex p-1 rounded-xl bg-cypher-900 border border-white/10 text-xs">
+        <button id="authTabLogin" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black">Login</button>
+        <button id="authTabRegister" onclick="switchAuthTab('register')" class="flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white">Criar Conta</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
+        <div id="authNameField" class="space-y-1 hidden">
+          <label class="text-[11px] text-slate-400 font-medium">Nome / Apelido do Minerador:</label>
+          <input type="text" id="authNameInput" placeholder="Ex: CypherMiner" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] text-slate-400 font-medium">E-mail:</label>
+          <input type="email" id="authEmailInput" required placeholder="seu@email.com" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] text-slate-400 font-medium">Senha:</label>
+          <input type="password" id="authPasswordInput" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/20">
+          Entrar na Conta
+        </button>
+      </form>
+    </div>
   </div>
 
   <!-- Floating Chat Toggle Button -->
