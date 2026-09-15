@@ -1,8 +1,144 @@
-// ============================================
-// 🧩 PuzzleRadar v3.0 — Motor de Dificuldade, Entropia & Multi-Moedas
-// ============================================
-
+const https = require('https');
 const { getAll160Puzzles } = require('./puzzles1000btc');
+
+// ─── CACHE DE PREÇOS COINGECKO (ATUALIZADO A CADA 60 MINUTOS) ───
+let cryptoPricesCache = {
+  BTC: 65000,
+  ETH: 3200,
+  SOL: 180,
+  lastUpdated: 0
+};
+
+async function fetchCryptoPrices() {
+  const now = Date.now();
+  if (now - cryptoPricesCache.lastUpdated < 60 * 60 * 1000 && cryptoPricesCache.lastUpdated > 0) {
+    return cryptoPricesCache;
+  }
+
+  return new Promise((resolve) => {
+    const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd';
+    const req = https.get(url, { headers: { 'User-Agent': 'PuzzleRadar-ROI/3.0' }, timeout: 8000 }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 200) {
+            const json = JSON.parse(body);
+            cryptoPricesCache = {
+              BTC: json.bitcoin?.usd || cryptoPricesCache.BTC,
+              ETH: json.ethereum?.usd || cryptoPricesCache.ETH,
+              SOL: json.solana?.usd || cryptoPricesCache.SOL,
+              lastUpdated: Date.now()
+            };
+            console.log(`💲 [CoinGecko] Preços atualizados: BTC $${cryptoPricesCache.BTC}, ETH $${cryptoPricesCache.ETH}, SOL $${cryptoPricesCache.SOL}`);
+          }
+        } catch (_) {}
+        resolve(cryptoPricesCache);
+      });
+    });
+
+    req.on('error', () => resolve(cryptoPricesCache));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(cryptoPricesCache);
+    });
+  });
+}
+
+function getCachedPrices() {
+  return cryptoPricesCache;
+}
+
+/**
+ * Calcula o ROI Dinâmico de um alvo com base no algoritmo e na frota
+ * Algoritmos:
+ * - O(1): Instantâneo (Nonce Reuse / Script Algébrico)
+ * - O(√N): Pollard's Kangaroo (Chave Pública Exposta)
+ * - O(N): Brute-force linear (Sem chave pública)
+ * 
+ * Custo Elétrico Padrão: $0.12 USD/kWh por GPU de 250W
+ */
+function calculateTargetROI(challenge, fleetHashrate = 42000000000, gpuPowerWatts = 250, electricityPriceKwh = 0.12) {
+  const prices = getCachedPrices();
+  const chain = (challenge.chain || 'BTC').toUpperCase();
+  const unitPriceUSD = prices[chain] || (chain === 'ETH' ? prices.ETH : chain === 'SOL' ? prices.SOL : prices.BTC);
+  
+  const prizeQty = Number(challenge.prize || challenge.prizeBtc || challenge.prizeAmount || 0);
+  const prizeUSD = prizeQty * unitPriceUSD;
+
+  const bits = Number(challenge.effectiveBits || challenge.bits || challenge.bitRange || 66);
+  const isNonceReuse = challenge.challengeId === 'BTC_SATOSHI_NONCE_REUSE' || bits <= 1;
+  const isKangaroo = Boolean(challenge.publicKeyExposed || challenge.targetPublicKey || (challenge.publicKey && String(challenge.publicKey).length >= 64));
+
+  let expectedOperations = 1;
+  let algorithmType = 'O(N) Brute-force Linear';
+
+  if (isNonceReuse) {
+    expectedOperations = 1; // O(1)
+    algorithmType = 'O(1) Cálculo Algébrico Instantâneo';
+  } else if (isKangaroo) {
+    // Kangaroo O(√N): para range de 2^K, custo médio é 2 * 2^(K/2) = 2^(K/2 + 1) operações de grupo
+    const halfBits = (bits / 2) + 1;
+    expectedOperations = Math.pow(2, Math.min(halfBits, 62));
+    algorithmType = 'O(√N) Pollard Kangaroo CUDA';
+  } else {
+    // Brute-force O(N): em média 2^(bits - 1)
+    expectedOperations = Math.pow(2, Math.min(Math.max(0, bits - 1), 62));
+    algorithmType = 'O(N) Exaustão Linear GPU';
+  }
+
+  // Tempo em segundos e dias
+  const hashrate = Math.max(fleetHashrate, 1000000); // Mínimo 1 MH/s
+  const expectedSeconds = expectedOperations / hashrate;
+  const expectedDays = expectedSeconds / 86400;
+  const expectedHours = expectedSeconds / 3600;
+
+  // Custo elétrico: (Potência em kW) * (Horas) * (Preço por kWh)
+  const powerKw = gpuPowerWatts / 1000;
+  const totalPowerCostUSD = powerKw * expectedHours * electricityPriceKwh;
+
+  // Lucro líquido esperado e ROI por dia
+  const netProfitUSD = Math.max(0, prizeUSD - totalPowerCostUSD);
+  const roiPerDayUSD = expectedDays > 0 ? (netProfitUSD / Math.max(expectedDays, 0.001)) : netProfitUSD * 24;
+
+  let badge = 'STANDARD';
+  if (isNonceReuse || roiPerDayUSD > 10000) {
+    badge = 'TOP_ROI';
+  } else if (roiPerDayUSD > 1000) {
+    badge = 'HIGH_YIELD';
+  } else if (expectedDays <= 3) {
+    badge = 'QUICK_WIN';
+  }
+
+  let formattedFleetTime = '';
+  if (expectedSeconds < 60) {
+    formattedFleetTime = `${Math.ceil(expectedSeconds)} seg`;
+  } else if (expectedHours < 24) {
+    formattedFleetTime = `${expectedHours.toFixed(1)} horas`;
+  } else if (expectedDays < 365) {
+    formattedFleetTime = `${expectedDays.toFixed(1)} dias`;
+  } else {
+    formattedFleetTime = `${(expectedDays / 365).toFixed(1)} anos`;
+  }
+
+  return {
+    challengeId: challenge.challengeId || `BTC_1000_P${challenge.puzzleNumber || challenge.num}`,
+    chain,
+    algorithmType,
+    prizeQty,
+    prizeUSD: Math.round(prizeUSD),
+    totalPowerCostUSD: parseFloat(totalPowerCostUSD.toFixed(2)),
+    netProfitUSD: Math.round(netProfitUSD),
+    expectedSeconds,
+    expectedHours: parseFloat(expectedHours.toFixed(2)),
+    expectedDays: parseFloat(expectedDays.toFixed(4)),
+    formattedFleetTime,
+    roi_per_day_usd: parseFloat(roiPerDayUSD.toFixed(2)),
+    roiPerDayFormatted: `$${Math.round(roiPerDayUSD).toLocaleString()}/dia`,
+    badge,
+    unitPriceUSD
+  };
+}
 
 const DIFFICULTY_THRESHOLDS = {
   EASY:   { min: 0,   max: 400, label: 'FÁCIL',   emoji: '🟢', color: '#22c55e' },
@@ -375,6 +511,9 @@ module.exports = {
   splitRange,
   getBitcoinPuzzleData,
   getMultiChainPuzzleData,
+  calculateTargetROI,
+  fetchCryptoPrices,
+  getCachedPrices,
   DIFFICULTY_THRESHOLDS,
   HARDWARE_SPEEDS,
   hexToBigInt,

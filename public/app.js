@@ -46,23 +46,41 @@ function switchTab(tabId) {
 // ─── 1000 BTC PUZZLE DATA & TABLE ───
 async function fetch1000BtcData() {
   try {
-    const res = await fetch('/api/puzzle1000btc?limit=160');
-    const data = await res.json();
-    all1000Puzzles = data.puzzles || [];
+    // Busca recomendações de ROI e puzzles simultaneamente
+    const [puzzlesRes, recRes] = await Promise.all([
+      fetch('/api/puzzle1000btc?limit=160'),
+      fetch('/api/advisor/recommendations?fleetHashrate=42000000000')
+    ]);
+
+    const data = await puzzlesRes.json();
+    const recData = await recRes.json();
+    advisorRecommendations = recData.recommendations || [];
+
+    // Mapeia dados de ROI nos puzzles
+    const roiMap = new Map();
+    advisorRecommendations.forEach(r => {
+      roiMap.set(r.puzzleNumber, r.roi);
+      if (r.challengeId) roiMap.set(r.challengeId, r.roi);
+    });
+
+    all1000Puzzles = (data.puzzles || []).map(p => ({
+      ...p,
+      roi: roiMap.get(p.num) || null
+    }));
     filtered1000Puzzles = [...all1000Puzzles];
 
     if (data.stats) {
       setInner('statTotalWallets', data.stats.total || 160);
       setInner('statSolvedWallets', `${data.stats.solved} (51.9%)`);
       setInner('statUnsolvedWallets', `${data.stats.unsolved} Carteiras`);
-      setInner('statBtcDispute', `${data.stats.btcInDispute} BTC (~$${(Number(data.stats.btcInDispute) * 65000 / 1e6).toFixed(1)}M)`);
+      setInner('statBtcDispute', `${data.stats.btcInDispute} BTC (~$${(Number(data.stats.btcInDispute) * (recData.fleetConfig ? 65000 : 65000) / 1e6).toFixed(1)}M)`);
       setInner('headerDispute', `${data.stats.btcInDispute} BTC`);
     }
 
     render1000Ticks(all1000Puzzles);
-    render1000Table(filtered1000Puzzles);
+    applyP1000Filters();
   } catch (err) {
-    console.error('Erro ao buscar dados 1000 BTC:', err);
+    console.error('Erro ao carregar dados do 1000 BTC:', err);
   }
 }
 
@@ -81,6 +99,10 @@ function render1000Ticks(puzzles) {
   }).join('');
 }
 
+function renderProgressTicks(puzzles) {
+  return render1000Ticks(puzzles);
+}
+
 function filterBySinglePuzzle(num) {
   const input = document.getElementById('p1000SearchInput');
   if (input) input.value = `#${num}`;
@@ -94,7 +116,7 @@ function render1000Table(puzzles) {
   setInner('p1000FilteredCount', puzzles.length);
 
   if (puzzles.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-500 text-xs">Nenhum puzzle encontrado com o filtro aplicado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-500 text-xs">Nenhum puzzle encontrado com o filtro aplicado.</td></tr>`;
     return;
   }
 
@@ -109,15 +131,35 @@ function render1000Table(puzzles) {
         ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse">🎯 ALVO ATUAL</span>'
         : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/10 text-orange-300 border border-orange-500/20">🔥 EM DISPUTA</span>');
 
+    // ROI Badge e métricas
+    let roiBadge = '';
+    if (!isSolved && p.roi) {
+      const topBadge = p.roi.badge === 'TOP_ROI' 
+        ? '<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-extrabold text-[9px] border border-emerald-500/40">⭐ TOP ROI</span>' 
+        : '';
+      roiBadge = `
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-1">
+            <span class="text-emerald-400 font-bold text-[11px]">${p.roi.roiPerDayFormatted}</span>
+            ${topBadge}
+          </div>
+          <div class="text-slate-400 text-[9px]">Frota: <strong class="text-slate-200">${p.roi.formattedFleetTime}</strong></div>
+        </div>`;
+    } else if (isSolved) {
+      roiBadge = '<span class="text-slate-500 text-[10px]">-</span>';
+    } else {
+      roiBadge = '<span class="text-slate-500 text-[10px]">Calculando...</span>';
+    }
+
     const privKeyDisplay = p.privateKey
       ? `<div class="flex items-center gap-1">
-          <span class="text-emerald-300 font-mono text-[10px] truncate max-w-[140px]" title="${p.privateKey}">0x${p.privateKey}</span>
+          <span class="text-emerald-300 font-mono text-[10px] truncate max-w-[120px]" title="${p.privateKey}">0x${p.privateKey}</span>
           <button onclick="copyText('${p.privateKey}')" class="p-1 hover:text-white text-slate-400"><i data-lucide="copy" class="w-3 h-3"></i></button>
         </div>`
-      : '<span class="text-slate-600 italic text-[10px]">Oculta (Em busca)</span>';
+      : '<span class="text-slate-600 italic text-[10px]">Oculta</span>';
 
     const pubKeyDisplay = p.publicKey
-      ? `<span class="text-slate-300 font-mono text-[10px] truncate max-w-[140px] block" title="${p.publicKey}">${p.publicKey.substring(0, 16)}...</span>`
+      ? `<span class="text-slate-300 font-mono text-[10px] truncate max-w-[120px] block" title="${p.publicKey}">${p.publicKey.substring(0, 14)}...</span>`
       : '<span class="text-slate-600 italic text-[10px]">Oculta</span>';
 
     return `
@@ -128,13 +170,14 @@ function render1000Table(puzzles) {
         </td>
         <td class="py-3 px-3">
           <a href="${p.mempoolUrl}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:underline flex items-center gap-1 text-[11px] font-mono">
-            <span>${p.address.substring(0, 12)}...${p.address.slice(-6)}</span>
+            <span>${p.address.substring(0, 10)}...${p.address.slice(-5)}</span>
             <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
           </a>
         </td>
         <td class="py-3 px-3">${pubKeyDisplay}</td>
         <td class="py-3 px-3">${privKeyDisplay}</td>
         <td class="py-3 px-3 font-bold text-amber-400">${p.btcPrize} BTC</td>
+        <td class="py-3 px-3">${roiBadge}</td>
         <td class="py-3 px-3">${statusBadge}</td>
         <td class="py-3 px-3 text-right">
           ${!isSolved
@@ -211,40 +254,75 @@ function generateColabTargetCommand(num) {
   });
 }
 
-// ─── MULTI-CHAIN DATA ───
+// ─── MULTI-CHAIN DATA COM ROI DINÂMICO ───
 async function fetchMultiChainData() {
   try {
-    const res = await fetch('/api/puzzles');
+    const res = await fetch('/api/advisor/recommendations?fleetHashrate=42000000000');
     const data = await res.json();
-    const puzzles = data.puzzles || [];
-    const others = puzzles.filter(p => p.chain !== 'BTC' || p.puzzleNumber > 160);
+    const recommendations = data.recommendations || [];
+    const others = recommendations.filter(p => p.chain !== 'BTC' || p.puzzleNumber > 160);
 
     const container = document.getElementById('multiChainCardsGrid');
     if (!container) return;
 
-    container.innerHTML = others.map(c => `
-      <div class="glass-panel p-5 rounded-2xl space-y-3 hover:border-purple-500/30 transition">
-        <div class="flex items-start justify-between">
-          <div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.chain === 'ETH' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}">${c.chain}</span>
-            <h4 class="font-bold text-white text-base mt-1">${c.title}</h4>
+    container.innerHTML = others.map(c => {
+      const roi = c.roi || {};
+      const isTopRoi = roi.badge === 'TOP_ROI';
+      const isQuickWin = roi.badge === 'QUICK_WIN';
+
+      const roiBadge = isTopRoi
+        ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-orange-500 text-black shadow-md flex items-center gap-1">⭐ TOP ROI</span>'
+        : (isQuickWin 
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">⚡ GANHO RÁPIDO</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/30">VIÁVEL</span>');
+
+      return `
+        <div class="glass-panel p-5 rounded-2xl space-y-4 hover:border-purple-500/40 transition flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.chain === 'ETH' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}">${c.chain}</span>
+                  ${roiBadge}
+                </div>
+                <h4 class="font-bold text-white text-base mt-1.5 leading-snug">${c.title}</h4>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xl font-extrabold text-amber-400 font-mono block">${c.prize} ${c.prizeCurrency || c.chain}</span>
+                <span class="text-[11px] text-slate-400 font-mono">~$${(roi.prizeUSD || 0).toLocaleString()} USD</span>
+              </div>
+            </div>
+
+            <!-- Financial Metrics Grid -->
+            <div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-cypher-950 border border-white/5 font-mono text-xs">
+              <div class="p-2 rounded bg-white/5 space-y-0.5">
+                <div class="text-[10px] text-slate-400">Lucro/Dia Estimado</div>
+                <div class="font-bold text-emerald-400 text-sm">${roi.roiPerDayFormatted || '$0/dia'}</div>
+              </div>
+              <div class="p-2 rounded bg-white/5 space-y-0.5">
+                <div class="text-[10px] text-slate-400">Tempo Médio da Frota</div>
+                <div class="font-bold text-cyan-300 text-sm">${roi.formattedFleetTime || 'Minutos'}</div>
+              </div>
+            </div>
+
+            <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
+              <div><span class="text-slate-500">Algoritmo:</span> <strong class="text-slate-300">${roi.algorithmType || 'O(N)'}</strong></div>
+              <div><span class="text-slate-500">Endereço/Alvo:</span> <span class="text-cyan-400">${c.targetAddress}</span></div>
+            </div>
           </div>
-          <span class="text-xl font-extrabold text-amber-400 font-mono">${c.prize} ${c.prizeCurrency || c.chain}</span>
+
+          <div class="flex items-center justify-between pt-2 border-t border-white/5">
+            <span class="text-emerald-400 font-semibold text-xs">${c.difficultyLabel || 'Instantâneo'}</span>
+            <button onclick="setMultiChainTarget('${c.chain}', '${c.challengeId || c.title}')" class="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-black font-extrabold text-xs transition shadow-lg shadow-purple-500/20">
+              Atacar Desafio
+            </button>
+          </div>
         </div>
-        <div class="text-xs text-slate-300 font-mono bg-cypher-950 p-2.5 rounded-xl border border-white/5 space-y-1">
-          <div><span class="text-slate-500">Range:</span> ${c.rangeStart} ➔ ${c.rangeEnd}</div>
-          <div><span class="text-slate-500">Endereço:</span> ${c.targetAddress}</div>
-        </div>
-        <div class="flex items-center justify-between text-xs pt-1">
-          <span class="text-emerald-400 font-semibold">${c.difficultyLabel || 'Viável'}</span>
-          <button onclick="setMultiChainTarget('${c.chain}', '${c.challengeId || c.title}')" class="px-3 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 text-black font-bold text-xs transition">
-            Atacar Desafio
-          </button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+    if (window.lucide) window.lucide.createIcons();
   } catch (err) {
-    console.error('Erro ao carregar multi-chain:', err);
+    console.error('Erro ao carregar multi-chain com ROI:', err);
   }
 }
 
