@@ -6,7 +6,7 @@ const express = require('express');
 const crypto = require('crypto');
 const prisma = require('../../lib/prisma');
 const { generateToken } = require('../../lib/auth');
-const { splitRange } = require('../../lib/difficultyEngine');
+const { splitRange, getChallengeById } = require('../../lib/difficultyEngine');
 const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
@@ -130,19 +130,28 @@ router.post('/register', async (req, res) => {
 router.get('/:id/task', async (req, res) => {
   try {
     const { id } = req.params;
-    const { puzzleId = 'puzzle_btc_71' } = req.query;
+    const { puzzleId, chain, challenge_id } = req.query;
+    const queryTarget = challenge_id || puzzleId || 'BTC_1000_P71';
 
-    // Range do Puzzle #71: 0x400000000000000000 a 0x7fffffffffffffffff (71 bits)
-    const defaultStart = '400000000000000000';
-    const defaultEnd = '7fffffffffffffffff';
-    const targetAddress = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
-    
-    // Procura fatia não escaneada
+    // Procura metadados dinâmicos do desafio selecionado (BTC, ETH, SOL, Nonce Reuse, etc.)
+    const challenge = getChallengeById(queryTarget) || getChallengeById('BTC_1000_P71');
+
+    const defaultStart = challenge && challenge.rangeStart && !challenge.rangeStart.includes(' ')
+      ? challenge.rangeStart.replace(/^0x/i, '')
+      : '400000000000000000';
+    const defaultEnd = challenge && challenge.rangeEnd && !challenge.rangeEnd.includes(' ')
+      ? challenge.rangeEnd.replace(/^0x/i, '')
+      : '7fffffffffffffffff';
+    const targetAddress = challenge ? (challenge.targetAddress || challenge.address || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU') : '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+    const activePuzzleKey = challenge ? (challenge.challengeId || `BTC_1000_P${challenge.puzzleNumber || challenge.num || 71}`) : 'BTC_1000_P71';
+    const activeChain = (challenge && challenge.chain) || (chain ? chain.toUpperCase() : 'BTC');
+
+    // Procura fatia não escaneada no espaço de busca do desafio
     const splits = splitRange(defaultStart, defaultEnd, 1000);
     let assignedChunk = null;
 
     for (const chunk of splits) {
-      const alreadyScanned = await isChunkScanned(puzzleId, chunk.index);
+      const alreadyScanned = await isChunkScanned(activePuzzleKey, chunk.index);
       if (!alreadyScanned) {
         assignedChunk = chunk;
         break;
@@ -155,14 +164,16 @@ router.get('/:id/task', async (req, res) => {
 
     const task = {
       taskId: `task_${Date.now()}_${assignedChunk.index}`,
-      puzzleId,
+      puzzleId: activePuzzleKey,
+      challengeId: activePuzzleKey,
+      chain: activeChain,
       targetAddress,
       chunkIndex: assignedChunk.index,
       rangeStart: assignedChunk.rangeStart,
       rangeEnd: assignedChunk.rangeEnd,
       keysCount: assignedChunk.size,
-      hints: [
-        { type: 'kangarooEcdsa', algorithm: 'PollardKangaroo_CUDA', pubKey: '02...' }
+      hints: (challenge && challenge.appliedHints) || (challenge && challenge.hints) || [
+        { type: 'kangarooEcdsa', algorithm: 'PollardKangaroo_CUDA', pubKey: (challenge && challenge.publicKey) || '02...' }
       ]
     };
 
@@ -176,7 +187,7 @@ router.get('/:id/task', async (req, res) => {
     res.json({
       workerId: id,
       task,
-      message: `Tarefa atribuída para Puzzle #71: Range 0x${task.rangeStart} ➔ 0x${task.rangeEnd}`
+      message: `Tarefa atribuída para [${activeChain}] ${activePuzzleKey}: Range 0x${task.rangeStart} ➔ 0x${task.rangeEnd}`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

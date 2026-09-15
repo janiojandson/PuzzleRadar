@@ -236,23 +236,44 @@ function applyP1000Filters() {
   render1000Table(filtered1000Puzzles);
 }
 
+function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = (currentUser && currentUser.workerToken) ? ` --token="${currentUser.workerToken}"` : '';
+
+  const colabCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${chain}" --challenge="${challengeId}"`;
+  const localCmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${chain}" --challenge="${challengeId}"`;
+
+  const colabOneLiner = document.getElementById('colabOneLinerCode');
+  if (colabOneLiner) colabOneLiner.innerText = colabCmd;
+
+  const colabBox = document.getElementById('colabDirectCodeBox');
+  if (colabBox) colabBox.value = colabCmd;
+
+  const localBox = document.getElementById('localDirectCodeBox');
+  if (localBox) localBox.value = localCmd;
+
+  const colabCli = document.getElementById('colabCliCode');
+  if (colabCli) colabCli.innerText = localCmd;
+
+  setInner('headerTarget', titleDisplay || `[${chain}] ${challengeId}`);
+}
+
 function setTargetPuzzle(num) {
   const puzzle = all1000Puzzles.find(p => p.num === num);
-  if (!puzzle) return;
-
-  const cmd = `python solver/colab_worker.py --api=${window.location.origin} --chain=BTC --challenge=BTC_1000_P${num}`;
-  const el = document.getElementById('colabCliCode');
-  if (el) el.innerText = cmd;
-
-  setInner('headerTarget', `Puzzle #${num} (${puzzle.btcPrize} BTC)`);
+  const prize = puzzle ? `${puzzle.btcPrize} BTC` : '';
+  const challengeId = `BTC_1000_P${num}`;
+  
+  updateAllTargetCodeBoxes('BTC', challengeId, `Puzzle #${num} (${prize})`);
   switchTab('tab-fleet');
-  showToast(`🎯 Alvo #${num} (${puzzle.btcPrize} BTC) definido! Copie o comando na aba Fleet.`);
+  showToast(`🎯 Alvo #${num} (${prize}) definido! Comandos GPU Colab atualizados na aba Fleet.`);
 }
 
 function generateColabTargetCommand(num) {
-  const cmd = `python solver/colab_worker.py --api=${window.location.origin} --chain=BTC --challenge=BTC_1000_P${num}`;
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = (currentUser && currentUser.workerToken) ? ` --token="${currentUser.workerToken}"` : '';
+  const cmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P${num}"`;
   navigator.clipboard.writeText(cmd).then(() => {
-    alert(`📋 Comando copiado para a área de transferência!\n\n${cmd}`);
+    showToast(`📋 Comando GPU Colab para Puzzle #${num} copiado!`);
   });
 }
 
@@ -262,15 +283,22 @@ async function fetchMultiChainData() {
     const res = await fetch('/api/advisor/recommendations?fleetHashrate=42000000000');
     const data = await res.json();
     const recommendations = data.recommendations || [];
-    const others = recommendations.filter(p => p.chain !== 'BTC' || p.puzzleNumber > 160);
+    const others = recommendations.filter(p => p.chain !== 'BTC' || p.puzzleNumber > 160 || p.challengeId === 'BTC_SATOSHI_NONCE_REUSE');
+
+    // Ordenação estrita por melhor ROI de resolução (do mais rentável/rápido em diante)
+    others.sort((a, b) => {
+      const roiA = a.roi ? (a.roi.roi_per_day_usd || 0) : 0;
+      const roiB = b.roi ? (b.roi.roi_per_day_usd || 0) : 0;
+      return roiB - roiA;
+    });
 
     const container = document.getElementById('multiChainCardsGrid');
     if (!container) return;
 
     container.innerHTML = others.map(c => {
       const roi = c.roi || {};
-      const isTopRoi = roi.badge === 'TOP_ROI';
-      const isQuickWin = roi.badge === 'QUICK_WIN';
+      const isTopRoi = roi.badge === 'TOP_ROI' || (roi.roi_per_day_usd >= 10000);
+      const isQuickWin = roi.badge === 'QUICK_WIN' || (roi.expectedDays && roi.expectedDays <= 3);
 
       const roiBadge = isTopRoi
         ? '<span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-orange-500 text-black shadow-md flex items-center gap-1">⭐ TOP ROI</span>'
@@ -278,13 +306,15 @@ async function fetchMultiChainData() {
           ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">⚡ GANHO RÁPIDO</span>'
           : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/30">VIÁVEL</span>');
 
+      const targetId = c.challengeId || c.title;
+
       return `
         <div class="glass-panel p-5 rounded-2xl space-y-4 hover:border-purple-500/40 transition flex flex-col justify-between">
           <div class="space-y-3">
             <div class="flex items-start justify-between gap-2">
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.chain === 'ETH' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'}">${c.chain}</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${c.chain === 'ETH' ? 'bg-blue-500/10 text-blue-400' : c.chain === 'SOL' ? 'bg-purple-500/10 text-purple-400' : 'bg-emerald-500/10 text-emerald-400'}">${c.chain}</span>
                   ${roiBadge}
                 </div>
                 <h4 class="font-bold text-white text-base mt-1.5 leading-snug">${c.title}</h4>
@@ -309,14 +339,14 @@ async function fetchMultiChainData() {
 
             <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
               <div><span class="text-slate-500">Algoritmo:</span> <strong class="text-slate-300">${roi.algorithmType || 'O(N)'}</strong></div>
-              <div><span class="text-slate-500">Endereço/Alvo:</span> <span class="text-cyan-400">${c.targetAddress}</span></div>
+              <div><span class="text-slate-500">Endereço/Alvo:</span> <span class="text-cyan-400 font-mono text-[11px] break-all">${c.targetAddress || 'N/A'}</span></div>
             </div>
           </div>
 
           <div class="flex items-center justify-between pt-2 border-t border-white/5">
             <span class="text-emerald-400 font-semibold text-xs">${c.difficultyLabel || 'Instantâneo'}</span>
-            <button onclick="setMultiChainTarget('${c.chain}', '${c.challengeId || c.title}')" class="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-black font-extrabold text-xs transition shadow-lg shadow-purple-500/20">
-              Atacar Desafio
+            <button onclick="setMultiChainTarget('${c.chain}', '${targetId}', '${c.title.replace(/'/g, "\\'")}', '${c.prize} ${c.prizeCurrency || c.chain}')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-extrabold text-xs transition shadow-lg shadow-purple-500/20 flex items-center gap-1.5">
+              <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Atacar Desafio
             </button>
           </div>
         </div>
@@ -328,12 +358,11 @@ async function fetchMultiChainData() {
   }
 }
 
-function setMultiChainTarget(chain, challengeId) {
-  const cmd = `python solver/colab_worker.py --api=${window.location.origin} --chain=${chain} --challenge=${challengeId}`;
-  const el = document.getElementById('colabCliCode');
-  if (el) el.innerText = cmd;
+function setMultiChainTarget(chain, challengeId, title, prize) {
+  const displayTitle = title ? `${title} (${prize || ''})` : `[${chain}] ${challengeId}`;
+  updateAllTargetCodeBoxes(chain, challengeId, displayTitle);
   switchTab('tab-fleet');
-  showToast(`🎯 [${chain}] ${challengeId} selecionado! Comando atualizado na aba Fleet.`);
+  showToast(`🎯 Alvo [${chain}] ${challengeId} selecionado! Comandos GPU Colab atualizados na aba Fleet.`);
 }
 
 // ─── FLEET MANAGEMENT ───

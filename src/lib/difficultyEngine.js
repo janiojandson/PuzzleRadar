@@ -521,64 +521,119 @@ function getCachedPrices() {
 /**
  * Calcula o ROI Dinâmico com Dedução de Custo Elétrico conforme Capítulo 8.2
  */
-function calculateTargetROI(challenge = {}, fleetHashrate = 50e9) {
-  const algo = (challenge.algorithm || 'LINEAR_ON').toUpperCase();
-  const bits = Number(challenge.search_space_bits || challenge.bitRange || 66);
-  const prize = Number(challenge.prize_estimated || challenge.prizeAmount || challenge.prize || 0);
-  const chain = (challenge.chain || 'BTC').toUpperCase();
+function calculateTargetROI(challenge = {}, fleetHashrate = 42000000000, gpuPowerWatts = 250, electricityPriceKwh = 0.12) {
   const prices = getCachedPrices();
-  const coinPrice = prices[chain] || 60000;
+  const chain = (challenge.chain || 'BTC').toUpperCase();
+  const coinPrice = prices[chain] || (chain === 'ETH' ? prices.ETH : chain === 'SOL' ? prices.SOL : prices.BTC) || 60000;
+
+  const prizeQty = Number(challenge.prize || challenge.prizeBtc || challenge.prizeAmount || challenge.prize_estimated || 0);
+  const prizeUSD = prizeQty * coinPrice;
+
+  const bits = Number(challenge.effectiveBits || challenge.bits || challenge.bitRange || challenge.search_space_bits || 66);
+  const algo = (challenge.algorithm || challenge.algorithmType || '').toUpperCase();
+  const isNonceReuse = challenge.challengeId === 'BTC_SATOSHI_NONCE_REUSE' || algo.includes('NONCE_REUSE') || algo.includes('O1') || bits <= 1;
+  const isKangaroo = Boolean(challenge.publicKeyExposed || challenge.targetPublicKey || (challenge.publicKey && String(challenge.publicKey).length >= 64) || algo.includes('KANGAROO') || algo.includes('SQRT'));
 
   let effectiveOperations = 1;
-  let complexityType = 'O(N) Linear';
+  let algorithmType = 'O(N) Exaustão Linear GPU';
+  let complexityType = 'O(N) Força Bruta';
 
-  if (algo.includes('O1') || algo.includes('NONCE_REUSE')) {
+  if (isNonceReuse) {
     effectiveOperations = 1;
-    complexityType = 'O(1) Instantaneo';
-  } else if (algo.includes('SQRT') || algo.includes('KANGAROO')) {
-    effectiveOperations = 2 ** (bits / 2);
+    algorithmType = 'O(1) Cálculo Algébrico Instantâneo';
+    complexityType = 'O(1) Instantâneo';
+  } else if (isKangaroo) {
+    const halfBits = (bits / 2) + 1;
+    effectiveOperations = Math.pow(2, Math.min(halfBits, 62));
+    algorithmType = 'O(√N) Pollard Kangaroo CUDA';
     complexityType = 'O(sqrt(N)) Kangaroo';
   } else {
-    effectiveOperations = 2 ** Math.min(bits, 80);
-    complexityType = 'O(N) Forca Bruta';
+    effectiveOperations = Math.pow(2, Math.min(Math.max(0, bits - 1), 62));
+    algorithmType = 'O(N) Exaustão Linear GPU';
+    complexityType = 'O(N) Força Bruta';
   }
 
-  const effectiveHashrate = Math.max(1e6, Number(fleetHashrate) || 50e9);
+  const effectiveHashrate = Math.max(1e6, Number(fleetHashrate) || 42e9);
   const estimatedSeconds = Math.max(0.001, effectiveOperations / effectiveHashrate);
   const estimatedDays = estimatedSeconds / 86400;
   const estimatedHours = estimatedSeconds / 3600;
 
   // Custo de energia: GPU 250W a $0.12 USD/kWh
-  const powerKw = 0.25;
-  const kwhRate = 0.12;
-  const estimatedEnergyCostUsd = estimatedHours * powerKw * kwhRate;
+  const powerKw = gpuPowerWatts / 1000;
+  const estimatedEnergyCostUsd = powerKw * estimatedHours * electricityPriceKwh;
 
-  const grossPrizeUsd = prize * coinPrice;
+  const grossPrizeUsd = prizeUSD;
   const netProfitUsd = Math.max(0, grossPrizeUsd - estimatedEnergyCostUsd);
-  const roiPerDayUsd = estimatedDays > 0 ? (netProfitUsd / Math.max(0.01, estimatedDays)) : netProfitUsd;
+  const roiPerDayUsd = estimatedDays > 0 ? (netProfitUsd / Math.max(0.001, estimatedDays)) : netProfitUsd * 24;
 
-  let badge = 'NORMAL';
-  if (roiPerDayUsd >= 500 && !challenge.is_honeypot_risk) {
-    badge = 'TOP ROI';
-  } else if (estimatedDays <= 7) {
-    badge = 'ALTA VIABILIDADE';
+  let badge = 'STANDARD';
+  if (isNonceReuse || roiPerDayUsd >= 500) {
+    badge = 'TOP_ROI';
+  } else if (roiPerDayUsd >= 1000) {
+    badge = 'HIGH_YIELD';
+  } else if (estimatedDays <= 3) {
+    badge = 'QUICK_WIN';
+  }
+
+  let formattedFleetTime = '';
+  if (estimatedSeconds < 60) {
+    formattedFleetTime = `${Math.ceil(estimatedSeconds)} seg`;
+  } else if (estimatedHours < 24) {
+    formattedFleetTime = `${estimatedHours.toFixed(1)} horas`;
+  } else if (estimatedDays < 365) {
+    formattedFleetTime = `${estimatedDays.toFixed(1)} dias`;
+  } else {
+    formattedFleetTime = `${(estimatedDays / 365).toFixed(1)} anos`;
   }
 
   return {
-    challengeId: challenge.targetId || challenge.id || 'TARGET',
+    challengeId: challenge.challengeId || challenge.targetId || challenge.id || `BTC_1000_P${challenge.puzzleNumber || challenge.num || 71}`,
     chain,
-    algorithm: algo,
+    algorithm: algo || algorithmType,
+    algorithmType,
     complexityType,
-    effective_operations: effectiveOperations,
-    estimated_seconds: parseFloat(estimatedSeconds.toFixed(2)),
-    estimated_days: parseFloat(estimatedDays.toFixed(4)),
-    estimated_energy_cost_usd: parseFloat(estimatedEnergyCostUsd.toFixed(2)),
+    prizeQty,
+    prizeUSD: Math.round(grossPrizeUsd),
     gross_prize_usd: parseFloat(grossPrizeUsd.toFixed(2)),
+    totalPowerCostUSD: parseFloat(estimatedEnergyCostUsd.toFixed(2)),
+    estimated_energy_cost_usd: parseFloat(estimatedEnergyCostUsd.toFixed(2)),
+    netProfitUSD: Math.round(netProfitUsd),
     net_profit_usd: parseFloat(netProfitUsd.toFixed(2)),
+    effective_operations: effectiveOperations,
+    expectedSeconds: parseFloat(estimatedSeconds.toFixed(2)),
+    estimated_seconds: parseFloat(estimatedSeconds.toFixed(2)),
+    expectedHours: parseFloat(estimatedHours.toFixed(2)),
+    expectedDays: parseFloat(estimatedDays.toFixed(4)),
+    estimated_days: parseFloat(estimatedDays.toFixed(4)),
+    formattedFleetTime,
     roi_per_day_usd: parseFloat(roiPerDayUsd.toFixed(2)),
+    roiPerDayFormatted: `$${Math.round(roiPerDayUsd).toLocaleString()}/dia`,
     badge,
-    recommended: roiPerDayUsd >= 100 && !challenge.is_honeypot_risk
+    recommended: roiPerDayUsd >= 100 && !challenge.is_honeypot_risk,
+    unitPriceUSD: coinPrice
   };
+}
+
+function getChallengeById(queryId) {
+  if (!queryId) return null;
+  const str = String(queryId).trim().toUpperCase();
+  const all = getMultiChainPuzzleData();
+
+  // 1. Exact match on challengeId
+  let match = all.find(p => p.challengeId && p.challengeId.toUpperCase() === str);
+  if (match) return match;
+
+  // 2. Exact match on puzzle_btc_XX or BTC_1000_PXX
+  const numMatch = str.match(/(\d+)/);
+  if (numMatch) {
+    const num = parseInt(numMatch[1], 10);
+    match = all.find(p => p.puzzleNumber === num || p.num === num || p.challengeId === `BTC_1000_P${num}`);
+    if (match) return match;
+  }
+
+  // 3. Match on title substring
+  match = all.find(p => p.title && p.title.toUpperCase().includes(str));
+  return match || null;
 }
 
 module.exports = {
@@ -589,6 +644,7 @@ module.exports = {
   splitRange,
   getBitcoinPuzzleData,
   getMultiChainPuzzleData,
+  getChallengeById,
   calculateTargetROI,
   fetchCryptoPrices,
   getCachedPrices,
