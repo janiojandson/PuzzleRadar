@@ -2,17 +2,19 @@
 // 🧩 PuzzleRadar v3.0 — Frontend Application Logic (1000 BTC & Multi-Chain)
 // ============================================
 
-let currentTab = 'tab-1000btc';
+let currentTab = 'tab-dashboard';
 let all1000Puzzles = [];
 let filtered1000Puzzles = [];
 let currentStatusFilter = 'all';
 let isChatOpen = false;
 let p1000DebounceTimer = null;
+let telemetryEventSource = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
-  switchTab('tab-1000btc');
+  switchTab('tab-dashboard');
+  initTelemetryStream();
   fetch1000BtcData();
   fetchMultiChainData();
   fetchFleetData();
@@ -772,18 +774,181 @@ async function checkAuthSession() {
   } catch (_) {}
 }
 
-// ─── HELPERS ───
-function setInner(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = val;
+// ─── SERVER-SENT EVENTS (SSE) TELEMETRY STREAM ───
+function initTelemetryStream() {
+  if (telemetryEventSource) {
+    telemetryEventSource.close();
+  }
+
+  const streamStatus = document.getElementById('sseStreamStatus');
+
+  try {
+    telemetryEventSource = new EventSource('/api/telemetry/stream');
+
+    telemetryEventSource.addEventListener('open', () => {
+      if (streamStatus) {
+        streamStatus.innerText = '🟢 SSE CONECTADO';
+        streamStatus.className = 'text-[10px] font-mono text-emerald-400';
+      }
+      appendTerminalLog('SYSTEM', '⚡ Canal de telemetria em tempo real conectado com sucesso (SSE).');
+    });
+
+    telemetryEventSource.addEventListener('pulse', (e) => {
+      try {
+        const pulse = JSON.parse(e.data);
+        handleTelemetryPulse(pulse);
+      } catch (err) {
+        console.error('Erro ao processar pulso SSE:', err);
+      }
+    });
+
+    telemetryEventSource.addEventListener('telemetry_event', (e) => {
+      try {
+        const event = JSON.parse(e.data);
+        appendTerminalLog(event.type, event.message);
+      } catch (err) {
+        console.error('Erro ao processar evento SSE:', err);
+      }
+    });
+
+    telemetryEventSource.addEventListener('error', () => {
+      if (streamStatus) {
+        streamStatus.innerText = '🟡 RECONECTANDO...';
+        streamStatus.className = 'text-[10px] font-mono text-amber-400 animate-pulse';
+      }
+    });
+  } catch (err) {
+    console.error('Falha ao inicializar EventSource:', err);
+  }
 }
 
+function handleTelemetryPulse(pulse) {
+  if (!pulse) return;
+
+  // Header & Global Stats
+  if (pulse.globalHashrate) {
+    setInner('headerHashrate', pulse.globalHashrate);
+    setInner('dashGlobalHashrate', pulse.globalHashrate);
+  }
+  if (pulse.totalActiveNodes !== undefined) {
+    setInner('dashActiveNodes', `${pulse.totalActiveNodes} Ativos`);
+  }
+
+  // Alvo Primário
+  if (pulse.activeTarget) {
+    setInner('dashTargetTitle', pulse.activeTarget.title);
+    setInner('dashTargetPrize', `Prêmio: ${pulse.activeTarget.prize}`);
+    setInner('dashSentinelStatus', pulse.activeTarget.sentinelStatus || 'INTACTO / LIMPO');
+    setInner('dashTargetAlgo', pulse.activeTarget.complexity || 'Kangaroo O(√N)');
+    setInner('dashTargetTime', pulse.activeTarget.estimatedFleetTime || '4.8 dias');
+    setInner('dashTargetScanned', `${pulse.activeTarget.scannedPercent || 18.4}%`);
+    const bar = document.getElementById('dashTargetProgressBar');
+    if (bar) bar.style.width = `${pulse.activeTarget.scannedPercent || 18.4}%`;
+  }
+
+  // Alvo Secundário
+  if (pulse.secondaryTarget) {
+    setInner('dashSecTitle', pulse.secondaryTarget.title);
+    setInner('dashSecPrize', `Prêmio: ${pulse.secondaryTarget.prize}`);
+    setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(N) 2^44');
+    setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || '14 horas');
+  }
+
+  // Proof-of-Share
+  if (pulse.proofOfShare) {
+    setInner('dashTotalDps', Number(pulse.proofOfShare.totalDistinguishedPoints || 0).toLocaleString());
+    setInner('poolTotalDpsDisplay', Number(pulse.proofOfShare.totalDistinguishedPoints || 0).toLocaleString());
+    setInner('dashPoolUsd', `$${Number(pulse.proofOfShare.estimatedRewardPoolUsd || 461500).toLocaleString()}`);
+
+    const workersListEl = document.getElementById('dashTopWorkersList');
+    if (workersListEl && pulse.proofOfShare.topWorkers) {
+      workersListEl.innerHTML = pulse.proofOfShare.topWorkers.map((w, idx) => `
+        <div class="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/5">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-bold">#${idx + 1}</span>
+            <span class="text-white text-xs truncate max-w-[140px]">${w.name}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-emerald-400 font-bold">${w.sharePercent}</span>
+            <span class="text-slate-500 text-[10px] ml-1.5">(~$${Number(w.projectedPayoutUsd || 0).toLocaleString()})</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function appendTerminalLog(type, message) {
+  const terminal = document.getElementById('telemetryTerminalStream');
+  if (!terminal) return;
+
+  const row = document.createElement('div');
+  const time = new Date().toLocaleTimeString();
+
+  let colorClass = 'text-slate-300';
+  if (type === 'DP_SUBMITTED') colorClass = 'text-cyan-300 font-bold';
+  if (type === 'COLLISION_ALERT') colorClass = 'text-red-400 font-extrabold animate-pulse';
+  if (type === 'SENTINEL') colorClass = 'text-emerald-400';
+  if (type === 'SYSTEM') colorClass = 'text-amber-300';
+
+  row.className = `${colorClass} leading-relaxed`;
+  row.innerText = `> [${time}] [${type}] ${message}`;
+
+  terminal.appendChild(row);
+
+  // Auto-scroll
+  terminal.scrollTop = terminal.scrollHeight;
+
+  // Limita a 100 linhas no terminal
+  while (terminal.children.length > 100) {
+    terminal.removeChild(terminal.firstChild);
+  }
+}
+
+function clearTerminalLogs() {
+  const terminal = document.getElementById('telemetryTerminalStream');
+  if (terminal) {
+    terminal.innerHTML = '<div class="text-slate-500">> Console limpo pelo usuário.</div>';
+  }
+}
+
+// ─── MULTI-CLOUD ONBOARDING COPY HELPERS ───
 function copyColabOneLiner() {
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
   const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${window.location.origin}/solver/colab_worker.py\n!python colab_worker.py --api="${window.location.origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
   navigator.clipboard.writeText(code).then(() => {
-    alert('📋 Código do Google Colab copiado com sucesso!\n\nCole em uma célula do Colab e clique em Executar.');
+    alert('📋 [Google Colab] Código copiado!\n\nCole em uma célula do Google Colab (com acelerador GPU T4) e clique em Executar.');
   });
+}
+
+function copyKaggleOneLiner() {
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${window.location.origin}/solver/colab_worker.py\n!python colab_worker.py --api="${window.location.origin}"${token} --threads=4 --chain="BTC" --challenge="BTC_1000_P71"`;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('📋 [Kaggle Dual GPU] Código copiado!\n\nCole no Kaggle Notebook com acelerador GPU T4 x2 ativado.');
+  });
+}
+
+function copyLinuxCli() {
+  const token = currentUser?.workerToken ? ` --token=${currentUser.workerToken}` : '';
+  const code = `curl -sSL ${window.location.origin}/install-worker.sh | bash -s --${token} --challenge=BTC_1000_P71`;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('📋 [Linux / WSL] Comando copiado!\n\nCole no terminal Ubuntu/Debian para executar como serviço.');
+  });
+}
+
+function copyCudaKeyhunt() {
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const code = `./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="${window.location.origin}/api/pool"${token}`;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('📋 [KeyHunt CUDA] Parâmetros de comando copiados com sucesso!');
+  });
+}
+
+// ─── HELPERS ───
+function setInner(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = val;
 }
 
 // Inicializa checagem de sessão

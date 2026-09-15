@@ -141,7 +141,11 @@
 
   <!-- Navigation Tabs -->
   <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-    <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30">
+    <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30">
+      <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-400"></i>
+      <span>Central de Comando (Ao Vivo)</span>
+    </button>
+    <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
       <span>Puzzle 1000 BTC (160 Carteiras)</span>
     </button>
@@ -151,19 +155,19 @@
     </button>
     <button onclick="switchTab('tab-analyst')" id="btn-tab-tab-analyst" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-      <span>Radar de Inteligência IA (Gemini)</span>
+      <span>Radar IA (Gemini)</span>
     </button>
     <button onclick="switchTab('tab-pool')" id="btn-tab-tab-pool" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
-      <span>Mural de Transparência do Pool (PoS)</span>
+      <span>Mural PoS & DPs</span>
     </button>
     <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
-      <span>Fleet Manager (Colab Farm)</span>
+      <i data-lucide="cloud" class="w-4 h-4 text-emerald-400"></i>
+      <span>Multi-Cloud Farm (4 Opções)</span>
     </button>
     <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
-      <span>Ranges & Planilha Google</span>
+      <span>Ranges & Space Pruning</span>
     </button>
     <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
@@ -174,8 +178,207 @@
   <!-- Main Container -->
   <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
+    <!-- ==================== TAB 0: DASHBOARD CENTRAL DE COMANDO (3 COLUNAS) ==================== -->
+    <section id="tab-dashboard" class="tab-content space-y-6">
+      <!-- Top Live Pulse Banner -->
+      <div class="glass-panel-glow rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 border border-amber-500/30">
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
+          <div>
+            <div class="text-xs text-slate-400 font-mono">ESTADO GLOBAL DO CLUSTER PUZZLERADAR</div>
+            <div class="text-lg font-extrabold text-white flex items-center gap-2">
+              <span>Central de Telemetria Server-Sent Events</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">2000ms SSE</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 text-xs font-mono">
+          <div class="text-right">
+            <span class="text-slate-400">Poder de Fogo Global:</span>
+            <span id="dashGlobalHashrate" class="font-extrabold text-cyan-400 text-sm ml-1.5">148.50 GH/s</span>
+          </div>
+          <div class="h-6 w-px bg-white/10"></div>
+          <div class="text-right">
+            <span class="text-slate-400">Nós Conectados:</span>
+            <span id="dashActiveNodes" class="font-extrabold text-emerald-400 text-sm ml-1.5">12 Ativos</span>
+          </div>
+          <div class="h-6 w-px bg-white/10"></div>
+          <button onclick="triggerSimulatedWorkerStep()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-md">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Simular Pulso
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-Column Cyberpunk Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- COLUNA 1: ALVOS ATIVOS & STATUS DO SENTINELA (4 Cols) -->
+        <div class="lg:col-span-4 space-y-5">
+          <!-- Card Alvo Primário (Puzzle #71) -->
+          <div class="glass-panel-glow p-5 rounded-2xl border border-amber-500/30 space-y-4 relative overflow-hidden">
+            <div class="absolute -right-8 -top-8 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold uppercase flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                <span>Alvo Primário</span>
+              </span>
+              <span class="text-xs font-mono font-bold text-emerald-400">7.10 BTC</span>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-extrabold text-white tracking-tight" id="dashTargetTitle">Bitcoin Puzzle #71</h3>
+              <p class="text-xs text-slate-300 mt-0.5" id="dashTargetPrize">Prêmio: 7.10 BTC (~$461.500 USD)</p>
+            </div>
+
+            <!-- On-Chain Sentinel Status Badge -->
+            <div class="p-3 rounded-xl bg-cypher-950 border border-emerald-500/30 space-y-1.5 font-mono text-xs">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Sentinela On-Chain:</span>
+                <span id="dashSentinelStatus" class="font-bold text-emerald-400 flex items-center gap-1">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> INTACTO / LIMPO
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Algoritmo:</span>
+                <span class="text-cyan-300 font-bold" id="dashTargetAlgo">Kangaroo O(√N)</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Tempo Estimado Frota:</span>
+                <span class="text-amber-300 font-bold" id="dashTargetTime">4.8 dias</span>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="space-y-1.5">
+              <div class="flex justify-between text-[11px] font-mono text-slate-400">
+                <span>Espaço de Busca Varrido:</span>
+                <span id="dashTargetScanned" class="text-white font-bold">18.4%</span>
+              </div>
+              <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
+                <div id="dashTargetProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 18.4%"></div>
+              </div>
+            </div>
+
+            <button onclick="switchTab('tab-fleet')" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs border border-amber-500/40 transition flex items-center justify-center gap-2">
+              <i data-lucide="crosshair" class="w-4 h-4"></i>
+              <span>Alocar Minha GPU para este Alvo</span>
+            </button>
+          </div>
+
+          <!-- Card Alvo Secundário (8 ETH BIP39) -->
+          <div class="glass-panel p-5 rounded-2xl border border-purple-500/20 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 font-mono text-[10px] font-bold uppercase">
+                Alvo Secundário (Alto ROI)
+              </span>
+              <span class="text-xs font-mono font-bold text-purple-300">5.00 ETH</span>
+            </div>
+
+            <div>
+              <h3 class="text-lg font-bold text-white tracking-tight" id="dashSecTitle">Ethereum 12-Word Seed (8 Palavras)</h3>
+              <p class="text-xs text-slate-300 mt-0.5" id="dashSecPrize">Prêmio: 5.00 ETH (~$16.000 USD)</p>
+            </div>
+
+            <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 space-y-1.5 font-mono text-xs">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Complexidade:</span>
+                <span class="text-purple-300 font-bold" id="dashSecComplexity">O(N) 2^44</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Checksum BIP39:</span>
+                <span class="text-emerald-400 font-bold">93.75% Descarte</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Tempo Frota:</span>
+                <span class="text-cyan-300 font-bold" id="dashSecTime">14 horas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA 2: TERMINAL DE TELEMETRIA AO VIVO COM STREAM (4 Cols) -->
+        <div class="lg:col-span-4 space-y-4">
+          <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30 space-y-3 bg-cypher-950 flex flex-col h-[560px]">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                <h3 class="font-mono text-xs font-bold text-white uppercase tracking-wider">Live Stream Hacker Terminal</h3>
+              </div>
+              <span class="text-[10px] font-mono text-slate-500" id="sseStreamStatus">🟢 SSE CONECTADO</span>
+            </div>
+
+            <!-- Terminal Feed Box -->
+            <div id="telemetryTerminalStream" class="flex-1 overflow-y-auto space-y-2 font-mono text-[11px] custom-scrollbar pr-1">
+              <div class="text-slate-500">> [SISTEMA] Conectando ao canal de telemetria /api/telemetry/stream...</div>
+              <div class="text-emerald-400">> [STREAM] 🛡️ Sentinela On-Chain ativo: Mempool verificado (Puzzle #71 INTACTO)</div>
+              <div class="text-cyan-300">> [STREAM] 🚀 Cluster PuzzleRadar operacional com aceleração Kangaroo secp256k1</div>
+            </div>
+
+            <div class="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <span>Auto-Scroll: <strong class="text-emerald-400">ATIVADO</strong></span>
+              <button onclick="clearTerminalLogs()" class="hover:text-white transition text-slate-500 underline">Limpar Console</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA 3: MURAL PROOF-OF-SHARE & DIVIDENDOS (4 Cols) -->
+        <div class="lg:col-span-4 space-y-5">
+          <!-- PoS Snapshot Card -->
+          <div class="glass-panel-glow p-5 rounded-2xl border border-emerald-500/30 space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono text-[10px] font-bold uppercase">
+                Mural Proof-of-Share
+              </span>
+              <span class="text-xs font-mono text-slate-400">Anti-Roubo Ativo</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-center font-mono">
+              <div class="p-3 rounded-xl bg-cypher-950 border border-white/10">
+                <div class="text-[10px] text-slate-400">Total DPs (Redis)</div>
+                <div id="dashTotalDps" class="text-xl font-extrabold text-cyan-400">0</div>
+              </div>
+              <div class="p-3 rounded-xl bg-cypher-950 border border-white/10">
+                <div class="text-[10px] text-slate-400">Pool Estimada</div>
+                <div id="dashPoolUsd" class="text-xl font-extrabold text-emerald-400">$461.500</div>
+              </div>
+            </div>
+
+            <!-- Top Workers Leaderboard Mini -->
+            <div class="space-y-2">
+              <div class="text-xs font-bold text-white flex items-center justify-between">
+                <span>Top Nós da Rodada</span>
+                <span class="text-[10px] text-slate-400 font-mono">Cota Estimada</span>
+              </div>
+              <div id="dashTopWorkersList" class="space-y-1.5 font-mono text-[11px]">
+                <!-- Populated by SSE Pulse -->
+              </div>
+            </div>
+
+            <button onclick="switchTab('tab-pool')" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+              <span>Abrir Mural Completo de PoS</span>
+            </button>
+          </div>
+
+          <!-- Quick Launch Box -->
+          <div class="glass-panel p-5 rounded-2xl border border-white/10 space-y-3">
+            <h4 class="font-bold text-white text-xs">🚀 Início Rápido do Minerador</h4>
+            <p class="text-[11px] text-slate-400">
+              Conecte 1 instância do Google Colab T4 gratuita e passe a receber dividendos proporcionais nos DPs entregues.
+            </p>
+            <button onclick="copyColabOneLiner()" class="w-full py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition flex items-center justify-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5 text-emerald-400"></i> Copiar Código 1-Clique Colab
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
     <!-- ==================== TAB 1: 1000 BTC MASTER EXPLORER ==================== -->
-    <section id="tab-1000btc" class="tab-content space-y-6">
+    <section id="tab-1000btc" class="tab-content hidden space-y-6">
       <!-- Status Banner -->
       <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -480,19 +683,92 @@
           </div>
         </div>
 
-        <!-- Generated CLI/Colab Command Box -->
-        <div class="p-4 rounded-xl bg-cypher-950 border border-white/10 space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-mono text-slate-400">Código Pronto para Colar em Qualquer Google Colab Novo:</span>
-            <button onclick="copyColabOneLiner()" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center gap-1.5 transition shadow-md">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código 1-Clique
-            </button>
-          </div>
-          <pre id="colabOneLinerCode" class="font-mono text-xs text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
+        <!-- Multi-Cloud 4-Way Launch Options Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Opção 1: Google Colab (1-Click) -->
+          <div class="glass-panel p-5 rounded-2xl border border-amber-500/30 space-y-3 bg-cypher-950">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-5 h-5" alt="Colab">
+                <h4 class="font-bold text-white text-sm">Opção 1: Google Colab (Tesla T4)</h4>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">1-Clique</span>
+            </div>
+            <p class="text-[11px] text-slate-400">
+              Ambiente gratuito na nuvem da Google. Roda em background com $18\text{ GH/s}$.
+            </p>
+            <pre id="colabOneLinerCode" class="font-mono text-[11px] text-amber-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
 !curl -s -O https://puzzleradar-production.up.railway.app/solver/colab_worker.py
 !python colab_worker.py --api="https://puzzleradar-production.up.railway.app" --chain="BTC" --challenge="BTC_1000_P71"</pre>
-          <div class="text-[11px] text-slate-400">
-            💡 <strong>Dica:</strong> Abra o <a href="https://colab.research.google.com/#create=true" target="_blank" class="text-amber-400 underline">Google Colab</a>, crie um novo notebook, selecione <strong>GPU T4</strong> no menu e cole o código acima.
+            <div class="flex gap-2">
+              <button onclick="copyColabOneLiner()" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Colab
+              </button>
+              <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition flex items-center gap-1">
+                Abrir <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Opção 2: Kaggle Dual GPU (2x T4 / P100) -->
+          <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3 bg-cypher-950">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-5 h-5 rounded bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">K</div>
+                <h4 class="font-bold text-white text-sm">Opção 2: Kaggle Notebooks (Dual GPU)</h4>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">30h/sem Grátis</span>
+            </div>
+            <p class="text-[11px] text-slate-400">
+              Aproveite 2x GPUs NVIDIA T4 simultâneas no Kaggle com hashrate dobrado (~$36\text{ GH/s}$).
+            </p>
+            <pre id="kaggleOneLinerCode" class="font-mono text-[11px] text-cyan-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
+!curl -s -O https://puzzleradar-production.up.railway.app/solver/colab_worker.py
+!python colab_worker.py --api="https://puzzleradar-production.up.railway.app" --threads=4 --chain="BTC" --challenge="BTC_1000_P71"</pre>
+            <div class="flex gap-2">
+              <button onclick="copyKaggleOneLiner()" class="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Kaggle
+              </button>
+              <a href="https://www.kaggle.com/code" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition flex items-center gap-1">
+                Abrir <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </a>
+            </div>
+          </div>
+
+          <!-- Opção 3: Linux / VPS / WSL CLI -->
+          <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-3 bg-cypher-950">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="terminal" class="w-5 h-5 text-emerald-400"></i>
+                <h4 class="font-bold text-white text-sm">Opção 3: Linux / WSL / Servidor Dedicado</h4>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">24/7 Daemon</span>
+            </div>
+            <p class="text-[11px] text-slate-400">
+              Instale e rode em segundo plano como daemon contínuo na sua VPS Ubuntu/Debian.
+            </p>
+            <pre id="linuxCliCode" class="font-mono text-[11px] text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">curl -sSL https://puzzleradar-production.up.railway.app/install-worker.sh | bash -s -- --challenge=BTC_1000_P71</pre>
+            <button onclick="copyLinuxCli()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Linux / WSL
+            </button>
+          </div>
+
+          <!-- Opção 4: CUDA Miner / KeyHunt Proxy -->
+          <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 space-y-3 bg-cypher-950">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <i data-lucide="cpu" class="w-5 h-5 text-purple-400"></i>
+                <h4 class="font-bold text-white text-sm">Opção 4: KeyHunt / BitCrack CUDA (GPUs Locais)</h4>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300">RTX 30xx/40xx</span>
+            </div>
+            <p class="text-[11px] text-slate-400">
+              Rode binários nativos CUDA C++ com o proxy de Distinguished Points apontando para o PuzzleRadar.
+            </p>
+            <pre id="cudaKeyhuntCode" class="font-mono text-[11px] text-purple-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="https://puzzleradar-production.up.railway.app/api/pool"</pre>
+            <button onclick="copyCudaKeyhunt()" class="w-full py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parâmetros KeyHunt CUDA
+            </button>
           </div>
         </div>
 

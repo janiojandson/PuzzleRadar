@@ -22,6 +22,7 @@ const nexusRoutes = require('./routes/nexus');
 const discoveriesRoutes = require('./routes/discoveries');
 const fleetRoutes = require('./routes/fleet');
 const sandboxRoutes = require('./routes/sandbox');
+const { router: telemetryRoutes } = require('./routes/telemetry');
 
 const app = express();
 const PORT = process.env.PORT || 3010;
@@ -87,6 +88,7 @@ app.use('/api/nexus', nexusRoutes);
 app.use('/api/discoveries', discoveriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 app.use('/api/sandbox', sandboxRoutes);
+app.use('/api/telemetry', telemetryRoutes);
 
 // ─── ENDPOINTS DO AGENTE ANALISTA IA (GEMINI & NEXUS) ───
 app.get('/api/analyst/feed', (req, res) => {

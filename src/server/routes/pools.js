@@ -24,6 +24,7 @@ const {
   deducePrivateKeyKangaroo, 
   verifyProofOfShareBinomial 
 } = require('../../lib/cryptoVerifier');
+const { broadcastTelemetryEvent } = require('./telemetry');
 
 const router = express.Router();
 
@@ -147,12 +148,22 @@ router.post('/submit-point', async (req, res) => {
     worker.lastSeen = timestamp;
     activePoolWorkers.set(workerToken, worker);
 
+    // Notifica o stream de telemetria em tempo real
+    broadcastTelemetryEvent('DP_SUBMITTED', `🦘 [${isTame ? 'TAME' : 'WILD'}] DP entregue por ${workerName}: ${targetX.slice(0, 14)}... (d=${String(distanceSteps || '0').slice(0, 10)})`, {
+      workerToken,
+      workerName,
+      targetX,
+      isTame: Boolean(isTame)
+    });
+
     let keyDeductionResult = null;
 
     // Se detectou colisão Tame vs Wild, o servidor central deduz a chave privada instantaneamente
     if (dpResult.collisionDetected && dpResult.collisionData) {
       console.log(`🎯 [Pool Central] 🚨 COLISÃO KANGAROO DETECTADA PARA ${challengeId}! DP: ${targetX}`);
       
+      broadcastTelemetryEvent('COLLISION_ALERT', `🚨 COLISÃO KANGAROO DETECTADA para ${challengeId}! DP: ${targetX}. Deduzindo chave...`);
+
       const bHex = '0x7fffffffffffffffff'; // Extremo superior do Puzzle #71
       const dTame = dpResult.collisionData.tamePoint.stepDistanceHex;
       const dWild = dpResult.collisionData.wildPoint.stepDistanceHex;
