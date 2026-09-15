@@ -2250,6 +2250,36 @@ function doPost(e) {
       sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Ranges_Varredura");
     }
 
+    // 2. Modo Processamento em Lote (Batch Mode)
+    if (data.batchMode && Array.isArray(data.rows) && data.rows.length > 0) {
+      var rowsToInsert = [];
+      for (var i = 0; i < data.rows.length; i++) {
+        var row = data.rows[i];
+        rowsToInsert.push([
+          new Date(row.timestamp || Date.now()),
+          row.chain || "BTC",
+          row.challenge_id || row.challengeId || "BTC_1000_P71",
+          row.chunkIndex !== undefined ? row.chunkIndex : "",
+          "'" + (row.startHex || row.rangeStart || ""),
+          "'" + (row.endHex || row.rangeEnd || ""),
+          row.workerName || "Anonimo",
+          row.status || "COMPLETED",
+          row.hashrate || "0 GH/s",
+          row.keyFound ? "🚨 CHAVE ENCONTRADA!" : "Nada"
+        ]);
+      }
+      
+      sheet.insertRowsBefore(2, rowsToInsert.length);
+      sheet.getRange(2, 1, rowsToInsert.length, 10).setValues(rowsToInsert);
+      
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: "success", 
+        processed: rowsToInsert.length,
+        message: "Lote de " + rowsToInsert.length + " fatias inserido com sucesso" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Fallback: Modo Linha Única
     var chain = data.chain || (data.challengeId && data.challengeId.includes("ETH") ? "ETH" : data.challengeId && data.challengeId.includes("SOL") ? "SOL" : "BTC");
     var challengeId = data.challengeId || data.challenge_id || data.puzzleId || "BTC_1000_P71";
     

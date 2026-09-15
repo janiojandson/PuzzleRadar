@@ -113,6 +113,27 @@ class AntiMevRescue {
     this.rescueLogs.unshift(record);
     console.log(`✅ [AntiMevRescue] Resgate submetido com sucesso via túnel privado! Protocolo: ${record.protectionProtocol}`);
 
+    // Persistência em AuditLog corporativo
+    try {
+      const { prisma } = require('../lib/prisma');
+      if (prisma && prisma.auditLog) {
+        await prisma.auditLog.create({
+          data: {
+            eventCategory: 'MEV_RESCUE',
+            severity: 'CRITICAL',
+            details: JSON.stringify({
+              challengeId,
+              chain,
+              targetAddress,
+              destinationAddress: destination,
+              txHash: record.txHash,
+              protocol: record.protectionProtocol
+            })
+          }
+        }).catch(() => {});
+      }
+    } catch {}
+
     return {
       success: true,
       rescue: record,

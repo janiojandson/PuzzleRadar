@@ -132,10 +132,116 @@ async function getPruningStats(puzzleId, totalChunksInSpace = 10000) {
   };
 }
 
+const memoryDpStore = new Map(); // Fallback in-memory para Distinguished Points (dp:<puzzleId> -> Map(xHex -> payload))
+
+/**
+ * Armazena um Distinguished Point no Redis Hash O(1) e verifica colisão Tame vs Wild
+ * Formato do valor: "<USER_ID>|<IS_TAME>|<Y_COORD_HEX>|<DISTANCE_HEX>"
+ */
+async function storeDistinguishedPoint(challengeId, xCoordHex, { userId, isTame, yCoordHex, stepDistanceHex }) {
+  const hashKey = `puzzleradar:dp:${challengeId}`;
+  const cleanX = (xCoordHex || '').trim().toLowerCase().replace(/^0x/i, '');
+  const cleanY = (yCoordHex || '').trim().toLowerCase().replace(/^0x/i, '');
+  const cleanDist = (stepDistanceHex || '0').trim().toLowerCase().replace(/^0x/i, '');
+  const isTameInt = isTame ? 1 : 0;
+  const valString = `${userId}|${isTameInt}|${cleanY}|${cleanDist}`;
+
+  let existingPoint = null;
+
+  if (redisClient && redisClient.status === 'ready') {
+    const prev = await redisClient.hget(hashKey, cleanX);
+    if (prev) {
+      const [pUser, pTame, pY, pDist] = prev.split('|');
+      existingPoint = {
+        userId: pUser,
+        isTame: Number(pTame) === 1,
+        yCoordHex: pY,
+        stepDistanceHex: pDist
+      };
+    }
+    await redisClient.hset(hashKey, cleanX, valString);
+  } else {
+    if (!memoryDpStore.has(hashKey)) {
+      memoryDpStore.set(hashKey, new Map());
+    }
+    const map = memoryDpStore.get(hashKey);
+    const prev = map.get(cleanX);
+    if (prev) {
+      const [pUser, pTame, pY, pDist] = prev.split('|');
+      existingPoint = {
+        userId: pUser,
+        isTame: Number(pTame) === 1,
+        yCoordHex: pY,
+        stepDistanceHex: pDist
+      };
+    }
+    map.set(cleanX, valString);
+  }
+
+  // Verifica colisão: mesmo ponto X registrado por rebanhos opostos (Tame vs Wild)
+  let collisionDetected = false;
+  let collisionData = null;
+
+  if (existingPoint && existingPoint.isTame !== Boolean(isTame)) {
+    collisionDetected = true;
+    collisionData = {
+      challengeId,
+      xCoordHex: cleanX,
+      tamePoint: isTame ? { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist } : existingPoint,
+      wildPoint: !isTame ? { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist } : existingPoint
+    };
+  }
+
+  return {
+    stored: true,
+    collisionDetected,
+    collisionData,
+    point: {
+      challengeId,
+      xCoordHex: cleanX,
+      userId,
+      isTame: Boolean(isTame),
+      stepDistanceHex: cleanDist
+    }
+  };
+}
+
+/**
+ * Publica mensagem de revogação imediata via Redis PubSub
+ */
+async function publishRevocation(challengeId, reason = 'TARGET_DRAINED_ON_CHAIN') {
+  const channel = 'puzzleradar:channel:revocations';
+  const payload = JSON.stringify({ challengeId, reason, timestamp: new Date().toISOString() });
+  
+  if (redisClient && redisClient.status === 'ready') {
+    await redisClient.publish(channel, payload);
+  } else {
+    console.log(`📡 [Redis In-Memory PubSub] Revogação emitida para ${challengeId}: ${reason}`);
+  }
+}
+
+/**
+ * Retorna contagem de DPs registrados para um desafio
+ */
+async function getDpStats(challengeId) {
+  const hashKey = `puzzleradar:dp:${challengeId}`;
+  if (redisClient && redisClient.status === 'ready') {
+    const count = await redisClient.hlen(hashKey);
+    return { challengeId, totalDps: count };
+  } else {
+    const map = memoryDpStore.get(hashKey);
+    return { challengeId, totalDps: map ? map.size : 0 };
+  }
+}
+
 module.exports = {
   redisClient,
   markChunkScanned,
   isChunkScanned,
   bulkImportHistory,
-  getPruningStats
+  getPruningStats,
+  storeDistinguishedPoint,
+  publishRevocation,
+  getDpStats
 };
+

@@ -77,6 +77,8 @@ model User {
   workerTokens    WorkerToken[]
   fleetNodes      FleetNode[]
   discoveryHints  DiscoveryHint[]
+  distinguishedPoints DistinguishedPoint[]
+  payoutShares    PoolSharePayout[]
 
   @@map("users")
 }
@@ -238,6 +240,8 @@ model Puzzle {
   ranges           Range[]         @relation("PuzzleRanges")
   contributions    Contribution[]
   discoveryHints   DiscoveryHint[]
+  distinguishedPoints DistinguishedPoint[]
+  payoutShares     PoolSharePayout[]
 
   @@map("puzzles")
 }
@@ -373,7 +377,7 @@ model ApiKey {
   @@map("api_keys")
 }
 
-// ─── LOGS DE ATIVIDADE ───
+// ─── LOGS DE ATIVIDADE & AUDITORIA CORPORATIVA ───
 model ActivityLog {
   id        String   @id @default(cuid())
   userId    String?
@@ -382,4 +386,52 @@ model ActivityLog {
   createdAt DateTime @default(now())
 
   @@map("activity_logs")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  eventCategory String   // "AUTH", "MEV_RESCUE", "QUARANTINE", "ON_CHAIN_ALERT", "BATCH_SYNC", "HONEYPOT"
+  severity      String   // "INFO", "WARNING", "CRITICAL"
+  details       String   // Descrição textual ou JSON
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  @@index([eventCategory, createdAt])
+  @@map("audit_logs")
+}
+
+// ─── PROOF-OF-SHARE & DISTINGUISHED POINTS (POLLARD'S KANGAROO) ───
+model DistinguishedPoint {
+  id              String   @id @default(uuid())
+  puzzleId        String
+  userId          String
+  xCoordHex       String   // Coordenada X que colide
+  yCoordHex       String   // Coordenada Y
+  stepDistanceHex String   // Distância acumulada d
+  isTameKangaroo  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  puzzle          Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([puzzleId, xCoordHex])
+  @@index([userId])
+  @@map("distinguished_points")
+}
+
+model PoolSharePayout {
+  id                 String   @id @default(uuid())
+  userId             String
+  puzzleId           String
+  sharesContributed  BigInt   @default(0)
+  percentageClaim    Float    @default(0.0)
+  amountUsdEstimated Float    @default(0.0)
+  isDistributed      Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  puzzle             Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
+  @@index([userId, puzzleId])
+  @@map("pool_share_payouts")
 }

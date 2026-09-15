@@ -181,7 +181,14 @@ app.use((err, req, res, next) => {
 
 // ─── START SE EXECUTADO DIRETAMENTE ───
 if (require.main === module) {
-  // Inicia o sentinela on-chain em segundo plano
+  // 1. Verificação Criptográfica de Boot (Quarentena preventiva)
+  const { verifySecp256k1KeyPair } = require('../lib/cryptoVerifier');
+  const samplePubKey = '03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895';
+  const sampleAddr = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+  const bootAudit = verifySecp256k1KeyPair(samplePubKey, sampleAddr);
+  console.log(`🔐 [Boot Integrity] Validação criptográfica do par de chaves ativo (Puzzle #71): ${bootAudit ? '✅ ÍNTEGRO' : '🚨 FALHA'}`);
+
+  // 2. Inicia o sentinela on-chain em segundo plano
   onChainWatcher.start();
 
   app.listen(PORT, '0.0.0.0', () => {

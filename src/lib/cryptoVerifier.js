@@ -149,9 +149,91 @@ function verifyPubKeyToAddress(pubKeyHex, expectedAddress) {
   }
 }
 
+const SECP256K1_ORDER = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+
+/**
+ * Validação do par de chaves Secp256k1 no boot / registro de desafio
+ */
+function verifySecp256k1KeyPair(pubKeyHex, expectedAddress) {
+  const result = verifyPubKeyToAddress(pubKeyHex, expectedAddress);
+  return result.isValid;
+}
+
+/**
+ * Verifica se uma coordenada X atende ao critério de Distinguished Point (DP)
+ * Critério determinístico: X mod 2^m === 0 (ex: 24 bits finais = 0)
+ */
+function isDistinguishedPoint(xCoordHex, distinctionBits = 24) {
+  try {
+    const cleanX = (xCoordHex || '').trim().replace(/^0x/i, '');
+    if (!cleanX) return false;
+    const xBig = BigInt('0x' + cleanX);
+    const mask = (1n << BigInt(distinctionBits)) - 1n;
+    return (xBig & mask) === 0n;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Dedução algébrica central da Chave Privada em colisão Pollard's Kangaroo
+ * k = (b + d_Tame - d_Wild) mod n
+ */
+function deducePrivateKeyKangaroo(bHex, dTameHex, dWildHex, orderN = SECP256K1_ORDER) {
+  try {
+    const b = BigInt('0x' + bHex.replace(/^0x/i, ''));
+    const dTame = BigInt('0x' + (dTameHex || '0').replace(/^0x/i, ''));
+    const dWild = BigInt('0x' + (dWildHex || '0').replace(/^0x/i, ''));
+
+    let k = (b + dTame - dWild) % orderN;
+    if (k < 0n) {
+      k = (k + orderN) % orderN;
+    }
+
+    const privHex = k.toString(16).padStart(64, '0');
+    return {
+      success: true,
+      privateKeyHex: privHex,
+      kBigInt: k
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err.message
+    };
+  }
+}
+
+/**
+ * Verificação estatística binomial anti-trapaça para Proof-of-Share
+ * Calcula se a quantidade de DPs submetidos atinge o limiar mínimo de 99.9% de confiança
+ */
+function verifyProofOfShareBinomial(chunkKeysCount, reportedDps, distinctionBits = 24) {
+  const expectedProb = 1 / (2 ** distinctionBits);
+  const expectedDps = chunkKeysCount * expectedProb;
+  const stdDev = Math.sqrt(chunkKeysCount * expectedProb * (1 - expectedProb));
+  
+  // Limite inferior com 3.29 desvios padrão (99.9% de confiança)
+  const minAcceptableDps = Math.max(1, Math.floor(expectedDps - 3.29 * stdDev));
+
+  return {
+    isValid: reportedDps >= minAcceptableDps,
+    reportedDps,
+    expectedDps: Math.round(expectedDps),
+    minAcceptableDps,
+    confidenceLevel: '99.9%'
+  };
+}
+
 module.exports = {
   deriveBitcoinAddress,
   verifyDiscoveryProof,
   verifyPubKeyToAddress,
-  normalizePrivateKey
+  verifySecp256k1KeyPair,
+  isDistinguishedPoint,
+  deducePrivateKeyKangaroo,
+  verifyProofOfShareBinomial,
+  normalizePrivateKey,
+  SECP256K1_ORDER
 };
+
