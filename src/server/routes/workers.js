@@ -1,5 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar — Rotas de Workers (Solver API & Crowdsourcing)
+// 🧩 PuzzleRadar — Rotas de Workers (Solver API & Crowdsourcing Resiliente)
 // ============================================
 
 const express = require('express');
@@ -8,6 +8,8 @@ const prisma = require('../../lib/prisma');
 const { generateToken } = require('../../lib/auth');
 const { splitRange } = require('../../lib/difficultyEngine');
 const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
+const { appendRangesToSheet } = require('../../lib/googleSheets');
+const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
 
 const router = express.Router();
 
@@ -16,7 +18,6 @@ const activeWorkersMap = new Map();
 
 /**
  * POST /api/workers/token
- * Gera um Worker Token instantâneo para Onboarding Público de Workers
  */
 router.post('/token', async (req, res) => {
   try {
@@ -37,16 +38,14 @@ router.post('/token', async (req, res) => {
           userId: userId || null
         }
       });
-    } catch (dbErr) {
-      // Em fallback sem banco ativo
-    }
+    } catch (dbErr) {}
 
     res.status(201).json({
       success: true,
       token,
       name: workerName,
-      cliCommand: `node solver/pool-client.js --token=${token} --apiUrl=http://localhost:3010`,
-      message: 'Worker Token gerado com sucesso. Execute o script CLI fornecido para iniciar a mineração.'
+      cliCommand: `python solver/colab_worker.py --token=${token} --api=http://localhost:3010`,
+      message: 'Worker Token gerado com sucesso. Execute o script CLI/Python fornecido para iniciar.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -55,7 +54,6 @@ router.post('/token', async (req, res) => {
 
 /**
  * GET /api/workers/active
- * Lista workers ativos em tempo real para o Worker Dashboard
  */
 router.get('/active', async (req, res) => {
   try {
@@ -63,7 +61,6 @@ router.get('/active', async (req, res) => {
     const activeList = [];
 
     for (const [id, worker] of activeWorkersMap.entries()) {
-      // Considera online se enviou heartbeat nos últimos 2 minutos
       if (now - worker.lastSeen <= 120000) {
         activeList.push({
           id,
@@ -95,7 +92,6 @@ router.get('/active', async (req, res) => {
 
 /**
  * POST /api/workers/register
- * Registra ou autentica um worker solver
  */
 router.post('/register', async (req, res) => {
   try {
@@ -130,20 +126,19 @@ router.post('/register', async (req, res) => {
 
 /**
  * GET /api/workers/:id/task
- * Distribui o próximo range atômico filtrado por entropia/dicas e livre de poda (Space Pruning)
  */
 router.get('/:id/task', async (req, res) => {
   try {
     const { id } = req.params;
-    const { puzzleId = 'puzzle_btc_66' } = req.query;
+    const { puzzleId = 'puzzle_btc_71' } = req.query;
 
-    // Gerar sub-range padrão para Puzzle #66 (ou puzzle solicitado)
-    // Range do #66: 0x2000000000000000 a 0x3fffffffffffffff (66 bits)
-    const defaultStart = '2000000000000000';
-    const defaultEnd = '3fffffffffffffff';
+    // Range do Puzzle #71: 0x400000000000000000 a 0x7fffffffffffffffff (71 bits)
+    const defaultStart = '400000000000000000';
+    const defaultEnd = '7fffffffffffffffff';
+    const targetAddress = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
     
     // Procura fatia não escaneada
-    const splits = splitRange(defaultStart, defaultEnd, 100);
+    const splits = splitRange(defaultStart, defaultEnd, 1000);
     let assignedChunk = null;
 
     for (const chunk of splits) {
@@ -161,13 +156,13 @@ router.get('/:id/task', async (req, res) => {
     const task = {
       taskId: `task_${Date.now()}_${assignedChunk.index}`,
       puzzleId,
-      targetAddress: '13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so',
+      targetAddress,
       chunkIndex: assignedChunk.index,
       rangeStart: assignedChunk.rangeStart,
       rangeEnd: assignedChunk.rangeEnd,
       keysCount: assignedChunk.size,
       hints: [
-        { type: 'bip39ChecksumFilter', discardRate: '93.75%' }
+        { type: 'kangarooEcdsa', algorithm: 'PollardKangaroo_CUDA', pubKey: '02...' }
       ]
     };
 
@@ -181,7 +176,7 @@ router.get('/:id/task', async (req, res) => {
     res.json({
       workerId: id,
       task,
-      message: `Tarefa atribuída: Range 0x${task.rangeStart} ➔ 0x${task.rangeEnd}`
+      message: `Tarefa atribuída para Puzzle #71: Range 0x${task.rangeStart} ➔ 0x${task.rangeEnd}`
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -190,7 +185,6 @@ router.get('/:id/task', async (req, res) => {
 
 /**
  * POST /api/workers/:id/heartbeat
- * Worker reporta batimentos, velocidade em keys/s e progresso
  */
 router.post('/:id/heartbeat', async (req, res) => {
   try {
@@ -222,21 +216,47 @@ router.post('/:id/heartbeat', async (req, res) => {
 
 /**
  * POST /api/workers/:id/result
- * Worker reporta a conclusão do range processado
  */
 router.post('/:id/result', async (req, res) => {
   try {
     const { id } = req.params;
-    const { taskId, puzzleId, chunkIndex, result, keysChecked, foundPrivateKey, computeHours } = req.body;
+    const { taskId, puzzleId, chunkIndex, result, keysChecked, foundPrivateKey, computeHours, targetAddress, hashrate, rangeStart, rangeEnd } = req.body;
 
-    if (result === 'FOUND') {
-      console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey} 🎉🎉🎉\n`);
+    let isRealKeyFound = false;
+
+    // Validação criptográfica rigorosa
+    if (result === 'FOUND' && foundPrivateKey) {
+      const expectedTarget = targetAddress || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+      const proof = verifyDiscoveryProof(foundPrivateKey, expectedTarget);
+
+      if (!proof.isValid) {
+        console.warn(`🚨 [Alerta Anti-Fraude] Chave falsa reportada pelo worker ${id}!`);
+        return res.status(400).json({
+          error: 'Chave privada submetida não confere com a chave pública/endereço do puzzle!',
+          details: proof
+        });
+      }
+
+      isRealKeyFound = true;
+      console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE AUTÊNTICA ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey} 🎉🎉🎉\n`);
     }
 
     // Marca fatia como escaneada no Redis Bitmap
     if (puzzleId && chunkIndex !== undefined) {
       await markChunkScanned(puzzleId, chunkIndex);
     }
+
+    // Grava no Google Sheets & Webhook em tempo real
+    appendRangesToSheet(undefined, [{
+      puzzleId: puzzleId || 'puzzle_btc_71',
+      chunkIndex: chunkIndex || 0,
+      rangeStart: rangeStart || '',
+      rangeEnd: rangeEnd || ''
+    }], `Colab Node (${id})`, {
+      status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
+      hashrate: hashrate || formatHashrate(keysChecked ? keysChecked / 5 : 45000000000),
+      keyFound: isRealKeyFound
+    }).catch(() => {});
 
     const sharesEarned = (Number(keysChecked) || 1000000) * 0.001;
 
@@ -250,9 +270,10 @@ router.post('/:id/result', async (req, res) => {
 
     res.json({
       workerId: id,
-      result,
+      result: isRealKeyFound ? 'FOUND' : 'NOT_FOUND',
       sharesEarned,
-      message: result === 'FOUND' ? '🎯 CHAVE CRIPTOGRÁFICA ENCONTRADA!' : 'Range concluído. Shares creditadas.'
+      verified: isRealKeyFound,
+      message: isRealKeyFound ? '🎯 CHAVE CRIPTOGRAFICAMENTE VÁLIDA ENCONTRADA! Parabéns!' : 'Range concluído. Shares creditadas e gravadas na Planilha.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

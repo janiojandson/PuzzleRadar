@@ -1,5 +1,5 @@
 // ============================================
-// 🧩 PuzzleRadar v3.0 — Rotas de Ranges & Space Pruning
+// 🧩 PuzzleRadar v3.0 — Rotas de Ranges & Space Pruning (Resiliente)
 // ============================================
 
 const express = require('express');
@@ -7,8 +7,36 @@ const { requireAuth } = require('../../lib/auth');
 const prisma = require('../../lib/prisma');
 const { markChunkScanned, bulkImportHistory, getPruningStats } = require('../../lib/redis');
 const { appendRangesToSheet, getSheetsStats } = require('../../lib/googleSheets');
+const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
 
 const router = express.Router();
+
+// Mock store em memória para fatias com suporte a Lease TTL (Timeout de 15 minutos)
+const CHUNK_LEASE_MS = 15 * 60 * 1000; // 15 minutos de timeout
+let memoryRanges = [];
+
+/**
+ * Libera chunks que expiraram o tempo de leasing (Colabs desconectados)
+ */
+function reclaimExpiredChunks() {
+  const now = Date.now();
+  let reclaimedCount = 0;
+  for (const r of memoryRanges) {
+    if (r.status === 'ASSIGNED' && r.leaseExpiresAt && r.leaseExpiresAt < now) {
+      r.status = 'PENDING';
+      r.assigneeId = null;
+      r.startedAt = null;
+      r.leaseExpiresAt = null;
+      reclaimedCount++;
+    }
+  }
+  if (reclaimedCount > 0) {
+    console.log(`♻️ [Chunk Reclaimer] ${reclaimedCount} fatias abandonadas devolvidas ao pool (Status: PENDING).`);
+  }
+}
+
+// Executa o reclaimer a cada 2 minutos
+setInterval(reclaimExpiredChunks, 2 * 60 * 1000);
 
 /**
  * POST /api/ranges/archive-to-sheets — Arquiva fatias diretamente no Google Sheets (Serverless History)
@@ -25,7 +53,7 @@ router.post('/archive-to-sheets', async (req, res) => {
     const archiveResult = await appendRangesToSheet(spreadsheetId, items, source || 'Admin Space Pruning');
     
     // Atualiza também os bitmaps de poda
-    await bulkImportHistory('puzzle_btc_66', items, 10000);
+    await bulkImportHistory('puzzle_btc_71', items, 10000);
 
     res.json({
       success: true,
@@ -51,7 +79,6 @@ router.get('/sheets-stats', async (req, res) => {
 
 /**
  * POST /api/ranges/import-history
- * Ingestão de ranges testados por outras pools (Space Pruning)
  */
 router.post('/import-history', async (req, res) => {
   try {
@@ -70,22 +97,8 @@ router.post('/import-history', async (req, res) => {
     const totalSpace = Number(totalEstimatedChunks) || 10000;
     const pruningResult = await bulkImportHistory(puzzleId, itemsToImport, totalSpace);
 
-    // Arquiva também no Google Sheets em background
+    // Arquiva também no Google Sheets e Webhook em background
     appendRangesToSheet(undefined, itemsToImport, source || 'Pool Externa').catch(() => {});
-
-    try {
-      await prisma.activityLog.create({
-        data: {
-          action: 'SPACE_PRUNING_IMPORT',
-          details: {
-            puzzleId,
-            importedCount: pruningResult.importedCount,
-            prunedPercent: pruningResult.prunedPercent,
-            source: source || 'External Pool Import'
-          }
-        }
-      });
-    } catch (dbErr) {}
 
     res.json({
       success: true,
@@ -113,10 +126,11 @@ router.get('/pruning-stats/:puzzleId', async (req, res) => {
 });
 
 /**
- * GET /api/ranges/available
+ * GET /api/ranges/available — Lista fatias disponíveis com Auto-Reclaim
  */
 router.get('/available', async (req, res) => {
   try {
+    reclaimExpiredChunks();
     const { poolId, puzzleId } = req.query;
     
     let ranges = [];
@@ -132,21 +146,33 @@ router.get('/available', async (req, res) => {
         orderBy: { chunkIndex: 'asc' }
       });
     } catch (dbErr) {
-      ranges = [
-        {
-          id: 'rng_sample_1',
-          chunkIndex: 0,
-          rangeStart: '2000000000000000',
-          rangeEnd: '2000000000ffffff',
-          status: 'PENDING'
-        }
-      ];
+      if (memoryRanges.length === 0) {
+        memoryRanges = [
+          {
+            id: 'rng_p71_0',
+            chunkIndex: 0,
+            rangeStart: '400000000000000000',
+            rangeEnd: '40000000000fffffff',
+            targetAddress: '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU',
+            status: 'PENDING'
+          },
+          {
+            id: 'rng_p71_1',
+            chunkIndex: 1,
+            rangeStart: '400000000010000000',
+            rangeEnd: '40000000001fffffff',
+            targetAddress: '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU',
+            status: 'PENDING'
+          }
+        ];
+      }
+      ranges = memoryRanges.filter(r => r.status === 'PENDING').slice(0, 50);
     }
     
     res.json({
       ranges,
       count: ranges.length,
-      message: 'Ranges disponíveis prontos para processamento'
+      message: 'Ranges disponíveis prontos para processamento (Anti-Colisão Ativo)'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -154,32 +180,44 @@ router.get('/available', async (req, res) => {
 });
 
 /**
- * POST /api/ranges/:id/claim
+ * POST /api/ranges/:id/claim — Reivindica fatia com Lease TTL
  */
 router.post('/:id/claim', async (req, res) => {
   try {
     const { id } = req.params;
     const { workerToken, userId } = req.body;
+    const now = Date.now();
+    const leaseExpiresAt = now + CHUNK_LEASE_MS;
     
     try {
       const updated = await prisma.range.update({
         where: { id },
         data: {
           status: 'ASSIGNED',
-          assigneeId: userId || null,
+          assigneeId: userId || workerToken || null,
           startedAt: new Date()
         }
       });
       return res.json({
         range: updated,
-        message: 'Range reivindicado com sucesso.'
+        leaseExpiresAt,
+        message: 'Range reivindicado com sucesso com Lease de 15 minutos.'
       });
     } catch (dbErr) {
+      const memItem = memoryRanges.find(r => r.id === id);
+      if (memItem) {
+        memItem.status = 'ASSIGNED';
+        memItem.assigneeId = workerToken || userId || 'wrk_anon';
+        memItem.startedAt = new Date().toISOString();
+        memItem.leaseExpiresAt = leaseExpiresAt;
+      }
+
       return res.json({
         rangeId: id,
         status: 'ASSIGNED',
         startedAt: new Date().toISOString(),
-        message: 'Range atribuído temporariamente.'
+        leaseExpiresAt,
+        message: 'Range atribuído temporariamente com tolerância a falhas.'
       });
     }
   } catch (err) {
@@ -188,15 +226,30 @@ router.post('/:id/claim', async (req, res) => {
 });
 
 /**
- * POST /api/ranges/:id/result
+ * POST /api/ranges/:id/result — Reporta resultado com Validação Criptográfica Anti-Fake
  */
 router.post('/:id/result', async (req, res) => {
   try {
     const { id } = req.params;
-    const { result, keysChecked, foundPrivateKey, computeHours, puzzleId, chunkIndex } = req.body;
+    const { result, keysChecked, foundPrivateKey, computeHours, puzzleId, chunkIndex, targetAddress, hashrate, workerName } = req.body;
     
+    let isRealKeyFound = false;
+
+    // Se o worker alegar ter encontrado a chave, valida criptograficamente
     if (result === 'FOUND' && foundPrivateKey) {
-      console.log(`[PuzzleRadar] 🎯 CHAVE ENCONTRADA no range ${id}! Notificando admin do pool...`);
+      const expectedTarget = targetAddress || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+      const proof = verifyDiscoveryProof(foundPrivateKey, expectedTarget);
+
+      if (!proof.isValid) {
+        console.warn(`🚨 [Alerta Anti-Fraude] Chave privada inválida reportada para range ${id}! Rejeitando.`);
+        return res.status(400).json({
+          error: 'Prova criptográfica inválida! A chave privada fornecida não corresponde ao endereço Bitcoin do puzzle.',
+          details: proof
+        });
+      }
+
+      isRealKeyFound = true;
+      console.log(`🎉 [PuzzleRadar] 🚨 CHAVE AUTÊNTICA ENCONTRADA no range ${id}! Notificando rede e Google Sheets...`);
     }
 
     if (puzzleId && chunkIndex !== undefined) {
@@ -205,24 +258,43 @@ router.post('/:id/result', async (req, res) => {
     
     const sharesCalculated = (Number(keysChecked) || 0) * 0.0001;
 
+    // Sincroniza com Google Sheets e Webhook
+    appendRangesToSheet(undefined, [{
+      puzzleId: puzzleId || 'puzzle_btc_71',
+      chunkIndex: chunkIndex || 0,
+      rangeStart: req.body.rangeStart || '',
+      rangeEnd: req.body.rangeEnd || ''
+    }], workerName || 'Colab Worker Node', {
+      status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
+      hashrate: hashrate || '45.0 GH/s',
+      keyFound: isRealKeyFound
+    }).catch(() => {});
+
     try {
       await prisma.range.update({
         where: { id },
         data: {
           status: 'COMPLETED',
           completedAt: new Date(),
-          result: result === 'FOUND' ? 'FOUND' : 'NOT_FOUND',
+          result: isRealKeyFound ? 'FOUND' : 'NOT_FOUND',
           keysChecked: Number(keysChecked) || 0,
-          foundPrivateKey: result === 'FOUND' ? foundPrivateKey : null
+          foundPrivateKey: isRealKeyFound ? foundPrivateKey : null
         }
       });
-    } catch (dbErr) {}
+    } catch (dbErr) {
+      const memItem = memoryRanges.find(r => r.id === id);
+      if (memItem) {
+        memItem.status = 'COMPLETED';
+        memItem.result = isRealKeyFound ? 'FOUND' : 'NOT_FOUND';
+      }
+    }
     
     res.json({
       rangeId: id,
-      result,
+      result: isRealKeyFound ? 'FOUND' : 'NOT_FOUND',
       sharesEarned: sharesCalculated,
-      message: result === 'FOUND' ? '🎯 CHAVE ENCONTRADA! Parabéns!' : 'Contribuição registrada no pool.'
+      verified: isRealKeyFound,
+      message: isRealKeyFound ? '🎯 CHAVE CRIPTOGRAFICAMENTE VÁLIDA ENCONTRADA! Parabéns!' : 'Contribuição registrada no pool e planilha.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
