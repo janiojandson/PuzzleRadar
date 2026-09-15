@@ -1081,12 +1081,26 @@ function handleTelemetryPulse(pulse) {
     if (bar) bar.style.width = `${pulse.activeTarget.scannedPercent || 18.4}%`;
   }
 
-  // Alvo Secundário
+  // Alvo Secundário (Sincronizado 100% com Multi-Chain)
   if (pulse.secondaryTarget) {
     setInner('dashSecTitle', pulse.secondaryTarget.title);
     setInner('dashSecPrize', `Prêmio: ${pulse.secondaryTarget.prize}`);
-    setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(N) 2^44');
-    setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || '14 horas');
+    if (pulse.secondaryTarget.prize) {
+      const pz = pulse.secondaryTarget.prize.split(' ')[0];
+      setInner('dashSecBadgePrize', `${pz} ${pulse.secondaryTarget.chain || 'BTC'}`);
+    }
+    setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(1) Instantâneo');
+    setInner('dashSecFilter', pulse.secondaryTarget.bip39ChecksumFilter || 'Cálculo Algébrico O(1)');
+    setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || 'Instantâneo');
+
+    const secBtn = document.getElementById('dashSecActionButton');
+    if (secBtn) {
+      const secChain = pulse.secondaryTarget.chain || 'BTC';
+      const secId = pulse.secondaryTarget.id || 'BTC_SATOSHI_NONCE_REUSE';
+      const secTitle = (pulse.secondaryTarget.title || '').replace(/'/g, "\\'");
+      const secPrize = pulse.secondaryTarget.prize || '';
+      secBtn.onclick = () => setMultiChainTarget(secChain, secId, secTitle, secPrize);
+    }
   }
 
   // Proof-of-Share
