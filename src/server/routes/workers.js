@@ -223,11 +223,25 @@ router.get('/:id/task', async (req, res) => {
     const activePuzzleKey = challenge ? (challenge.challengeId || `BTC_1000_P${challenge.puzzleNumber || challenge.num || 71}`) : 'BTC_1000_P71';
     const activeChain = (challenge && challenge.chain) || (chain ? chain.toUpperCase() : 'BTC');
 
-    // Procura fatia não escaneada no espaço de busca do desafio
+    // Coleta indices de chunks atualmente em processamento por outros workers ativos (Anti-Colisão em Tempo Real)
+    const currentlyProcessingChunkIndices = new Set();
+    const now = Date.now();
+    for (const [wId, w] of activeWorkersMap.entries()) {
+      if (wId !== id && w.currentTask && (now - w.lastSeen <= 90000)) {
+        if (w.currentTask.puzzleId === activePuzzleKey && w.currentTask.chunkIndex !== undefined) {
+          currentlyProcessingChunkIndices.add(w.currentTask.chunkIndex);
+        }
+      }
+    }
+
+    // Procura fatia não escaneada e que não esteja sendo processada por outro nó no momento
     const splits = splitRange(defaultStart, defaultEnd, 1000);
     let assignedChunk = null;
 
     for (const chunk of splits) {
+      if (currentlyProcessingChunkIndices.has(chunk.index)) {
+        continue; // Pula fatia se outro terminal já estiver minerando ela agora
+      }
       const alreadyScanned = await isChunkScanned(activePuzzleKey, chunk.index);
       if (!alreadyScanned) {
         assignedChunk = chunk;
@@ -235,8 +249,10 @@ router.get('/:id/task', async (req, res) => {
       }
     }
 
+    // Fallback: se todas as fatias estiverem ocupadas ou varridas, seleciona fatia por offset de hash do worker
     if (!assignedChunk) {
-      assignedChunk = splits[0];
+      const offset = Math.abs(id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % splits.length;
+      assignedChunk = splits[offset] || splits[0];
     }
 
     const task = {
