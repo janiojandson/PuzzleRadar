@@ -246,7 +246,7 @@ function setTargetPuzzle(num) {
 
   setInner('headerTarget', `Puzzle #${num} (${puzzle.btcPrize} BTC)`);
   switchTab('tab-fleet');
-  alert(`🎯 Alvo Definido: Puzzle #${num} (${puzzle.btcPrize} BTC)!\n\nComando atualizado na aba Fleet Manager.`);
+  showToast(`🎯 Alvo #${num} (${puzzle.btcPrize} BTC) definido! Copie o comando na aba Fleet.`);
 }
 
 function generateColabTargetCommand(num) {
@@ -333,7 +333,7 @@ function setMultiChainTarget(chain, challengeId) {
   const el = document.getElementById('colabCliCode');
   if (el) el.innerText = cmd;
   switchTab('tab-fleet');
-  alert(`🎯 Desafio Multi-Chain Selecionado: [${chain}] ${challengeId}!\nComando Colab atualizado.`);
+  showToast(`🎯 [${chain}] ${challengeId} selecionado! Comando atualizado na aba Fleet.`);
 }
 
 // ─── FLEET MANAGEMENT ───
@@ -572,6 +572,133 @@ function calculateSubscriberYield() {
   const estimatedReward = totalPrizeUSD * shareRatio;
 
   setInner('calcEstimatedReward', `~$${Math.round(estimatedReward).toLocaleString()} USD (${(shareRatio * 100).toFixed(1)}%)`);
+}
+
+// ─── ANALYST FEED ───
+let advisorRecommendations = [];
+
+async function fetchAnalystFeed() {
+  try {
+    const [feedRes, recRes] = await Promise.all([
+      fetch('/api/analyst/feed'),
+      fetch('/api/advisor/recommendations?fleetHashrate=42000000000')
+    ]);
+
+    const feedData = await feedRes.json();
+    const recData = await recRes.json();
+    advisorRecommendations = recData.recommendations || [];
+
+    const grid = document.getElementById('analystFeedGrid');
+    if (!grid) return;
+
+    const opportunities = [
+      ...(feedData.feed || []),
+      ...(feedData.pending || [])
+    ];
+
+    // Merge with advisor recommendations
+    const allItems = [
+      ...advisorRecommendations.filter(r => r.chain !== 'BTC' || r.puzzleNumber > 160),
+      ...opportunities
+    ];
+
+    if (allItems.length === 0) {
+      grid.innerHTML = `
+        <div class="col-span-2 text-center py-12 text-slate-500">
+          <div class="text-4xl mb-3">🔍</div>
+          <p class="text-sm">O Radar IA está a varrer oportunidades...</p>
+          <p class="text-xs mt-1">Próxima análise automática em breve.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = allItems.map(item => {
+      const roi = item.roi || {};
+      const chain = item.chain || 'BTC';
+      const chainColor = chain === 'ETH' ? 'blue' : chain === 'SOL' ? 'emerald' : 'amber';
+      const badge = roi.badge === 'TOP_ROI'
+        ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gradient-to-r from-amber-400 to-orange-500 text-black">⭐ TOP ROI</span>'
+        : roi.badge === 'QUICK_WIN'
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">⚡ GANHO RÁPIDO</span>'
+          : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-400 border border-white/10">ATIVO</span>';
+
+      return `
+        <div class="glass-panel p-5 rounded-2xl space-y-3 hover:border-amber-500/30 transition border border-white/10">
+          <div class="flex items-start justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-${chainColor}-500/10 text-${chainColor}-400 uppercase">${chain}</span>
+                ${badge}
+              </div>
+              <h4 class="font-bold text-white text-sm leading-snug">${item.title || item.nomeOficial || 'Oportunidade Detectada'}</h4>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-xl font-extrabold text-amber-400 font-mono">${item.prize || item.btcPrize || '?'} ${item.prizeCurrency || chain}</div>
+              <div class="text-[10px] text-slate-400">~$${Number(roi.prizeUSD || 0).toLocaleString()} USD</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-cypher-950 border border-white/5 font-mono text-xs">
+            <div class="p-2 rounded bg-white/5">
+              <div class="text-[10px] text-slate-400">Lucro/Dia</div>
+              <div class="font-bold text-emerald-400">${roi.roiPerDayFormatted || 'Calculando...'}</div>
+            </div>
+            <div class="p-2 rounded bg-white/5">
+              <div class="text-[10px] text-slate-400">Tempo Frota</div>
+              <div class="font-bold text-cyan-300">${roi.formattedFleetTime || 'Estimando...'}</div>
+            </div>
+          </div>
+          <button onclick="setMultiChainTarget('${chain}', '${item.challengeId || item.id || chain}')" class="w-full py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs border border-amber-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="crosshair" class="w-3.5 h-3.5"></i> Atacar Este Alvo
+          </button>
+        </div>`;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  } catch (err) {
+    console.error('Erro ao carregar Analyst Feed:', err);
+    const grid = document.getElementById('analystFeedGrid');
+    if (grid) grid.innerHTML = '<div class="col-span-2 text-center py-8 text-slate-500 text-xs">⚠️ Radar IA temporariamente indisponível. Tentando reconectar...</div>';
+  }
+}
+
+async function evaluateCustomChallenge() {
+  const rawText = prompt('📋 Cole o texto do desafio ou URL do CTF para o Radar IA avaliar:');
+  if (!rawText || !rawText.trim()) return;
+
+  showToast('🔍 Enviando para análise do Radar IA...');
+
+  try {
+    const res = await fetch('/api/analyst/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rawText: rawText.trim(), fleetHashrate: 42000000000 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ Enigma avaliado e adicionado ao Radar IA!');
+      setTimeout(fetchAnalystFeed, 1000);
+    } else {
+      showToast('⚠️ ' + (data.error || 'Falha na avaliação.'));
+    }
+  } catch (err) {
+    showToast('⚠️ Erro ao conectar com o Radar IA: ' + err.message);
+  }
+}
+
+// ─── COLAB 1-CLICK LAUNCH (URL pré-preenchida) ───
+function openColabWithCode() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+  // Codifica o código como notebook Colab via URL
+  const encoded = encodeURIComponent(code);
+  window.open(`https://colab.research.google.com/#create=true&code=${encoded}`, '_blank');
+  showToast('🚀 Abrindo Google Colab com código pré-preenchido!');
+}
+
+// ─── ALIAS COPY HELPER ───
+function copyText(text) {
+  copyTextToClipboard(text, 'Texto copiado!');
 }
 
 // Inicializações periódicas a cada 4 segundos
