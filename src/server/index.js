@@ -11,6 +11,7 @@ const compression = require('compression');
 // Routes
 const authRoutes = require('./routes/auth');
 const puzzleRoutes = require('./routes/puzzles');
+const puzzle1000btcRoutes = require('./routes/puzzle1000btc');
 const poolRoutes = require('./routes/pools');
 const rangeRoutes = require('./routes/ranges');
 const contributionRoutes = require('./routes/contributions');
@@ -56,6 +57,7 @@ app.get('/health', (req, res) => {
       'intelligence_hub_discoveries',
       'solvers_cpp_repository',
       'learning_lab_sandbox',
+      'puzzles_1000btc_master_160',
       'paginated_multi_chain_puzzles',
       'ai_math_advisor',
       'nexus_cerebro_integrated'
@@ -67,6 +69,7 @@ app.get('/health', (req, res) => {
 // ─── ROTAS DA API ───
 app.use('/api/auth', authRoutes);
 app.use('/api/puzzles', puzzleRoutes);
+app.use('/api/puzzle1000btc', puzzle1000btcRoutes);
 app.use('/api/pools', poolRoutes);
 app.use('/api/ranges', rangeRoutes);
 app.use('/api/contributions', contributionRoutes);
@@ -92,6 +95,7 @@ app.get('*', (req, res, next) => {
         endpoints: [
           '/health',
           '/api/puzzles',
+          '/api/puzzle1000btc',
           '/api/fleet',
           '/api/discoveries',
           '/api/sandbox/puzzles',

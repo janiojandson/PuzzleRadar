@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🧩 PuzzleRadar v3.0 — Hub de Inteligência, Fleet Management & Learning Lab</title>
+  <title>🧩 PuzzleRadar v3.0 — SaaS Colaborativo de Desafios Criptográficos & 1000 BTC</title>
   
   <!-- Google Fonts & Tailwind CDN -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
 
@@ -23,10 +23,11 @@
           },
           colors: {
             cypher: {
-              900: '#06090e',
-              800: '#0c131d',
-              700: '#141f2f',
-              600: '#1e2e45',
+              950: '#030508',
+              900: '#060a10',
+              800: '#0d1522',
+              700: '#142033',
+              600: '#1d2f4a',
               accent: '#00f2fe',
               neon: '#10b981',
               btc: '#f7931a',
@@ -41,342 +42,369 @@
 
   <style>
     body {
-      background-color: #05070b;
+      background-color: #04060a;
       background-image: 
         radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
         radial-gradient(at 100% 0%, rgba(0, 242, 254, 0.08) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(247, 147, 26, 0.05) 0px, transparent 50%);
+        radial-gradient(at 50% 100%, rgba(247, 147, 26, 0.06) 0px, transparent 50%);
       background-attachment: fixed;
     }
     .glass-panel {
-      background: rgba(12, 19, 29, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(13, 21, 34, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .glass-panel-glow {
-      background: rgba(14, 23, 38, 0.8);
+      background: rgba(15, 25, 42, 0.85);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      box-shadow: 0 0 30px -5px rgba(245, 158, 11, 0.12);
     }
     .terminal-box {
-      background: #040608;
-      border: 1px solid rgba(0, 242, 254, 0.2);
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+      background: #020407;
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9);
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #1e2e45;
+      background: #1d2f4a;
       border-radius: 4px;
     }
   </style>
 </head>
-<body class="text-slate-200 min-h-screen flex flex-col selection:bg-cypher-neon selection:text-black font-sans">
+<body class="text-slate-200 min-h-screen flex flex-col selection:bg-cypher-btc selection:text-black font-sans">
 
-  <!-- Top Navigation Bar -->
-  <header class="sticky top-0 z-40 glass-panel border-b border-white/10 px-4 lg:px-8 py-3.5 flex items-center justify-between">
+  <!-- Top Global Header -->
+  <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 lg:px-8 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cypher-btc via-amber-500 to-cypher-neon flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-amber-500/20">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-emerald-400 flex items-center justify-center font-bold text-black text-xl shadow-lg shadow-amber-500/20">
         🧩
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="font-extrabold text-xl tracking-tight text-white">Puzzle<span class="text-cypher-accent">Radar</span></span>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">v3.0 Hub & Fleet</span>
+          <span class="font-extrabold text-xl tracking-tight text-white">Puzzle<span class="text-amber-400">Radar</span></span>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">1000 BTC & Multi-Chain</span>
         </div>
-        <p class="text-xs text-slate-400">Inteligência Criptográfica • Fazendas Colab • Sandbox Educacional</p>
+        <p class="text-xs text-slate-400">Desafios Criptográficos • Space Pruning • Orquestrador de GPUs Colab</p>
       </div>
     </div>
 
-    <!-- Live Pool Metrics Header -->
-    <div class="hidden md:flex items-center gap-6">
+    <!-- Live Metrics Strip -->
+    <div class="hidden xl:flex items-center gap-6">
       <div class="text-right">
-        <div class="text-xs text-slate-400">Hashrate Total</div>
-        <div class="font-mono text-sm font-bold text-emerald-400 flex items-center justify-end gap-1.5" id="headerHashrate">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span>-- GH/s</span>
+        <div class="text-[11px] text-slate-400 font-medium">🎯 Alvo Imediato</div>
+        <div class="font-mono text-sm font-extrabold text-amber-400 flex items-center justify-end gap-1.5" id="headerTarget">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          <span>Puzzle #71 (7.1 BTC)</span>
         </div>
       </div>
       <div class="h-8 w-px bg-white/10"></div>
       <div class="text-right">
-        <div class="text-xs text-slate-400">Nós da Frota (Colab/Rig)</div>
-        <div class="font-mono text-sm font-bold text-cyan-400" id="headerWorkers">0 online</div>
+        <div class="text-[11px] text-slate-400 font-medium">💰 Em Disputa Global</div>
+        <div class="font-mono text-sm font-bold text-emerald-400" id="headerDispute">903.0 BTC (~$58.7M)</div>
       </div>
       <div class="h-8 w-px bg-white/10"></div>
       <div class="text-right">
-        <div class="text-xs text-slate-400">Prêmio Alvo (#66)</div>
-        <div class="font-mono text-sm font-bold text-amber-400">6.60 BTC (~$420K)</div>
+        <div class="text-[11px] text-slate-400 font-medium">⚡ Hashrate do Cluster</div>
+        <div class="font-mono text-sm font-bold text-cyan-400" id="headerHashrate">45.00 GH/s</div>
       </div>
     </div>
 
-    <!-- Action Buttons -->
+    <!-- Action Links -->
     <div class="flex items-center gap-2">
-      <button onclick="toggleAdvisorChat()" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-extrabold transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
+      <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg" target="_blank" rel="noopener noreferrer" class="px-3 py-2 text-xs font-semibold rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition flex items-center gap-1.5">
+        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">Planilha Google</span>
+      </a>
+      <a href="https://colab.research.google.com/github/janiojandson/PuzzleRadar/blob/main/solver/colab_worker.ipynb" target="_blank" rel="noopener noreferrer" class="px-3 py-2 text-xs font-semibold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5">
+        <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-3.5 h-3.5" alt="Colab">
+        <span class="hidden sm:inline">GPU Colab</span>
+      </a>
+      <button onclick="toggleAdvisorChat()" class="px-3.5 py-2 text-xs font-extrabold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5">
         <i data-lucide="bot" class="w-4 h-4"></i>
         <span>Consultor IA</span>
-      </button>
-      <button onclick="switchTab('tab-fleet')" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-extrabold transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5">
-        <i data-lucide="layers" class="w-4 h-4"></i>
-        <span>Fleet Manager</span>
       </button>
     </div>
   </header>
 
   <!-- Navigation Tabs -->
-  <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2.5 flex items-center gap-2 overflow-x-auto custom-scrollbar">
-    <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition bg-white/10 text-white border border-white/10">
-      <i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i>
-      <span>Fleet Management (Fazenda Multi-Contas)</span>
+  <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+    <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30">
+      <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+      <span>Puzzle 1000 BTC (160 Carteiras)</span>
     </button>
-    <button onclick="switchTab('tab-intel')" id="btn-tab-intel" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="cpu" class="w-4 h-4 text-amber-400"></i>
-      <span>Hub de Inteligência & Solvers C++</span>
+    <button onclick="switchTab('tab-multichain')" id="btn-tab-multichain" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+      <span>Desafios Multi-Chain (ETH, SOL, BTC)</span>
     </button>
-    <button onclick="switchTab('tab-puzzles')" id="btn-tab-puzzles" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="grid" class="w-4 h-4 text-purple-400"></i>
-      <span>Tabela Multi-Moedas (Paginada)</span>
+    <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
+      <span>Fleet Manager (Colab GPU Farm)</span>
     </button>
-    <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
-      <span>Learning Lab Sandbox</span>
-    </button>
-    <button onclick="switchTab('tab-sheets')" id="btn-tab-sheets" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+    <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
-      <span>Google Sheets Serverless</span>
+      <span>Ranges & Planilha Google Live</span>
+    </button>
+    <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
+      <span>Learning Lab Benchmark</span>
     </button>
   </nav>
 
-  <!-- Main Content Area -->
+  <!-- Main Container -->
   <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
-    <!-- ==================== TAB 1: FLEET MANAGEMENT ==================== -->
-    <section id="tab-fleet" class="tab-content space-y-6">
-      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-5">
+    <!-- ==================== TAB 1: 1000 BTC MASTER EXPLORER ==================== -->
+    <section id="tab-1000btc" class="tab-content space-y-6">
+      <!-- Status Banner -->
+      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-6">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-2 max-w-3xl">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-              <i data-lucide="server" class="w-3.5 h-3.5"></i>
-              <span>Gerenciamento Centralizado de Frotas de Mineração</span>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+              <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>A Famosa Transação-Puzzle do Bitcoin: 160 Carteiras</span>
             </div>
             <h1 class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
-              Monitore dezenas de <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">Contas Google Colab & Rigs Locais</span>
+              Explorador do <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400">Puzzle 1000 BTC</span>
             </h1>
-            <p class="text-sm text-slate-300">
-              Um único usuário autentica, etiqueta e monitora dezenas de instâncias com GPUs Tesla T4 gratuitas. O seu Google Drive permanece isolado e protegido no servidor master!
+            <p class="text-sm text-slate-300 leading-relaxed">
+              Cada carteira #N guarda uma chave sorteada no intervalo de $2^{N-1}$ a $2^N - 1$, contendo exatamente <strong>N / 10 BTC</strong>.
+              Os puzzles <strong>#1 a #70</strong> já foram resolvidos. O próximo alvo da comunidade global é o <strong>Puzzle #71</strong> (7.1 BTC).
             </p>
           </div>
 
-          <div class="flex flex-wrap gap-2">
-            <button onclick="generateBatchFleetNodes(5)" class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
-              <i data-lucide="plus-circle" class="w-4 h-4"></i>
-              <span>+ Gerar 5 Nós Colab</span>
+          <!-- Quick Actions -->
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-2 shrink-0">
+            <button onclick="setTargetPuzzle(71)" class="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+              <i data-lucide="crosshair" class="w-4 h-4"></i>
+              <span>Atacar Puzzle #71 (Alvo Atual)</span>
             </button>
-            <a href="https://colab.research.google.com/github/janiojandson/PuzzleRadar/blob/main/solver/colab_worker.ipynb" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition border border-white/10 flex items-center gap-2">
-              <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-4 h-4" alt="Colab">
-              <span>Abrir no Google Colab</span>
-            </a>
+            <button onclick="generateColabTargetCommand(71)" class="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition border border-white/10 flex items-center justify-center gap-2">
+              <i data-lucide="copy" class="w-4 h-4 text-emerald-400"></i>
+              <span>Copiar Comando GPU Colab</span>
+            </button>
           </div>
         </div>
 
-        <!-- Fleet Aggregated Summary Bar -->
+        <!-- Metric Counter Cards -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-white/10">
-          <div class="glass-panel p-3.5 rounded-xl">
-            <div class="text-xs text-slate-400 font-mono">Nós Ativos</div>
-            <div class="text-xl font-extrabold text-emerald-400 font-mono" id="fleetActiveCount">0 Nós</div>
+          <div class="glass-panel p-4 rounded-xl">
+            <div class="text-xs text-slate-400 font-mono">Total de Carteiras</div>
+            <div class="text-2xl font-extrabold text-white font-mono" id="statTotalWallets">160</div>
           </div>
-          <div class="glass-panel p-3.5 rounded-xl">
-            <div class="text-xs text-slate-400 font-mono">Hashrate da Frota</div>
-            <div class="text-xl font-extrabold text-cyan-300 font-mono" id="fleetTotalHashrate">0.00 GH/s</div>
+          <div class="glass-panel p-4 rounded-xl">
+            <div class="text-xs text-slate-400 font-mono">Resolvidas no Histórico</div>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono" id="statSolvedWallets">83 (51.9%)</div>
           </div>
-          <div class="glass-panel p-3.5 rounded-xl">
-            <div class="text-xs text-slate-400 font-mono">Chaves Verificadas</div>
-            <div class="text-xl font-extrabold text-purple-300 font-mono" id="fleetKeysChecked">0.00 B</div>
+          <div class="glass-panel p-4 rounded-xl">
+            <div class="text-xs text-slate-400 font-mono">Em Disputa (Não Resolvidas)</div>
+            <div class="text-2xl font-extrabold text-amber-400 font-mono" id="statUnsolvedWallets">77 Carteiras</div>
           </div>
-          <div class="glass-panel p-3.5 rounded-xl">
-            <div class="text-xs text-slate-400 font-mono">Shares Acumuladas</div>
-            <div class="text-xl font-extrabold text-amber-400 font-mono" id="fleetTotalShares">0.00</div>
+          <div class="glass-panel p-4 rounded-xl">
+            <div class="text-xs text-slate-400 font-mono">Saldo Restante em Disputa</div>
+            <div class="text-2xl font-extrabold text-cyan-300 font-mono" id="statBtcDispute">903.0 BTC</div>
+          </div>
+        </div>
+
+        <!-- Visual Progress Ticks Bar (160 Ticks) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+            <span>#1 (1 bit)</span>
+            <span class="text-amber-300">Progresso Global das 160 Carteiras</span>
+            <span>#160 (160 bits)</span>
+          </div>
+          <div id="progressMapTicks" class="flex items-center gap-[3px] p-2.5 rounded-xl bg-cypher-950 border border-white/10 overflow-x-auto">
+            <!-- 160 ticks generated by JS -->
           </div>
         </div>
       </div>
 
-      <!-- Fleet Nodes Grid -->
-      <div class="space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="font-bold text-lg text-white">Instâncias Conectadas da Frota</h3>
-          <span class="text-xs text-slate-400">Reconexão automática e keepalive ativos</span>
+      <!-- Search & Filters Toolbar -->
+      <div class="glass-panel rounded-2xl p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="p1000SearchInput" placeholder="Buscar por #, endereço ou chave pública..." oninput="debounceP1000Search()" class="px-4 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white placeholder-slate-500 w-72 focus:outline-none focus:border-amber-400">
+            
+            <button onclick="filterP1000Status('all')" id="btn-filter-all" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/10">
+              Todas (160)
+            </button>
+            <button onclick="filterP1000Status('unsolved')" id="btn-filter-unsolved" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+              🔥 Em Disputa (77)
+            </button>
+            <button onclick="filterP1000Status('solved')" id="btn-filter-solved" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white/5 text-slate-400 hover:text-white">
+              ✅ Resolvidas (83)
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-400 font-mono">
+            Mostrando <span id="p1000FilteredCount" class="font-bold text-white">160</span> carteiras
+          </div>
         </div>
-        <div id="fleetNodesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <!-- Wallets Table -->
+        <div class="overflow-x-auto custom-scrollbar">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px]">
+                <th class="py-3 px-3">#</th>
+                <th class="py-3 px-3">Intervalo (Hex)</th>
+                <th class="py-3 px-3">Endereço Bitcoin</th>
+                <th class="py-3 px-3">Chave Pública (Secp256k1)</th>
+                <th class="py-3 px-3">Chave Privada (Hex)</th>
+                <th class="py-3 px-3">Prêmio</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="p1000TableBody" class="divide-y divide-white/5 font-mono">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: MULTI-CHAIN CHALLENGES ==================== -->
+    <section id="tab-multichain" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="max-w-3xl space-y-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-semibold">
+            <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+            <span>Desafios Abertos em Múltiplas Redes</span>
+          </div>
+          <h2 class="text-3xl font-extrabold text-white">Desafios Criptográficos de Ethereum, Solana e ECDSA</h2>
+          <p class="text-sm text-slate-300">
+            Além do Bitcoin Puzzle, explore desafios com prêmios em ETH e SOL utilizando aceleração de filtros BIP39, prefixos Vanity e fraquezas de Nonce.
+          </p>
+        </div>
+
+        <div id="multiChainCardsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <!-- Populated by JS -->
         </div>
       </div>
     </section>
 
-    <!-- ==================== TAB 2: INTELLIGENCE HUB & SOLVERS ==================== -->
-    <section id="tab-intel" class="tab-content hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Discoveries Wall -->
-        <div class="lg:col-span-2 space-y-4">
-          <div class="glass-panel rounded-2xl p-6 space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-bold text-xl text-white">Mural de Inteligência Comunitária</h3>
-                <p class="text-xs text-slate-400">Fragmentos conhecidos, palavras de sementes BIP39 e pistas verificadas.</p>
-              </div>
-              <button onclick="syncAllianceScraper()" class="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                <span>Sincronizar bitcoinpuzzles.io</span>
-              </button>
+    <!-- ==================== TAB 3: FLEET MANAGEMENT ==================== -->
+    <section id="tab-fleet" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-2 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+              <i data-lucide="server" class="w-3.5 h-3.5"></i>
+              <span>Orquestrador de Fazendas de GPUs Gratuitas</span>
             </div>
+            <h2 class="text-3xl font-extrabold text-white">Google Colab Farm & Workers CUDA</h2>
+            <p class="text-sm text-slate-300">
+              Conecte contas do Google Colab (Tesla T4 de 16GB) ou mineradores GPU locais. O servidor central distribui fatias únicas evitando sobreposições com Space Pruning.
+            </p>
+          </div>
 
-            <!-- Discovery Submission Form -->
-            <div class="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
-              <div class="text-xs font-bold text-amber-300 uppercase">Publicar Nova Pista / Fragmento no Mural</div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input type="text" id="discTitle" placeholder="Título da descoberta (ex: 4 palavras semente ETH)" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white">
-                <select id="discType" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white">
-                  <option value="SEED_WORDS">Palavras Semente BIP39 (ETH / BTC)</option>
-                  <option value="MASK_PREFIX">Prefixo Hexadecimal Confirmado</option>
-                  <option value="MASK_SUFFIX">Sufixo Hexadecimal Confirmado</option>
-                  <option value="PUBLIC_KEY">Chave Pública Exposta (BSGS)</option>
-                </select>
-              </div>
-              <input type="text" id="discFragment" placeholder="Fragmento, palavras ou máscara (ex: abandon ability able... ou 0x20...)" class="w-full px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-cyan-300 font-mono">
-              <button onclick="submitDiscovery()" class="w-full py-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition">
-                Publicar Pista no Mural
-              </button>
-            </div>
-
-            <!-- Discoveries Feed -->
-            <div id="discoveriesFeed" class="space-y-3 pt-2">
-              <!-- Populated by JS -->
-            </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="generateColabToken()" class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Gerar Novo Token Worker</span>
+            </button>
+            <a href="https://colab.research.google.com/github/janiojandson/PuzzleRadar/blob/main/solver/colab_worker.ipynb" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition border border-white/10 flex items-center gap-2">
+              <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-4 h-4" alt="Colab">
+              <span>Abrir Notebook no Colab</span>
+            </a>
           </div>
         </div>
 
-        <!-- Solvers C++ Repository -->
-        <div class="space-y-4">
-          <div class="glass-panel-glow rounded-2xl p-6 space-y-4">
-            <div class="flex items-center gap-2 text-emerald-400 font-bold text-base">
-              <i data-lucide="download" class="w-5 h-5"></i>
-              <span>Repositório de Solvers C++</span>
-            </div>
-            <p class="text-xs text-slate-300">Baixe solvers ultra-rápidos otimizados para Android, GPUs CUDA e CPUs multithread.</p>
+        <!-- Generated CLI/Colab Command Box -->
+        <div class="p-4 rounded-xl bg-cypher-950 border border-white/10 space-y-2">
+          <div class="text-xs font-mono text-slate-400 flex items-center justify-between">
+            <span>Comando de Execução Rápida (Colab / CLI):</span>
+            <button onclick="copyCommand('colabCliCode')" class="text-emerald-400 hover:text-emerald-300 font-semibold text-xs flex items-center gap-1">
+              <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+            </button>
+          </div>
+          <pre id="colabCliCode" class="font-mono text-xs text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">python solver/colab_worker.py --api=https://puzzleradar-production.up.railway.app --chain=BTC --challenge=BTC_1000_P71</pre>
+        </div>
 
-            <div id="solversList" class="space-y-3">
-              <!-- Populated by JS -->
-            </div>
+        <!-- Connected Nodes Grid -->
+        <div class="space-y-3">
+          <h3 class="font-bold text-lg text-white">Nós Ativos na Fazenda</h3>
+          <div id="fleetNodesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Populated by JS -->
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ==================== TAB 3: PAGINATED MULTI-CHAIN TABLE ==================== -->
-    <section id="tab-puzzles" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-2xl p-6 space-y-4">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 class="text-2xl font-bold text-white">Puzzles Criptográficos (Bitcoin, Ethereum, Solana)</h2>
-            <p class="text-xs text-slate-400">Tabela de busca server-side com filtros por moeda, dificuldade e status.</p>
+    <!-- ==================== TAB 4: RANGES & GOOGLE SHEETS ==================== -->
+    <section id="tab-ranges" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-2 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Sincronização Bidirecional com Google Sheets</span>
+            </div>
+            <h2 class="text-3xl font-extrabold text-white">Registro Anti-Colisão (Ranges_Varredura)</h2>
+            <p class="text-sm text-slate-300">
+              Cada fatia concluída por qualquer worker do cluster é despachada em tempo real para a planilha Google oficial (<strong>1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg</strong>).
+            </p>
           </div>
 
-          <!-- Search & Filter Controls -->
-          <div class="flex flex-wrap items-center gap-2">
-            <input type="text" id="puzzleSearchInput" placeholder="Buscar por nome ou endereço..." oninput="debouncePuzzleFetch()" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none">
-            
-            <select id="filterChain" onchange="fetchPaginatedPuzzles(1)" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white">
-              <option value="all">Todas as Moedas</option>
-              <option value="BTC">Bitcoin (BTC)</option>
-              <option value="ETH">Ethereum (ETH)</option>
-              <option value="SOL">Solana (SOL)</option>
-            </select>
-
-            <select id="filterDifficulty" onchange="fetchPaginatedPuzzles(1)" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white">
-              <option value="all">Todas as Dificuldades</option>
-              <option value="EASY">Fácil (🟢)</option>
-              <option value="MEDIUM">Médio (🟡)</option>
-              <option value="HARD">Difícil (🔴)</option>
-              <option value="EXTREME">Extremo (⚫)</option>
-            </select>
-
-            <select id="filterStatus" onchange="fetchPaginatedPuzzles(1)" class="px-3 py-2 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white">
-              <option value="all">Todos os Status</option>
-              <option value="active">Apenas Ativos 🔥</option>
-              <option value="solved">Apenas Resolvidos (Lab)</option>
-            </select>
-          </div>
+          <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg" target="_blank" rel="noopener noreferrer" class="px-5 py-3 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+            <i data-lucide="external-link" class="w-4 h-4"></i>
+            <span>Abrir Planilha no Google Drive</span>
+          </a>
         </div>
 
-        <!-- Puzzles Data Table -->
+        <!-- Live Ranges Table -->
         <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left border-collapse text-xs">
             <thead>
-              <tr class="border-b border-white/10 text-slate-400 font-mono">
+              <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px]">
+                <th class="py-3 px-3">Timestamp</th>
+                <th class="py-3 px-3">Rede</th>
                 <th class="py-3 px-3">Desafio</th>
-                <th class="py-3 px-3">Moeda</th>
-                <th class="py-3 px-3">Bits</th>
-                <th class="py-3 px-3">Prêmio</th>
-                <th class="py-3 px-3">Score & Dificuldade</th>
-                <th class="py-3 px-3">Estratégia Recomendada</th>
-                <th class="py-3 px-3 text-right">Status</th>
+                <th class="py-3 px-3">Chunk #</th>
+                <th class="py-3 px-3">Range Início</th>
+                <th class="py-3 px-3">Range Fim</th>
+                <th class="py-3 px-3">Worker</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3 text-right">Hashrate</th>
               </tr>
             </thead>
-            <tbody id="puzzlesTableBody" class="divide-y divide-white/5 font-mono">
+            <tbody id="rangesTableBody" class="divide-y divide-white/5 font-mono">
               <!-- Populated by JS -->
             </tbody>
           </table>
         </div>
-
-        <!-- Server-Side Pagination Bar -->
-        <div class="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
-          <div class="text-slate-400">
-            Mostrando página <span id="currentPageNum" class="font-bold text-white">1</span> de <span id="totalPagesNum" class="font-bold text-white">1</span> (<span id="totalPuzzlesCount">0</span> puzzles)
-          </div>
-          <div class="flex items-center gap-1.5" id="paginationControls">
-            <!-- Buttons populated by JS -->
-          </div>
-        </div>
       </div>
     </section>
 
-    <!-- ==================== TAB 4: LEARNING LAB SANDBOX ==================== -->
+    <!-- ==================== TAB 5: LEARNING LAB SANDBOX ==================== -->
     <section id="tab-sandbox" class="tab-content hidden space-y-6">
       <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-6">
         <div class="max-w-3xl space-y-2">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
             <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
             <span>Sandbox Educacional de Benchmark</span>
           </div>
-          <h2 class="text-2xl lg:text-3xl font-bold text-white">Calibre seu hardware contra os Puzzles #1 ao #65</h2>
-          <p class="text-sm text-slate-400">
+          <h2 class="text-3xl font-extrabold text-white">Calibre seu hardware contra os Puzzles #1 ao #65</h2>
+          <p class="text-sm text-slate-300">
             Valide sua GPU, software e velocidade de curva secp256k1 antes de minerar na pool principal. O terminal registrará o <strong>momento exato do cruzamento da chave privada conhecida</strong>.
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-          <!-- Sandbox Controls -->
           <div class="glass-panel p-5 rounded-xl space-y-4">
             <div class="space-y-1.5">
               <label class="text-xs font-medium text-slate-300">Selecione o Puzzle para Teste</label>
               <select id="sandboxPuzzleSelect" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white">
                 <option value="1">Puzzle #1 (1 bit — Instantâneo)</option>
-                <option value="5">Puzzle #5 (5 bits — Instantâneo)</option>
-                <option value="10">Puzzle #10 (10 bits — 1 ms)</option>
                 <option value="20">Puzzle #20 (20 bits — 5 ms)</option>
                 <option value="30" selected>Puzzle #30 (30 bits — Benchmark Padrão)</option>
                 <option value="40">Puzzle #40 (40 bits — Benchmark Intenso)</option>
-              </select>
-            </div>
-
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-300">Dispositivo de Benchmark</label>
-              <select id="sandboxHardwareSelect" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white">
-                <option value="Google Colab Tesla T4">Google Colab Tesla T4 (~18 GH/s)</option>
-                <option value="NVIDIA RTX 4090">NVIDIA RTX 4090 (~42 GH/s)</option>
-                <option value="CPU Intel/Ryzen">CPU Multi-Thread (~1 MH/s)</option>
+                <option value="65">Puzzle #65 (65 bits — Resolvido)</option>
               </select>
             </div>
 
@@ -386,7 +414,6 @@
             </button>
           </div>
 
-          <!-- Sandbox Live Terminal Output -->
           <div class="lg:col-span-2 terminal-box rounded-xl p-4 font-mono text-xs text-cyan-300 space-y-2 h-72 overflow-y-auto custom-scrollbar flex flex-col justify-between" id="sandboxTerminal">
             <div id="sandboxLogs" class="space-y-1">
               <div class="text-slate-500">> Sandbox pronto. Clique em 'Executar Calibração' para iniciar o benchmark...</div>
@@ -400,39 +427,9 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 5: GOOGLE SHEETS ==================== -->
-    <section id="tab-sheets" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
-        <div class="max-w-3xl space-y-2">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
-            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
-            <span>Google Sheets Serverless Ingestion</span>
-          </div>
-          <h2 class="text-2xl font-bold text-white">Arquivo Histórico na Nuvem (janiojandson)</h2>
-          <p class="text-sm text-slate-400">Cole fatias já processadas para arquivar no Google Sheets sem inchar os servidores locais.</p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="lg:col-span-2 glass-panel p-5 rounded-xl space-y-3">
-            <textarea id="sheetsInputText" rows="4" placeholder="Cole os índices ou ranges varridos..." class="w-full px-3 py-2 rounded-xl bg-cypher-900 border border-white/10 font-mono text-xs text-cyan-300"></textarea>
-            <button onclick="submitSheetsArchive()" class="w-full py-2.5 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs transition">
-              Arquivar no Google Sheets
-            </button>
-          </div>
-          <div class="glass-panel-glow p-5 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <div class="text-xs text-slate-400">Total Arquivado</div>
-              <div class="text-3xl font-extrabold text-cyan-300 font-mono" id="sheetsTotalArchived">30</div>
-            </div>
-            <div class="text-xs text-slate-400 font-mono">Conta: <span class="text-white">janiojandson</span> (Isolada)</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
   </main>
 
-  <!-- Floating Chat Modal -->
+  <!-- Floating Advisor Chat Modal -->
   <div id="advisorChatModal" class="fixed bottom-20 right-6 w-96 max-w-[calc(100vw-2rem)] h-[540px] glass-panel-glow rounded-2xl shadow-2xl z-50 flex flex-col hidden border border-amber-500/30 overflow-hidden">
     <div class="p-4 bg-cypher-800/90 border-b border-white/10 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
@@ -452,14 +449,14 @@
 
     <div id="advisorMessages" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar text-xs">
       <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-300">
-        👋 Olá! Sou o <strong>Consultor Matemático do PuzzleRadar</strong>. Posso te orientar sobre exaustão Saco Completo, descarte de 93,75% do BIP39, aceleração BSGS para chaves públicas expostas e orquestração da Fazenda Colab. Como posso ajudar?
+        👋 Olá! Sou o <strong>Consultor Matemático do PuzzleRadar</strong>. Posso te orientar sobre exaustão Saco Completo, descarte de 93,75% do BIP39, aceleração Kangaroo para o Puzzle #71 e orquestração da Fazenda Colab. Como posso ajudar?
       </div>
     </div>
 
     <div class="px-3 py-1.5 bg-cypher-900/60 border-t border-white/5 flex gap-1.5 overflow-x-auto custom-scrollbar text-[10px]">
-      <button onclick="askQuickPrompt('Como funciona o descarte de 93,75% no BIP39?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-amber-300 whitespace-nowrap">⚡ BIP39 93.75%</button>
-      <button onclick="askQuickPrompt('Como gerenciar 10 contas Colab na frota?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-emerald-300 whitespace-nowrap">🚀 Frota Colab</button>
-      <button onclick="askQuickPrompt('O que é aceleração BSGS O(√N)?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-cyan-300 whitespace-nowrap">🔍 BSGS ECDSA</button>
+      <button onclick="askQuickPrompt('Como atacar o Puzzle #71 com Kangaroo CUDA?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-amber-300 whitespace-nowrap">🎯 Puzzle #71</button>
+      <button onclick="askQuickPrompt('Como configurar 5 contas Google Colab na frota?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-emerald-300 whitespace-nowrap">🚀 Frota Colab</button>
+      <button onclick="askQuickPrompt('O que é aceleração Pollard Kangaroo O(√N)?')" class="px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 text-cyan-300 whitespace-nowrap">🔍 Kangaroo O(√N)</button>
     </div>
 
     <form onsubmit="sendAdvisorMessage(event)" class="p-3 bg-cypher-900 border-t border-white/10 flex items-center gap-2">
@@ -476,7 +473,7 @@
   </button>
 
   <footer class="glass-panel border-t border-white/5 px-4 lg:px-8 py-4 text-center text-xs text-slate-500">
-    🧩 PuzzleRadar v3.0 — Nó Integrado ao Ecossistema Nexus Cérebro.
+    🧩 PuzzleRadar v3.0 — Sincronizado com Bitcoin Puzzles e Planilha Google Master.
   </footer>
 
   <script src="/app.js"></script>

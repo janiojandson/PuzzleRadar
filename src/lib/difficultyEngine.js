@@ -1,11 +1,8 @@
 // ============================================
 // 🧩 PuzzleRadar v3.0 — Motor de Dificuldade, Entropia & Multi-Moedas
 // ============================================
-// Suporta:
-// 1. Redução de Entropia (Máscaras, Prefixos, Sufixos, BIP39 Checksum 93,75%)
-// 2. Exploração de Chave Pública Exposta (ECDSA / BSGS / Kangaroo O(sqrt(N)) )
-// 3. Multi-Moedas (Bitcoin BTC, Ethereum ETH, Solana SOL)
-// ============================================
+
+const { getAll160Puzzles } = require('./puzzles1000btc');
 
 const DIFFICULTY_THRESHOLDS = {
   EASY:   { min: 0,   max: 400, label: 'FÁCIL',   emoji: '🟢', color: '#22c55e' },
@@ -14,7 +11,6 @@ const DIFFICULTY_THRESHOLDS = {
   EXTREME:{ min: 800, max: Infinity, label: 'EXTREMO', emoji: '⚫', color: '#6b7280' }
 };
 
-// Velocidade estimada por hardware (chaves/segundo)
 const HARDWARE_SPEEDS = {
   'CPU_i7':           500000,        // ~500K keys/s
   'CPU_Ryzen9':       1000000,       // ~1M keys/s
@@ -22,14 +18,11 @@ const HARDWARE_SPEEDS = {
   'GPU_RTX3060':      5000000000,    // ~5B keys/s
   'GPU_RTX3080':      15000000000,   // ~15B keys/s
   'GPU_RTX4090':      42000000000,   // ~42B keys/s
-  'COLAB_TESLA_T4':   18000000000,   // ~18B keys/s (Google Colab Free GPU)
-  'COLAB_FARM_5x':    90000000000,   // ~90B keys/s (5 contas Colab agregadas)
+  'COLAB_TESLA_T4':   18000000000,   // ~18B keys/s
+  'COLAB_FARM_5x':    90000000000,   // ~90B keys/s
   'POOL_10x_RTX4090': 420000000000,  // ~420B keys/s
 };
 
-/**
- * Converte hex string para BigInt com segurança
- */
 function hexToBigInt(hex) {
   if (!hex) return 0n;
   const cleanHex = String(hex).replace(/^0x/i, '').trim();
@@ -37,9 +30,6 @@ function hexToBigInt(hex) {
   return BigInt('0x' + cleanHex);
 }
 
-/**
- * Converte BigInt para hex string
- */
 function bigIntToHex(bigIntVal, padLength = 0) {
   let hex = bigIntVal.toString(16);
   if (padLength > hex.length) {
@@ -48,9 +38,6 @@ function bigIntToHex(bigIntVal, padLength = 0) {
   return hex;
 }
 
-/**
- * Calcula o tamanho do range (número de chaves possíveis)
- */
 function calculateRangeSize(rangeStart, rangeEnd) {
   const start = hexToBigInt(rangeStart);
   const end = hexToBigInt(rangeEnd);
@@ -58,9 +45,6 @@ function calculateRangeSize(rangeStart, rangeEnd) {
   return end - start + 1n;
 }
 
-/**
- * Calcula o log2 aproximado de um BigInt
- */
 function log2BigInt(n) {
   if (n <= 0n) return 0;
   let bits = 0n;
@@ -72,28 +56,15 @@ function log2BigInt(n) {
   return Number(bits - 1n);
 }
 
-/**
- * Estima o tempo para resolver (em horas) dado um hardware
- */
 function estimateTimeHours(effectiveBits, keysPerSecond = HARDWARE_SPEEDS.GPU_RTX4090) {
   if (effectiveBits <= 0) return 0;
   const log2KPS = Math.log2(keysPerSecond);
   const log2Seconds = effectiveBits - log2KPS;
-  
   if (log2Seconds <= 0) return 0;
-  
   const seconds = Math.pow(2, log2Seconds);
   return seconds / 3600;
 }
 
-/**
- * Analisa e calcula a Redução de Entropia com Hints e Vulnerabilidade de Chave Pública Exposta
- * 
- * Se publicKeyExposed === true:
- * A complexidade de busca é reduzida de O(2^N) para O(2^(N/2)) através do algoritmo
- * Baby-Step Giant-Step (BSGS) ou Pollard's Kangaroo.
- * Portanto, effectiveBits = effectiveBits / 2!
- */
 function calculateEntropyReduction(hints = [], totalBits = 66, publicKeyExposed = false) {
   let bitsEliminated = 0;
   const appliedHints = [];
@@ -101,65 +72,23 @@ function calculateEntropyReduction(hints = [], totalBits = 66, publicKeyExposed 
   if (Array.isArray(hints)) {
     for (const hint of hints) {
       if (!hint || !hint.type) continue;
-
       switch (hint.type) {
         case 'fixedPrefix': {
           const hexVal = String(hint.value || '').replace(/^0x/i, '');
           const bits = hexVal.length * 4;
           bitsEliminated += bits;
-          appliedHints.push({
-            type: 'fixedPrefix',
-            description: `Prefixo fixo "0x${hexVal}" (${bits} bits)`,
-            bitsEliminated: bits
-          });
-          break;
-        }
-        case 'fixedSuffix': {
-          const hexVal = String(hint.value || '').replace(/^0x/i, '');
-          const bits = hexVal.length * 4;
-          bitsEliminated += bits;
-          appliedHints.push({
-            type: 'fixedSuffix',
-            description: `Sufixo fixo "0x${hexVal}" (${bits} bits)`,
-            bitsEliminated: bits
-          });
-          break;
-        }
-        case 'mask': {
-          const mask = String(hint.pattern || '');
-          let fixedBits = 0;
-          for (const char of mask) {
-            if (char !== '?' && char !== 'X' && char !== 'x' && char !== '*') {
-              fixedBits += hint.isBinary ? 1 : 4;
-            }
-          }
-          bitsEliminated += fixedBits;
-          appliedHints.push({
-            type: 'mask',
-            description: `Máscara ${mask} (${fixedBits} bits)`,
-            bitsEliminated: fixedBits
-          });
+          appliedHints.push({ type: 'fixedPrefix', description: `Prefixo fixo "0x${hexVal}" (${bits} bits)`, bitsEliminated: bits });
           break;
         }
         case 'bip39ChecksumFilter': {
-          const reductionBits = 4; // Descarte de 15/16 = 93.75% dos estados
-          bitsEliminated += reductionBits;
-          appliedHints.push({
-            type: 'bip39ChecksumFilter',
-            description: `Filtro de Checksum BIP39 (Descarte de 93,75% dos estados inválidos - 4 bits)`,
-            bitsEliminated: reductionBits,
-            discardRatePercent: 93.75
-          });
+          bitsEliminated += 4;
+          appliedHints.push({ type: 'bip39ChecksumFilter', description: `Filtro Checksum BIP39 (Descarte de 93,75% - 4 bits)`, bitsEliminated: 4, discardRatePercent: 93.75 });
           break;
         }
         case 'knownBits': {
           const count = Math.min(Number(hint.count) || 0, totalBits);
           bitsEliminated += count;
-          appliedHints.push({
-            type: 'knownBits',
-            description: `${count} bits conhecidos`,
-            bitsEliminated: count
-          });
+          appliedHints.push({ type: 'knownBits', description: `${count} bits conhecidos`, bitsEliminated: count });
           break;
         }
       }
@@ -168,16 +97,15 @@ function calculateEntropyReduction(hints = [], totalBits = 66, publicKeyExposed 
 
   let effectiveBits = Math.max(0, totalBits - bitsEliminated);
 
-  // Aceleração de Chave Pública Exposta (BSGS / Pollard's Kangaroo)
   if (publicKeyExposed) {
     const bsgsSavings = Math.floor(effectiveBits / 2);
-    effectiveBits = Math.ceil(effectiveBits / 2); // Redução para O(sqrt(N))
+    effectiveBits = Math.ceil(effectiveBits / 2);
     bitsEliminated += bsgsSavings;
     appliedHints.push({
       type: 'publicKeyExposed_BSGS',
-      description: `Aceleração ECDSA BSGS/Kangaroo (Complexidade O(√N) ativada por Chave Pública Exposta)`,
+      description: `Aceleração ECDSA BSGS/Kangaroo (Complexidade O(√N) por Chave Pública Exposta)`,
       bitsEliminated: bsgsSavings,
-      algorithm: 'Baby-Step Giant-Step (BSGS) / Pollard Kangaroo'
+      algorithm: 'Pollard Kangaroo CUDA'
     });
   }
 
@@ -193,9 +121,6 @@ function calculateEntropyReduction(hints = [], totalBits = 66, publicKeyExposed 
   };
 }
 
-/**
- * Validador e gerador do filtro de Checksum BIP39
- */
 function isBIP39ChecksumValid(entropy128BitBigInt, checksum4Bit) {
   const { createHash } = require('crypto');
   let hex128 = entropy128BitBigInt.toString(16).padStart(32, '0');
@@ -205,9 +130,6 @@ function isBIP39ChecksumValid(entropy128BitBigInt, checksum4Bit) {
   return calculatedChecksum === (checksum4Bit & 0x0F);
 }
 
-/**
- * Calcula o score de dificuldade completo (com suporte a Hints, ECDSA BSGS e Multi-Moedas)
- */
 function calculateDifficultyScore({
   bitRange,
   rangeStart,
@@ -221,27 +143,22 @@ function calculateDifficultyScore({
   const isKeyExposed = Boolean(publicKeyExposed || (publicKey && String(publicKey).length >= 64));
   const originalLog2Range = bitRange || (rangeStart && rangeEnd ? log2BigInt(calculateRangeSize(rangeStart, rangeEnd)) : 0);
   
-  // Calcular redução de entropia
   const entropy = calculateEntropyReduction(hints, originalLog2Range, isKeyExposed);
   const effectiveBits = entropy.effectiveBits;
 
-  // Converter prêmio para BTC equivalente
   let prizeBTC = Number(prizeAmount) || 0;
   if (prizeCurrency === 'ETH') prizeBTC = prizeAmount * 0.05;
   if (prizeCurrency === 'SOL') prizeBTC = prizeAmount * 0.002;
   
-  // Tempo estimado com 1x RTX 4090 e com Google Colab Tesla T4
   const estimatedHours = estimateTimeHours(effectiveBits, HARDWARE_SPEEDS.GPU_RTX4090);
   const estimatedHoursColabT4 = estimateTimeHours(effectiveBits, HARDWARE_SPEEDS.COLAB_TESLA_T4);
   const estimatedHoursColabFarm5x = estimateTimeHours(effectiveBits, HARDWARE_SPEEDS.COLAB_FARM_5x);
   
-  // Score balanceado
   const difficultyComponent = effectiveBits * 10;
   const prizeComponent = Math.min(prizeBTC * 10, 100);
   const timePenalty = Math.min(Math.log10(estimatedHours + 1) * 50, 500);
   const score = Math.max(0, difficultyComponent + prizeComponent - timePenalty);
   
-  // Classificação
   let difficulty;
   if (score < 400) difficulty = 'EASY';
   else if (score < 600) difficulty = 'MEDIUM';
@@ -272,101 +189,145 @@ function calculateDifficultyScore({
     recommendedStrategy: effectiveBits <= 40 ? 'CPU_BRUTE' : 
                           effectiveBits <= 55 ? 'GPU_COLAB_FREE' :
                           effectiveBits <= 60 ? 'COLAB_FARM_AGGREGATOR' :
-                          effectiveBits <= 70 ? 'POOL_RANGE_SPLIT' : 'KANGAROO_BSGS'
+                          effectiveBits <= 70 ? 'POOL_RANGE_SPLIT' : 'KANGAROO_CUDA'
   };
 }
 
-/**
- * Puzzles Multi-Moedas e Bitcoin Puzzle Transaction
- */
 function getMultiChainPuzzleData() {
-  const btcPuzzles = [
-    { chain: 'BTC', num: 1, bits: 1, prize: 0.0001, solved: true, targetAddress: '1BgGsCmBsjCgV3R4c9wK2cZzG4LwL4jz2r' },
-    { chain: 'BTC', num: 30, bits: 30, prize: 0.0001, solved: true, targetAddress: '1KCgMv8fo2TPBpddVi9jqmMmcne9uSNJ5F' },
-    { chain: 'BTC', num: 40, bits: 40, prize: 0.0001, solved: true, targetAddress: '1KCgMv8fo2TPBpddVi9jqmMmcne9uSNJ5F' },
-    { chain: 'BTC', num: 65, bits: 65, prize: 6.6, solved: true, targetAddress: '1KCgMv8fo2TPBpddVi9jqmMmcne9uSNJ5F' },
-    { chain: 'BTC', num: 66, bits: 66, prize: 6.6, solved: false, targetAddress: '13zb1hQbWVsc2S7ZTZnP2G4undNNpdh5so', publicKeyExposed: false },
-    { chain: 'BTC', num: 67, bits: 67, prize: 6.6, solved: false, targetAddress: '1BY8GQbnueYofwSuFAT3USAhGjPrkxDdW9' },
-    { chain: 'BTC', num: 68, bits: 68, prize: 6.6, solved: false, targetAddress: '1MVDYgVaSN6iKKEsbzRUAYFhNJT1eLf2E3' },
-    { chain: 'BTC', num: 70, bits: 70, prize: 6.6, solved: false, targetAddress: '19YZECXj3SxEZMoUeJ1yiPsw8xANe7M7QR' },
-  ];
-
-  const ethPuzzles = [
-    {
-      chain: 'ETH',
-      num: 101,
-      title: 'Ethereum Vanity #32',
-      bits: 32,
-      prize: 0.5,
-      prizeCurrency: 'ETH',
-      solved: true,
-      targetAddress: '0x000000000000000000000000000000000000dead',
-      publicKey: '0x0479be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8',
-      publicKeyExposed: true
-    },
-    {
-      chain: 'ETH',
-      num: 102,
-      title: 'Ethereum Smart Contract Challenge #48',
-      bits: 48,
-      prize: 2.0,
-      prizeCurrency: 'ETH',
-      solved: false,
-      targetAddress: '0x3535353535353535353535353535353535353535',
-      publicKeyExposed: false
-    }
-  ];
-
-  const solPuzzles = [
-    {
-      chain: 'SOL',
-      num: 201,
-      title: 'Solana Vanity Key Challenge #36',
-      bits: 36,
-      prize: 15.0,
-      prizeCurrency: 'SOL',
-      solved: false,
-      targetAddress: 'SoL1111111111111111111111111111111111111111',
-      publicKeyExposed: false
-    }
-  ];
-
-  const all = [...btcPuzzles, ...ethPuzzles, ...solPuzzles];
-  return all.map(p => {
-    const rangeStart = (1n << BigInt(p.bits - 1)).toString(16);
-    const rangeEnd = ((1n << BigInt(p.bits)) - 1n).toString(16);
+  const btc160 = getAll160Puzzles().map(p => {
     const diff = calculateDifficultyScore({
       bitRange: p.bits,
-      rangeStart,
-      rangeEnd,
-      prizeAmount: p.prize,
-      prizeCurrency: p.prizeCurrency || p.chain,
+      rangeStart: p.rangeStart,
+      rangeEnd: p.rangeEnd,
+      prizeAmount: p.btcPrize,
+      prizeCurrency: 'BTC',
       publicKey: p.publicKey,
       publicKeyExposed: p.publicKeyExposed
     });
     return {
+      ...p,
       puzzleNumber: p.num,
-      title: p.title || `${p.chain} Puzzle #${p.num}`,
-      chain: p.chain,
-      bits: p.bits,
-      prize: p.prize,
-      prizeCurrency: p.prizeCurrency || p.chain,
-      solved: p.solved,
-      targetAddress: p.targetAddress,
-      rangeStart,
-      rangeEnd,
+      title: `Bitcoin Puzzle #${p.num}`,
+      chain: 'BTC',
+      prizeCurrency: 'BTC',
+      prize: p.btcPrize,
       ...diff
     };
   });
+
+  const otherChains = [
+    {
+      puzzleNumber: 201,
+      challengeId: 'ETH_VANITY_32',
+      title: 'Ethereum Vanity Challenge (Prefix 0x00000000)',
+      chain: 'ETH',
+      bits: 32,
+      prize: 0.5,
+      prizeCurrency: 'ETH',
+      prizeUSD: Math.round(0.5 * 3200),
+      solved: false,
+      status: 'UNSOLVED',
+      targetAddress: '0x0000000000000000000000000000000000000000',
+      rangeStart: '0x00000001',
+      rangeEnd: '0xffffffff',
+      difficulty: 'EASY',
+      difficultyLabel: '🟢 Imediato (GPU - Minutos)',
+      emoji: '⚡',
+      publicKeyExposed: true
+    },
+    {
+      puzzleNumber: 202,
+      challengeId: 'ETH_SMART_BOUNTY_48',
+      title: 'Ethereum Smart Contract Challenge #48',
+      chain: 'ETH',
+      bits: 48,
+      prize: 2.0,
+      prizeCurrency: 'ETH',
+      prizeUSD: Math.round(2.0 * 3200),
+      solved: false,
+      status: 'UNSOLVED',
+      targetAddress: '0x71C8418013f890510850b4dC91C5B56064f7b2C1',
+      rangeStart: '0x100000000000',
+      rangeEnd: '0xffffffffffff',
+      difficulty: 'MEDIUM',
+      difficultyLabel: '🟡 Médio (GPU Cluster)',
+      emoji: '🔥',
+      publicKeyExposed: false
+    },
+    {
+      puzzleNumber: 203,
+      challengeId: 'ETH_BIP39_SEED_RECOVERY',
+      title: 'Ethereum 12-Word Seed (8 Palavras Conhecidas)',
+      chain: 'ETH',
+      bits: 44,
+      prize: 5.0,
+      prizeCurrency: 'ETH',
+      prizeUSD: Math.round(5.0 * 3200),
+      solved: false,
+      status: 'UNSOLVED',
+      targetAddress: '0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5',
+      rangeStart: 'abandon ability able about above absent absorb abstract [4 restantes]',
+      rangeEnd: '2^44 combinações',
+      difficulty: 'EASY',
+      difficultyLabel: '🟢 Altamente Viável (BIP39 Filter)',
+      emoji: '🔑',
+      publicKeyExposed: false
+    },
+    {
+      puzzleNumber: 301,
+      challengeId: 'SOL_VANITY_PREFIX_36',
+      title: 'Solana Vanity Address (Prefix SOL999...)',
+      chain: 'SOL',
+      bits: 36,
+      prize: 15.0,
+      prizeCurrency: 'SOL',
+      prizeUSD: Math.round(15.0 * 180),
+      solved: false,
+      status: 'UNSOLVED',
+      targetAddress: 'SOL999xxxx111111111111111111111111111111111',
+      rangeStart: '0x100000000',
+      rangeEnd: '0xfffffffff',
+      difficulty: 'EASY',
+      difficultyLabel: '🟢 Imediato (Horas)',
+      emoji: '⚡',
+      publicKeyExposed: false
+    },
+    {
+      puzzleNumber: 401,
+      challengeId: 'BTC_SATOSHI_NONCE_REUSE',
+      title: 'Bitcoin ECDSA Nonce Reuse Challenge (Weak K)',
+      chain: 'BTC',
+      bits: 1,
+      prize: 1.2,
+      prizeCurrency: 'BTC',
+      prizeUSD: Math.round(1.2 * 65000),
+      solved: false,
+      status: 'UNSOLVED',
+      targetAddress: '15dTwY2K7XjY83j3eTcxL5LwA7hX5N3DqX',
+      rangeStart: 'Assinatura com Nonce Repetido',
+      rangeEnd: 'Cálculo Algébrico Instantâneo',
+      difficulty: 'EASY',
+      difficultyLabel: '🟢 Instantâneo (Script Algébrico)',
+      emoji: '🎯',
+      publicKeyExposed: true
+    }
+  ].map(p => {
+    const diff = calculateDifficultyScore({
+      bitRange: p.bits,
+      prizeAmount: p.prize,
+      prizeCurrency: p.prizeCurrency,
+      publicKeyExposed: p.publicKeyExposed
+    });
+    return { ...p, ...diff };
+  });
+
+  return [...btc160, ...otherChains];
 }
 
 function getBitcoinPuzzleData() {
   return getMultiChainPuzzleData();
 }
 
-/**
- * Divide um range em N sub-ranges
- */
 function splitRange(rangeStart, rangeEnd, numSplits = 10, hints = []) {
   const start = hexToBigInt(rangeStart);
   const end = hexToBigInt(rangeEnd);
@@ -392,9 +353,6 @@ function splitRange(rangeStart, rangeEnd, numSplits = 10, hints = []) {
   return splits;
 }
 
-/**
- * Calcula divisão de prêmios
- */
 function calculatePrizeSplit(contributions = [], totalPrize = 0, currency = 'BTC') {
   const totalShares = contributions.reduce((sum, c) => sum + (Number(c.shares) || 0), 0);
   if (totalShares === 0) return [];
