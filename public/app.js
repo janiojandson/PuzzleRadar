@@ -912,37 +912,94 @@ function clearTerminalLogs() {
   }
 }
 
+// ─── ROBUST CLIPBOARD HELPER (HTTPS + HTTP / IFRAME FALLBACK) ───
+function copyTextToClipboard(text, successMessage = 'Copiado com sucesso!') {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(successMessage);
+    }).catch(() => {
+      fallbackCopyText(text, successMessage);
+    });
+  } else {
+    fallbackCopyText(text, successMessage);
+  }
+}
+
+function fallbackCopyText(text, successMessage) {
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    if (successful) {
+      showToast(successMessage);
+    } else {
+      prompt('Copie o código manualmente abaixo (Ctrl + C):', text);
+    }
+  } catch (err) {
+    prompt('Copie o código manualmente abaixo (Ctrl + C):', text);
+  }
+}
+
+function showToast(message) {
+  let toast = document.getElementById('globalToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl bg-emerald-500 text-black font-extrabold text-xs shadow-2xl z-50 transition-all duration-300 transform opacity-0 pointer-events-none flex items-center gap-2 border border-emerald-300';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span>📋</span> <span>${message}</span>`;
+  toast.classList.remove('opacity-0', 'pointer-events-none');
+  toast.classList.add('opacity-100');
+
+  setTimeout(() => {
+    toast.classList.remove('opacity-100');
+    toast.classList.add('opacity-0', 'pointer-events-none');
+  }, 3500);
+}
+
 // ─── MULTI-CLOUD ONBOARDING COPY HELPERS ───
 function copyColabOneLiner() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${window.location.origin}/solver/colab_worker.py\n!python colab_worker.py --api="${window.location.origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('📋 [Google Colab] Código copiado!\n\nCole em uma célula do Google Colab (com acelerador GPU T4) e clique em Executar.');
-  });
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+  copyTextToClipboard(code, 'Código do Google Colab copiado! Cole na célula do Colab e execute.');
 }
 
 function copyKaggleOneLiner() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${window.location.origin}/solver/colab_worker.py\n!python colab_worker.py --api="${window.location.origin}"${token} --threads=4 --chain="BTC" --challenge="BTC_1000_P71"`;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('📋 [Kaggle Dual GPU] Código copiado!\n\nCole no Kaggle Notebook com acelerador GPU T4 x2 ativado.');
-  });
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --threads=4 --chain="BTC" --challenge="BTC_1000_P71"`;
+  copyTextToClipboard(code, 'Código Kaggle Dual GPU copiado! Cole no seu notebook Kaggle.');
 }
 
 function copyLinuxCli() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token=${currentUser.workerToken}` : '';
-  const code = `curl -sSL ${window.location.origin}/install-worker.sh | bash -s --${token} --challenge=BTC_1000_P71`;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('📋 [Linux / WSL] Comando copiado!\n\nCole no terminal Ubuntu/Debian para executar como serviço.');
-  });
+  const code = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --challenge=BTC_1000_P71`;
+  copyTextToClipboard(code, 'Comando Linux / WSL copiado!');
 }
 
 function copyCudaKeyhunt() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="${window.location.origin}/api/pool"${token}`;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('📋 [KeyHunt CUDA] Parâmetros de comando copiados com sucesso!');
-  });
+  const code = `./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="${origin}/api/pool"${token}`;
+  copyTextToClipboard(code, 'Parâmetros KeyHunt CUDA copiados!');
+}
+
+function generateColabTargetCommand(num) {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const cmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P${num}"`;
+  copyTextToClipboard(cmd, `Comando Colab para o Puzzle #${num} copiado!`);
 }
 
 // ─── HELPERS ───
