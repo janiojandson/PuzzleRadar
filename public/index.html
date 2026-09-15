@@ -805,6 +805,10 @@
           </div>
 
           <div class="flex flex-wrap gap-2">
+            <button onclick="downloadWindowsWorkerBat()" class="px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Baixar Minerador Windows (.bat)</span>
+            </button>
             <button onclick="generateColabToken()" class="px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
               <span>Gerar Novo Token Worker</span>
@@ -820,24 +824,26 @@
           </div>
         </div>
 
-        <!-- Multi-Cloud 4-Way Launch Options Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Multi-Cloud 5-Way Launch Options Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           <!-- Opção 1: Google Colab (1-Click) -->
-          <div class="glass-panel p-5 rounded-2xl border border-amber-500/30 space-y-3 bg-cypher-950">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-5 h-5" alt="Colab">
-                <h4 class="font-bold text-white text-sm">Opção 1: Google Colab (Tesla T4)</h4>
+          <div class="glass-panel p-5 rounded-2xl border border-amber-500/30 space-y-3 bg-cypher-950 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-5 h-5" alt="Colab">
+                  <h4 class="font-bold text-white text-sm">Opção 1: Google Colab (Tesla T4)</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">1-Clique</span>
               </div>
-              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">1-Clique</span>
-            </div>
-            <p class="text-[11px] text-slate-400">
-              Ambiente gratuito na nuvem da Google. Roda em background com $18\text{ GH/s}$.
-            </p>
-            <pre id="colabOneLinerCode" class="font-mono text-[11px] text-amber-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
+              <p class="text-[11px] text-slate-400">
+                Ambiente gratuito na nuvem da Google. Roda em background com $18\text{ GH/s}$.
+              </p>
+              <pre id="colabOneLinerCode" class="font-mono text-[11px] text-amber-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
 !curl -s -O https://puzzleradar-production.up.railway.app/solver/colab_worker.py
 !python colab_worker.py --api="https://puzzleradar-production.up.railway.app" --chain="BTC" --challenge="BTC_1000_P71"</pre>
-            <div class="flex gap-2">
+            </div>
+            <div class="flex gap-2 pt-2">
               <button onclick="copyColabOneLiner()" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Colab
               </button>
@@ -848,21 +854,23 @@
           </div>
 
           <!-- Opção 2: Kaggle Dual GPU (2x T4 / P100) -->
-          <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3 bg-cypher-950">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-5 h-5 rounded bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">K</div>
-                <h4 class="font-bold text-white text-sm">Opção 2: Kaggle Notebooks (Dual GPU)</h4>
+          <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3 bg-cypher-950 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-5 h-5 rounded bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">K</div>
+                  <h4 class="font-bold text-white text-sm">Opção 2: Kaggle Notebooks (Dual GPU)</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">30h/sem Grátis</span>
               </div>
-              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300">30h/sem Grátis</span>
-            </div>
-            <p class="text-[11px] text-slate-400">
-              Aproveite 2x GPUs NVIDIA T4 simultâneas no Kaggle com hashrate dobrado (~$36\text{ GH/s}$).
-            </p>
-            <pre id="kaggleOneLinerCode" class="font-mono text-[11px] text-cyan-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
+              <p class="text-[11px] text-slate-400">
+                Aproveite 2x GPUs NVIDIA T4 simultâneas no Kaggle com hashrate dobrado (~$36\text{ GH/s}$).
+              </p>
+              <pre id="kaggleOneLinerCode" class="font-mono text-[11px] text-cyan-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
 !curl -s -O https://puzzleradar-production.up.railway.app/solver/colab_worker.py
 !python colab_worker.py --api="https://puzzleradar-production.up.railway.app" --threads=4 --chain="BTC" --challenge="BTC_1000_P71"</pre>
-            <div class="flex gap-2">
+            </div>
+            <div class="flex gap-2 pt-2">
               <button onclick="copyKaggleOneLiner()" class="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
                 <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Kaggle
               </button>
@@ -872,40 +880,73 @@
             </div>
           </div>
 
-          <!-- Opção 3: Linux / VPS / WSL CLI -->
-          <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-3 bg-cypher-950">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <i data-lucide="terminal" class="w-5 h-5 text-emerald-400"></i>
-                <h4 class="font-bold text-white text-sm">Opção 3: Linux / WSL / Servidor Dedicado</h4>
+          <!-- Opção 3: Windows Local (Arquivo .bat 1-Clique) -->
+          <div class="glass-panel p-5 rounded-2xl border border-blue-500/30 space-y-3 bg-cypher-950 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="monitor" class="w-5 h-5 text-blue-400"></i>
+                  <h4 class="font-bold text-white text-sm">Opção 3: Windows Local (.BAT)</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/20 text-blue-300">1-Clique PC</span>
               </div>
-              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">24/7 Daemon</span>
+              <p class="text-[11px] text-slate-400">
+                Baixe o script pronto com seu token, ID e alvo atual embutidos. Basta dar duplo-clique.
+              </p>
+              <pre id="localDirectCodeBox" class="font-mono text-[11px] text-blue-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">py -3.12 solver/colab_worker.py --api="https://puzzleradar-production.up.railway.app" --chain="BTC" --challenge="BTC_1000_P71"</pre>
             </div>
-            <p class="text-[11px] text-slate-400">
-              Instale e rode em segundo plano como daemon contínuo na sua VPS Ubuntu/Debian.
-            </p>
-            <pre id="linuxCliCode" class="font-mono text-[11px] text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">curl -sSL https://puzzleradar-production.up.railway.app/install-worker.sh | bash -s -- --challenge=BTC_1000_P71</pre>
-            <button onclick="copyLinuxCli()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Linux / WSL
-            </button>
+            <div class="flex gap-2 pt-2">
+              <button onclick="downloadWindowsWorkerBat()" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar Arquivo .BAT
+              </button>
+              <button onclick="copyLocalWorkerCommand()" title="Copiar comando terminal" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/10 transition flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
 
-          <!-- Opção 4: CUDA Miner / KeyHunt Proxy -->
-          <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 space-y-3 bg-cypher-950">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <i data-lucide="cpu" class="w-5 h-5 text-purple-400"></i>
-                <h4 class="font-bold text-white text-sm">Opção 4: KeyHunt / BitCrack CUDA (GPUs Locais)</h4>
+          <!-- Opção 4: Linux / VPS / WSL CLI -->
+          <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-3 bg-cypher-950 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="terminal" class="w-5 h-5 text-emerald-400"></i>
+                  <h4 class="font-bold text-white text-sm">Opção 4: Linux / WSL / Servidor Dedicado</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">24/7 Daemon</span>
               </div>
-              <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300">RTX 30xx/40xx</span>
+              <p class="text-[11px] text-slate-400">
+                Instale e rode em segundo plano como daemon contínuo na sua VPS Ubuntu/Debian.
+              </p>
+              <pre id="linuxCliCode" class="font-mono text-[11px] text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">curl -sSL https://puzzleradar-production.up.railway.app/install-worker.sh | bash -s -- --challenge=BTC_1000_P71</pre>
             </div>
-            <p class="text-[11px] text-slate-400">
-              Rode binários nativos CUDA C++ com o proxy de Distinguished Points apontando para o PuzzleRadar.
-            </p>
-            <pre id="cudaKeyhuntCode" class="font-mono text-[11px] text-purple-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="https://puzzleradar-production.up.railway.app/api/pool"</pre>
-            <button onclick="copyCudaKeyhunt()" class="w-full py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parâmetros KeyHunt CUDA
-            </button>
+            <div class="pt-2">
+              <button onclick="copyLinuxCli()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Linux / WSL
+              </button>
+            </div>
+          </div>
+
+          <!-- Opção 5: CUDA Miner / KeyHunt Proxy -->
+          <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 space-y-3 bg-cypher-950 flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="cpu" class="w-5 h-5 text-purple-400"></i>
+                  <h4 class="font-bold text-white text-sm">Opção 5: KeyHunt / BitCrack CUDA (GPUs Locais)</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300">RTX 30xx/40xx</span>
+              </div>
+              <p class="text-[11px] text-slate-400">
+                Rode binários nativos CUDA C++ com o proxy de Distinguished Points apontando para o PuzzleRadar.
+              </p>
+              <pre id="cudaKeyhuntCode" class="font-mono text-[11px] text-purple-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="https://puzzleradar-production.up.railway.app/api/pool"</pre>
+            </div>
+            <div class="pt-2">
+              <button onclick="copyCudaKeyhunt()" class="w-full py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Parâmetros KeyHunt CUDA
+              </button>
+            </div>
           </div>
         </div>
 

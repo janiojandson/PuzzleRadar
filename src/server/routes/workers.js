@@ -11,11 +11,71 @@ const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
 const { antiMevRescue } = require('../../services/antiMevRescue');
+const { broadcastTelemetryEvent } = require('./telemetry');
 
 const router = express.Router();
 
 // Armazenamento em memória de workers ativos (para dashboard em tempo real)
 const activeWorkersMap = new Map();
+
+/**
+ * GET /api/workers/download-bat — Gera e baixa o script Windows .bat com token, identificador e desafio
+ */
+router.get('/download-bat', (req, res) => {
+  const token = req.query.token || 'pzk_admin_master_gpu_token';
+  const chain = (req.query.chain || 'BTC').toUpperCase();
+  const challenge = req.query.challenge || 'BTC_1000_P71';
+  const name = req.query.name || `worker-win-${crypto.randomBytes(3).toString('hex')}`;
+  const origin = req.query.api || 'https://puzzleradar-production.up.railway.app';
+
+  const batContent = `@echo off
+title PuzzleRadar Local Worker Node - [${chain}] ${challenge}
+echo =======================================================================
+echo   [+] PuzzleRadar - Minerador Local de GPU/CPU (Windows)
+echo   [+] Minerador ID: ${name}
+echo   [+] Token: ${token}
+echo   [+] Alvo: [${chain}] ${challenge}
+echo   [+] Servidor API: ${origin}
+echo =======================================================================
+echo.
+
+echo [1/3] Verificando dependencias necessarias...
+py -3.12 -m pip install -q requests ecdsa base58 pycryptodome >nul 2>&1
+if errorlevel 1 (
+    python -m pip install -q requests ecdsa base58 pycryptodome >nul 2>&1
+)
+
+echo [2/3] Baixando/Atualizando motor de busca colab_worker.py...
+if not exist solver mkdir solver
+curl -sSL --retry 3 "${origin}/solver/colab_worker.py" -o solver/colab_worker.py
+if not exist solver\\colab_worker.py (
+    curl -sSL --retry 3 "${origin}/solver/colab_worker.py" -o colab_worker.py
+)
+
+echo [3/3] Iniciando processamento e conexao a Fazenda Central...
+echo.
+
+if exist solver\\colab_worker.py (
+    py -3.12 solver/colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    if errorlevel 1 (
+        python solver/colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    )
+) else (
+    py -3.12 colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    if errorlevel 1 (
+        python colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    )
+)
+
+echo.
+echo [!] Processo finalizado ou interrompido.
+pause
+`;
+
+  res.setHeader('Content-Type', 'application/x-bat');
+  res.setHeader('Content-Disposition', `attachment; filename="start-worker-${chain}-${challenge}.bat"`);
+  res.send(batContent);
+});
 
 /**
  * POST /api/workers/token
@@ -124,6 +184,10 @@ router.post('/register', async (req, res) => {
     };
 
     activeWorkersMap.set(nodeInstanceId, workerRecord);
+
+    try {
+      broadcastTelemetryEvent('SYSTEM', `⚡ Novo Nó Conectado: ${workerRecord.name} (${workerRecord.hardware}) no alvo [${workerRecord.chain}] ${workerRecord.challengeId}`);
+    } catch (_) {}
 
     res.status(201).json({
       workerId: nodeInstanceId,
@@ -314,6 +378,15 @@ router.post('/:id/result', async (req, res) => {
       worker.currentTask = null;
       worker.lastSeen = Date.now();
     }
+
+    try {
+      if (isRealKeyFound) {
+        broadcastTelemetryEvent('SENTINEL', `🚨🎉 [CHAVE AUTÊNTICA ENCONTRADA!] Worker ${id} desvendou [${puzzleId}]! Chave: ${foundPrivateKey.substring(0, 10)}... (Resgate acionado)`);
+      } else {
+        const formattedKeys = Number(keysChecked || 0).toLocaleString();
+        broadcastTelemetryEvent('DP_SUBMITTED', `💎 [FATIA VARRIDA] Nó ${worker ? worker.name : id} concluiu fatia #${chunkIndex} (${formattedKeys} chaves) em [${puzzleId}]. +${sharesEarned.toFixed(1)} Shares PoS`);
+      }
+    } catch (_) {}
 
     res.json({
       workerId: id,

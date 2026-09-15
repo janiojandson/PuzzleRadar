@@ -1511,6 +1511,23 @@ function copyLocalWorkerCommand() {
   copyTextToClipboard(cmd, `Comando Terminal para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
+function downloadWindowsWorkerBat() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken || 'pzk_admin_master_gpu_token';
+  const username = currentUser?.username || 'miner-local';
+  const workerName = `pc-${username}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const url = `${origin}/api/workers/download-bat?token=${encodeURIComponent(token)}&chain=${encodeURIComponent(currentActiveChain)}&challenge=${encodeURIComponent(currentActiveChallenge)}&name=${encodeURIComponent(workerName)}&api=${encodeURIComponent(origin)}`;
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `start-worker-${currentActiveChain}-${currentActiveChallenge}.bat`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToast(`📥 Minerador Windows (.bat) baixado com Token e ID [${workerName}]!`);
+}
+
 function generateColabTargetCommand(num) {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
