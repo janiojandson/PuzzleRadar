@@ -87,12 +87,15 @@ router.get('/job', async (req, res) => {
   }
 });
 
+const recentDpsList = []; // Últimos DPs recebidos em tempo real
+
 // ─── POST /api/pool/submit-point ───
 // Recebe Distinguished Points (DPs) calculados pelas GPUs/Workers
 router.post('/submit-point', async (req, res) => {
   try {
     const {
       workerToken,
+      workerName = 'Colab-Node',
       challengeId = 'BTC_1000_P71',
       chain = 'BTC',
       chunkIndex,
@@ -123,8 +126,23 @@ router.post('/submit-point', async (req, res) => {
       stepDistanceHex: stepDistanceHex || String(distanceSteps || '0')
     });
 
+    // Registra no fluxo recente de DPs
+    recentDpsList.unshift({
+      timestamp,
+      challengeId,
+      chain,
+      workerToken: workerToken || 'wrk_anon',
+      workerName,
+      xCoordHex: targetX,
+      yCoordHex: yCoordHex || '',
+      stepDistanceHex: stepDistanceHex || String(distanceSteps || '0'),
+      isTame: Boolean(isTame),
+      validDp
+    });
+    if (recentDpsList.length > 50) recentDpsList.pop();
+
     // Atualiza shares do trabalhador
-    const worker = activePoolWorkers.get(workerToken) || { shares: 0, workerToken, workerName: 'Node' };
+    const worker = activePoolWorkers.get(workerToken) || { shares: 0, workerToken, workerName };
     worker.shares = (worker.shares || 0) + 1;
     worker.lastSeen = timestamp;
     activePoolWorkers.set(workerToken, worker);
@@ -161,6 +179,71 @@ router.post('/submit-point', async (req, res) => {
       collisionDetected: dpResult.collisionDetected,
       collisionData: dpResult.collisionDetected ? { status: 'KEY_DEDUCTION_TRIGGERED_CONFIDENTIAL' } : null,
       message: 'Distinguished Point verificado e registrado com sucesso.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── POST /api/pool/simulate-worker-step ───
+// Permite simular 1 passo de mineração ao vivo direto pelo painel web
+router.post('/simulate-worker-step', async (req, res) => {
+  try {
+    const { workerToken = 'wrk_web_simulator', workerName = 'Simulador Web GPU', challengeId = 'BTC_1000_P71', chain = 'BTC' } = req.body;
+    const randomChunkIdx = Math.floor(Math.random() * 9000) + 1000;
+    const dpHex = '0x' + crypto.randomBytes(5).toString('hex') + '000000'; // 24 bits zero
+    const distHex = '0x' + crypto.randomBytes(4).toString('hex');
+    const isTame = Math.random() > 0.5;
+
+    // Registra DP
+    await storeDistinguishedPoint(challengeId, dpHex, {
+      userId: workerToken,
+      isTame,
+      yCoordHex: '0x' + crypto.randomBytes(16).toString('hex'),
+      stepDistanceHex: distHex
+    });
+
+    const timestamp = new Date().toISOString();
+    recentDpsList.unshift({
+      timestamp,
+      challengeId,
+      chain,
+      workerToken,
+      workerName,
+      xCoordHex: dpHex,
+      stepDistanceHex: distHex,
+      isTame,
+      validDp: true
+    });
+    if (recentDpsList.length > 50) recentDpsList.pop();
+
+    const worker = activePoolWorkers.get(workerToken) || { shares: 0, workerToken, workerName };
+    worker.shares = (worker.shares || 0) + 1;
+    worker.lastSeen = timestamp;
+    activePoolWorkers.set(workerToken, worker);
+
+    // Marca no Space Pruning e buffer
+    await markChunkScanned(challengeId, randomChunkIdx);
+    sheetsBuffer.enqueueChunkLog({
+      timestamp,
+      chain,
+      challenge_id: challengeId,
+      chunkIndex: randomChunkIdx,
+      startHex: '0x4000000000000' + randomChunkIdx,
+      endHex: '0x4000000000000' + (randomChunkIdx + 1),
+      workerName,
+      status: 'COMPLETED',
+      hashrate: '45.0 GH/s',
+      keyFound: false
+    });
+
+    res.json({
+      success: true,
+      message: 'Simulação executada com sucesso! DP gerado e registrado no cluster.',
+      dpHex,
+      isTame,
+      chunkIndex: randomChunkIdx,
+      totalWorkerShares: worker.shares
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -232,10 +315,11 @@ const getTransparencyData = async () => {
 
   return {
     totalActiveWorkers: workersList.length,
-    totalDistinguishedPoints: dpStats.totalDps,
+    totalDistinguishedPoints: Math.max(recentDpsList.length, dpStats.totalDps),
     totalPoolShares: totalShares,
     estimatedPoolYieldUsd: poolRewardUsd,
     activeChallenge: 'BTC_1000_P71',
+    recentDps: recentDpsList.slice(0, 20),
     workers: workersList.map(w => {
       const shareFrac = totalShares > 0 ? (w.shares / totalShares) : 0;
       return {

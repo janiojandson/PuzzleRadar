@@ -344,15 +344,23 @@
             </div>
             <h2 class="text-3xl font-extrabold text-white">Mural de Transparência do Pool Colaborativo</h2>
             <p class="text-sm text-slate-300">
-              Garantia de distribuição proporcional e justa: os nós clientes submetem apenas Distinguished Points (coordenadas Kangaroo) anonimizadas. O prêmio é dividido proporcionalmente ao volume de shares comprovadas.
+              Garantia de distribuição proporcional e justa: os nós clientes submetem apenas Distinguished Points (coordenadas Kangaroo $X \pmod{2^{24}} = 0$) anonimizadas. O prêmio é dividido estritamente de acordo com as shares comprovadas.
             </p>
           </div>
 
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 text-center font-mono">
+              <div class="text-[10px] text-slate-400">Total DPs no Redis</div>
+              <div id="poolTotalDpsDisplay" class="text-xl font-extrabold text-cyan-400">0</div>
+            </div>
             <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 text-center font-mono">
               <div class="text-[10px] text-slate-400">Total Shares Acumuladas</div>
               <div id="poolTotalSharesDisplay" class="text-xl font-extrabold text-emerald-400">0</div>
             </div>
+            <button onclick="triggerSimulatedWorkerStep()" id="btnSimulatePoS" class="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+              <i data-lucide="zap" class="w-4 h-4"></i>
+              <span>Simular DP / Passo ao Vivo</span>
+            </button>
           </div>
         </div>
 
@@ -388,23 +396,55 @@
           </div>
         </div>
 
+        <!-- Live Distinguished Points (DPs) Stream -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-white text-sm flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+              <span>Fluxo de Distinguished Points (DPs) em Tempo Real</span>
+            </h3>
+            <span class="text-xs text-slate-400 font-mono">Critério: X mod 2^24 == 0 (O(1) Hash Collision)</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar rounded-xl border border-white/10">
+            <table class="w-full text-left border-collapse text-xs bg-cypher-950">
+              <thead>
+                <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
+                  <th class="py-2.5 px-3">Horário</th>
+                  <th class="py-2.5 px-3">Desafio</th>
+                  <th class="py-2.5 px-3">Coordenada X (Distinguished Point)</th>
+                  <th class="py-2.5 px-3">Distância (d_step)</th>
+                  <th class="py-2.5 px-3">Rebanho</th>
+                  <th class="py-2.5 px-3">Worker Node</th>
+                  <th class="py-2.5 px-3 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody id="poolLiveDpsBody" class="divide-y divide-white/5 font-mono text-[11px]">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Public Proof-of-Share Leaderboard Table -->
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px]">
-                <th class="py-3 px-3">Worker ID (Anonimizado)</th>
-                <th class="py-3 px-3">Nome / Tag</th>
-                <th class="py-3 px-3">Distinguished Points (Shares)</th>
-                <th class="py-3 px-3">Participação %</th>
-                <th class="py-3 px-3">Estimativa Prêmio</th>
-                <th class="py-3 px-3 text-right">Último Ping</th>
-              </tr>
-            </thead>
-            <tbody id="poolLeaderboardBody" class="divide-y divide-white/5 font-mono">
-              <!-- Populated by JS -->
-            </tbody>
-          </table>
+        <div class="space-y-3">
+          <h3 class="font-bold text-white text-sm">Quadro de Dividendos e Shares dos Assinantes</h3>
+          <div class="overflow-x-auto custom-scrollbar rounded-xl border border-white/10">
+            <table class="w-full text-left border-collapse text-xs bg-cypher-950">
+              <thead>
+                <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
+                  <th class="py-3 px-3">Worker ID (Anonimizado)</th>
+                  <th class="py-3 px-3">Nome / Tag</th>
+                  <th class="py-3 px-3">Shares Comprovadas</th>
+                  <th class="py-3 px-3">Participação %</th>
+                  <th class="py-3 px-3">Projeção Payout USD</th>
+                  <th class="py-3 px-3 text-right">Último Ping</th>
+                </tr>
+              </thead>
+              <tbody id="poolLeaderboardBody" class="divide-y divide-white/5 font-mono">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -481,34 +521,59 @@
             </p>
           </div>
 
-          <div class="flex items-center gap-2">
-            <div class="px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="px-3.5 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-              <span>Sincronização Ativa: 100% Blindada</span>
+              <span>Buffer de Lotes: <strong id="bufferStatsDisplay" class="text-white">0 itens</strong></span>
             </div>
+            <button onclick="triggerSimulatedWorkerStep()" class="px-3.5 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-md">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Simular Chunk
+            </button>
           </div>
         </div>
 
-        <!-- Live Ranges Table -->
-        <div class="overflow-x-auto custom-scrollbar">
-          <table class="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px]">
-                <th class="py-3 px-3">Timestamp</th>
-                <th class="py-3 px-3">Rede</th>
-                <th class="py-3 px-3">Desafio</th>
-                <th class="py-3 px-3">Chunk #</th>
-                <th class="py-3 px-3">Range Início</th>
-                <th class="py-3 px-3">Range Fim</th>
-                <th class="py-3 px-3">Worker</th>
-                <th class="py-3 px-3">Status</th>
-                <th class="py-3 px-3 text-right">Hashrate</th>
-              </tr>
-            </thead>
-            <tbody id="rangesTableBody" class="divide-y divide-white/5 font-mono">
-              <!-- Populated by JS -->
-            </tbody>
-          </table>
+        <!-- Space Pruning Live Progress Widget -->
+        <div class="glass-panel p-5 rounded-xl space-y-3 border border-blue-500/30 bg-cypher-950">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+            <div class="flex items-center gap-2">
+              <span class="text-blue-400 font-bold">Space Pruning (Puzzle #71):</span>
+              <span id="pruningPercentDisplay" class="text-emerald-400 font-extrabold text-sm">0.00% podado</span>
+            </div>
+            <div class="text-slate-400 text-[11px]">
+              Fatias Descartadas: <strong id="pruningScannedCount" class="text-white">0</strong> / <span id="pruningTotalCount">10.000</span>
+            </div>
+          </div>
+          <div class="w-full bg-white/5 h-3 rounded-full overflow-hidden border border-white/10 p-0.5">
+            <div id="pruningProgressBar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 5%"></div>
+          </div>
+        </div>
+
+        <!-- Live Recent Ranges Table -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-white text-sm">Últimas Fatias Varridas no Cluster</h3>
+            <span class="text-xs text-slate-400 font-mono" id="rangesCountDisplay">30 fatias recentes</span>
+          </div>
+          <div class="overflow-x-auto custom-scrollbar rounded-xl border border-white/10">
+            <table class="w-full text-left border-collapse text-xs bg-cypher-950">
+              <thead>
+                <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
+                  <th class="py-3 px-3">Timestamp</th>
+                  <th class="py-3 px-3">Rede</th>
+                  <th class="py-3 px-3">Desafio</th>
+                  <th class="py-3 px-3">Chunk #</th>
+                  <th class="py-3 px-3">Range Início</th>
+                  <th class="py-3 px-3">Range Fim</th>
+                  <th class="py-3 px-3">Worker</th>
+                  <th class="py-3 px-3">Status</th>
+                  <th class="py-3 px-3 text-right">Hashrate</th>
+                </tr>
+              </thead>
+              <tbody id="rangesTableBody" class="divide-y divide-white/5 font-mono">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>

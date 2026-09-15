@@ -401,190 +401,158 @@ async function generateColabToken() {
   }
 }
 
-// ─── LIVE RANGES SYNC DATA ───
+// ─── LIVE RANGES & SPACE PRUNING DATA ───
 async function fetchLiveRangesData() {
   try {
-    const res = await fetch('/api/ranges/available');
-    const data = await res.json();
-    const ranges = data.ranges || [];
+    const [recentRes, pruningRes] = await Promise.all([
+      fetch('/api/ranges/recent'),
+      fetch('/api/ranges/space-pruning-live?puzzleId=puzzle_btc_71&total=10000')
+    ]);
 
-    const tbody = document.getElementById('rangesTableBody');
-    if (!tbody) return;
+    const recentData = await recentRes.json();
+    const pruningData = await pruningRes.json();
 
-    if (ranges.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 text-xs">Aguardando novos blocos de varredura...</td></tr>`;
-      return;
+    // 1. Atualiza métricas de Space Pruning
+    if (pruningData) {
+      const percent = pruningData.prunedPercent || 0;
+      const scanned = pruningData.scannedChunks || 0;
+      const total = pruningData.totalChunks || 10000;
+
+      setInner('pruningPercentDisplay', `${percent.toFixed(2)}% do espaço podado`);
+      setInner('pruningScannedCount', Number(scanned).toLocaleString());
+      setInner('pruningTotalCount', Number(total).toLocaleString() + ' fatias');
+
+      const bar = document.getElementById('pruningProgressBar');
+      if (bar) bar.style.width = `${Math.max(2, Math.min(100, percent))}%`;
     }
 
-    tbody.innerHTML = ranges.slice(0, 15).map(r => `
-      <tr class="hover:bg-white/5 transition font-mono text-[11px]">
-        <td class="py-2.5 px-3 text-slate-400">${new Date().toLocaleTimeString()}</td>
-        <td class="py-2.5 px-3 text-amber-400 font-bold">BTC</td>
-        <td class="py-2.5 px-3 text-white">BTC_1000_P71</td>
-        <td class="py-2.5 px-3 text-cyan-300">#${r.chunkIndex || 0}</td>
-        <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]">0x${r.rangeStart}</td>
-        <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]">0x${r.rangeEnd}</td>
-        <td class="py-2.5 px-3 text-slate-400">Colab Cluster</td>
-        <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">PRUNED_SCANNED</span></td>
-        <td class="py-2.5 px-3 text-right font-bold text-emerald-400">45.0 GH/s</td>
-      </tr>
-    `).join('');
+    // 2. Atualiza tabela de ranges recentes varridos
+    const ranges = recentData.ranges || [];
+    const tbody = document.getElementById('rangesTableBody');
+    setInner('rangesCountDisplay', `${ranges.length} fatias auditadas no histórico`);
+
+    if (tbody) {
+      if (ranges.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 text-xs">Aguardando novos blocos de varredura do cluster...</td></tr>`;
+      } else {
+        tbody.innerHTML = ranges.map(r => {
+          const isPendingBuffer = r.status === 'BUFFER_PENDING_BATCH';
+          const statusBadge = isPendingBuffer
+            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ BUFFER (BATCH)</span>'
+            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">✅ PRUNED_SCANNED</span>';
+
+          const timeFormatted = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+          return `
+            <tr class="hover:bg-white/5 transition font-mono text-[11px]">
+              <td class="py-2.5 px-3 text-slate-400">${timeFormatted}</td>
+              <td class="py-2.5 px-3 text-amber-400 font-bold">${r.chain || 'BTC'}</td>
+              <td class="py-2.5 px-3 text-white font-semibold">${r.challengeId || 'BTC_1000_P71'}</td>
+              <td class="py-2.5 px-3 text-cyan-300 font-bold">#${r.chunkIndex !== undefined ? r.chunkIndex : 0}</td>
+              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]" title="${r.rangeStart}">0x${(r.rangeStart || '').substring(0, 14)}...</td>
+              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]" title="${r.rangeEnd}">0x${(r.rangeEnd || '').substring(0, 14)}...</td>
+              <td class="py-2.5 px-3 text-slate-300">${r.workerName || 'Colab Farm Node'}</td>
+              <td class="py-2.5 px-3">${statusBadge}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-emerald-400">${r.hashrate || '45.0 GH/s'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
   } catch (_) {}
 }
 
-// ─── LEARNING LAB BENCHMARK ───
-async function runSandboxBenchmark() {
-  const puzzleNum = document.getElementById('sandboxPuzzleSelect')?.value || '30';
-  const logsEl = document.getElementById('sandboxLogs');
-  const statusEl = document.getElementById('sandboxStatus');
-  const offsetEl = document.getElementById('sandboxOffset');
-  const btn = document.getElementById('runBenchmarkBtn');
-
-  if (btn) btn.disabled = true;
-  if (statusEl) statusEl.innerText = 'Executando benchmark...';
-  if (logsEl) logsEl.innerHTML = '<div class="text-yellow-400">> Iniciando benchmark contra Puzzle #' + puzzleNum + '...</div>';
-
+// ─── POOL PROOF-OF-SHARE, DPS STREAM & TRANSPARÊNCIA ───
+async function fetchPoolStats() {
   try {
-    const res = await fetch('/api/sandbox/benchmark', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ puzzleNumber: Number(puzzleNum), hardware: 'Google Colab Tesla T4' })
-    });
+    const res = await fetch('/api/pool/transparency');
     const data = await res.json();
 
-    if (data.logs && logsEl) {
-      logsEl.innerHTML = '';
-      for (const log of data.logs) {
-        await new Promise(r => setTimeout(r, 200));
-        const isKey = log.includes('KEY_INTERSECTION') || log.includes('RESULT');
-        const line = document.createElement('div');
-        line.className = (isKey ? 'text-emerald-400 font-bold' : 'text-cyan-300') + ' text-[11px]';
-        line.textContent = '> ' + log;
-        logsEl.appendChild(line);
-        document.getElementById('sandboxTerminal')?.scrollTo(0, 99999);
+    setInner('poolTotalSharesDisplay', Number(data.totalPoolShares || 0).toLocaleString());
+    setInner('poolTotalDpsDisplay', Number(data.totalDistinguishedPoints || 0).toLocaleString());
+
+    if (data.bufferStats) {
+      setInner('bufferStatsDisplay', `${data.bufferStats.currentBufferSize} no buffer (${data.bufferStats.totalRowsSent} sincronizados)`);
+    }
+
+    // 1. Renderiza Stream de Distinguished Points (DPs)
+    const dpsTbody = document.getElementById('poolLiveDpsBody');
+    if (dpsTbody) {
+      const dps = data.recentDps || [];
+      if (dps.length === 0) {
+        dpsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500 text-xs">Nenhum Distinguished Point recebido ainda. Clique em "Simular DP ao Vivo" para testar o fluxo!</td></tr>`;
+      } else {
+        dpsTbody.innerHTML = dps.map(dp => {
+          const tameBadge = dp.isTame
+            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">🐴 TAME (Domesticado)</span>'
+            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🦘 WILD (Selvagem)</span>';
+
+          const timeFormatted = dp.timestamp ? new Date(dp.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+
+          return `
+            <tr class="hover:bg-white/5 transition font-mono text-[11px]">
+              <td class="py-2.5 px-3 text-slate-400">${timeFormatted}</td>
+              <td class="py-2.5 px-3 text-white font-semibold">${dp.challengeId || 'BTC_1000_P71'}</td>
+              <td class="py-2.5 px-3 text-cyan-300 font-bold" title="${dp.xCoordHex}">0x${(dp.xCoordHex || '').substring(0, 16)}...</td>
+              <td class="py-2.5 px-3 text-slate-300">${dp.stepDistanceHex || '0x0'}</td>
+              <td class="py-2.5 px-3">${tameBadge}</td>
+              <td class="py-2.5 px-3 text-slate-200">${dp.workerName || 'Worker Node'}</td>
+              <td class="py-2.5 px-3 text-right"><span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✅ REGISTRADO O(1)</span></td>
+            </tr>
+          `;
+        }).join('');
       }
     }
 
-    if (statusEl) statusEl.innerText = '✅ Calibração Concluída!';
-    if (offsetEl) offsetEl.innerText = '5,000,000 chaves/s';
+    // 2. Renderiza Quadro de Dividendos dos Assinantes
+    const tbody = document.getElementById('poolLeaderboardBody');
+    if (tbody) {
+      const workers = data.workers || [];
+      if (workers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">Nenhum worker com shares registradas no momento.</td></tr>`;
+      } else {
+        tbody.innerHTML = workers.map(w => {
+          const anonId = w.workerToken ? (w.workerToken.substring(0, 8) + '...' + w.workerToken.slice(-4)) : 'wrk_anon';
+          return `
+            <tr class="hover:bg-white/5 transition font-mono text-[11px]">
+              <td class="py-2.5 px-3 text-cyan-300 font-bold">${anonId}</td>
+              <td class="py-2.5 px-3 text-white font-semibold">${w.workerName}</td>
+              <td class="py-2.5 px-3 font-bold text-emerald-400">${Number(w.shares).toLocaleString()} DPs</td>
+              <td class="py-2.5 px-3 text-amber-300 font-bold">${w.sharePercent}</td>
+              <td class="py-2.5 px-3 text-emerald-300 font-bold font-mono">~$${Number(w.projectedPayoutUsd || 0).toLocaleString()} USD</td>
+              <td class="py-2.5 px-3 text-right text-slate-400">${w.lastSeen ? new Date(w.lastSeen).toLocaleTimeString() : '-'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+  } catch (_) {}
+}
+
+async function triggerSimulatedWorkerStep() {
+  const btn = document.getElementById('btnSimulatePoS');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/pool/simulate-worker-step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workerToken: currentUser?.workerToken || 'wrk_web_simulator',
+        workerName: currentUser?.name ? `${currentUser.name} (Web GPU)` : 'Simulador Web GPU',
+        challengeId: 'BTC_1000_P71'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      await fetchPoolStats();
+      await fetchLiveRangesData();
+    }
   } catch (err) {
-    if (logsEl) logsEl.innerHTML += `<div class="text-red-400">> ERRO: ${err.message}</div>`;
-    if (statusEl) statusEl.innerText = '❌ Erro';
+    alert('Erro ao simular: ' + err.message);
   } finally {
     if (btn) btn.disabled = false;
   }
-}
-
-// ─── RADAR DE INTELIGÊNCIA IA (GEMINI FEED) ───
-async function fetchAnalystFeed() {
-  try {
-    const res = await fetch('/api/analyst/feed');
-    const data = await res.json();
-    const feed = data.feed || [];
-    const container = document.getElementById('analystFeedGrid');
-    if (!container) return;
-
-    if (feed.length === 0) {
-      container.innerHTML = `
-        <div class="glass-panel p-8 text-center rounded-2xl col-span-full border border-dashed border-white/10">
-          <i data-lucide="sparkles" class="w-8 h-8 text-amber-400 mx-auto mb-2 animate-pulse"></i>
-          <p class="text-sm text-slate-300 font-semibold">Sentinela IA em Monitoramento Contínuo</p>
-          <p class="text-xs text-slate-500 mt-1">O Gemini e o Mempool Watcher avaliam o mercado a cada 45 segundos.</p>
-        </div>
-      `;
-    } else {
-      container.innerHTML = feed.map(opp => `
-        <div class="glass-panel p-5 rounded-2xl space-y-3 border border-amber-500/20">
-          <div class="flex items-start justify-between">
-            <div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 uppercase">${opp.chain} • ${opp.bitRange || 66} BITS</span>
-              <h4 class="font-bold text-white text-base mt-1">${opp.title}</h4>
-            </div>
-            <div class="text-right">
-              <span class="text-lg font-extrabold text-amber-400 font-mono">${opp.prizeAmount} ${opp.prizeCurrency}</span>
-              <div class="text-[10px] text-emerald-400 font-bold">${opp.roi?.roiPerDayFormatted || '$0/dia'}</div>
-            </div>
-          </div>
-          <div class="text-xs text-slate-300 font-mono bg-cypher-950 p-3 rounded-xl border border-white/5 space-y-1">
-            <div><span class="text-slate-500">Alvo:</span> ${opp.targetAddress}</div>
-            <div><span class="text-slate-500">Algoritmo:</span> <strong class="text-cyan-300">${opp.roi?.algorithmType || opp.algorithm}</strong></div>
-            <div><span class="text-slate-500">Segurança:</span> <span class="text-emerald-400">${opp.isSafe ? '✅ Aprovado (Zero Honeypot)' : '⚠️ Risco'}</span></div>
-          </div>
-          <div class="flex items-center justify-between pt-2">
-            <span class="text-xs text-slate-400">Tempo Frota: <strong class="text-slate-200">${opp.roi?.formattedFleetTime || 'Rápido'}</strong></span>
-            <button onclick="approveAnalystTarget('${opp.targetId}')" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black font-extrabold text-xs transition">
-              Aprovar Alocação
-            </button>
-          </div>
-        </div>
-      `).join('');
-    }
-    if (window.lucide) window.lucide.createIcons();
-  } catch (_) {}
-}
-
-async function approveAnalystTarget(targetId) {
-  try {
-    const res = await fetch('/api/analyst/approve', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ targetId, operator: 'Operador Web' })
-    });
-    const data = await res.json();
-    alert(`🎯 ${data.message || 'Alvo aprovado e alocado para a frota!'}`);
-    fetchAnalystFeed();
-  } catch (e) {
-    alert('Erro: ' + e.message);
-  }
-}
-
-async function evaluateCustomChallenge() {
-  const text = prompt('Cole o texto bruto ou endereço do enigma criptográfico para a IA analisar:');
-  if (!text) return;
-  try {
-    const res = await fetch('/api/analyst/evaluate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rawText: text })
-    });
-    const data = await res.json();
-    alert(`✨ Análise IA Concluída!\n\nDesafio: ${data.opportunity?.title}\nROI Diário: ${data.opportunity?.roi?.roiPerDayFormatted}\nSegurança: ${data.opportunity?.isSafe ? 'APROVADO' : 'RISCO'}`);
-    fetchAnalystFeed();
-  } catch (e) {
-    alert('Erro na análise: ' + e.message);
-  }
-}
-
-// ─── POOL PROOF-OF-SHARE & TRANSPARÊNCIA ───
-async function fetchPoolStats() {
-  try {
-    const res = await fetch('/api/pool/stats');
-    const data = await res.json();
-    setInner('poolTotalSharesDisplay', Number(data.totalPoolShares || 0).toLocaleString());
-
-    const tbody = document.getElementById('poolLeaderboardBody');
-    if (!tbody) return;
-
-    const workers = data.workers || [];
-    if (workers.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">Nenhum worker submeteu DPs recentemente.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = workers.map(w => {
-      const anonId = w.workerToken.substring(0, 8) + '...' + w.workerToken.slice(-4);
-      return `
-        <tr class="hover:bg-white/5 transition font-mono text-[11px]">
-          <td class="py-2.5 px-3 text-cyan-300 font-bold">${anonId}</td>
-          <td class="py-2.5 px-3 text-white">${w.workerName}</td>
-          <td class="py-2.5 px-3 font-bold text-emerald-400">${Number(w.shares).toLocaleString()} DPs</td>
-          <td class="py-2.5 px-3 text-amber-300 font-bold">${w.sharePercent}</td>
-          <td class="py-2.5 px-3 text-emerald-300">Prêmio Proporcional</td>
-          <td class="py-2.5 px-3 text-right text-slate-400">${new Date(w.lastSeen).toLocaleTimeString()}</td>
-        </tr>
-      `;
-    }).join('');
-  } catch (_) {}
 }
 
 function calculateSubscriberYield() {
@@ -604,16 +572,18 @@ function calculateSubscriberYield() {
   setInner('calcEstimatedReward', `~$${Math.round(estimatedReward).toLocaleString()} USD (${(shareRatio * 100).toFixed(1)}%)`);
 }
 
-// Inicializações periódicas
-setInterval(fetchAnalystFeed, 15000);
-setInterval(fetchPoolStats, 10000);
+// Inicializações periódicas a cada 4 segundos
+setInterval(fetchAnalystFeed, 10000);
+setInterval(fetchPoolStats, 4000);
+setInterval(fetchLiveRangesData, 4000);
 
 // Polling inicial de carga
 setTimeout(() => {
   fetchAnalystFeed();
   fetchPoolStats();
+  fetchLiveRangesData();
   calculateSubscriberYield();
-}, 1000);
+}, 600);
 
 // ─── ADVISOR CHAT ───
 function toggleAdvisorChat() {
