@@ -260,7 +260,7 @@ function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
   const token = (currentUser && currentUser.workerToken) ? ` --token="${currentUser.workerToken}"` : '';
 
   const colabCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  const localCmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const localCmd = `py -3.12 solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const kaggleCmd = `!pip install --no-cache-dir -q requests ecdsa base58 pycryptodome\n!curl -sSL --retry 3 ${origin}/solver/colab_worker.py -o colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const linuxCmd = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
 
@@ -1447,7 +1447,7 @@ function copyCudaKeyhunt() {
 function copyLocalWorkerCommand() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const cmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const cmd = `py -3.12 solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   copyTextToClipboard(cmd, `Comando Terminal para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
