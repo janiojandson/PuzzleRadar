@@ -18,24 +18,54 @@ const { verifyDiscoveryProof, normalizePrivateKey } = require('../lib/cryptoVeri
 class AntiMevRescue {
   constructor() {
     this.rescueLogs = [];
-    this.destinationWallets = {
-      BTC: process.env.SECURE_RESCUE_BTC_ADDRESS || 'bc1q9v837m973zfv489t624t44z9494zz94q94zz94',
-      ETH: process.env.SECURE_RESCUE_ETH_ADDRESS || '0x71C8366420A092679b545384551585D72ced867f',
-      SOL: process.env.SECURE_RESCUE_SOL_ADDRESS || 'SOL99999999999999999999999999999999999999999'
-    };
+  }
+
+  /**
+   * Obtém o endereço estático e imutável do Cofre Frio do servidor
+   */
+  getVaultDestination(chain = 'BTC') {
+    const normChain = chain.toUpperCase();
+    if (normChain === 'BTC') {
+      return process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q9v837m973zfv489t624t44z9494zz94q94zz94';
+    }
+    if (normChain === 'ETH') {
+      return process.env.RESCUE_VAULT_ETH_ADDRESS || '0x71C8366420A092679b545384551585D72ced867f';
+    }
+    if (normChain === 'SOL') {
+      return process.env.RESCUE_VAULT_SOL_ADDRESS || 'SOL99999999999999999999999999999999999999999';
+    }
+    return process.env.RESCUE_VAULT_BTC_ADDRESS || 'bc1q9v837m973zfv489t624t44z9494zz94q94zz94';
   }
 
   /**
    * Executa a operação de resgate seguro para uma chave privada descoberta
+   * REGRA DE OURO: 100% dos fundos são enviados estritamente para o cofre frio fixo do servidor.
+   * BLOQUEIO DE INJEÇÃO: Rejeita sumariamente qualquer tentativa de envio de endereço de destino via payload.
+   * 
    * @param {Object} params
    * @param {string} params.chain - 'BTC' | 'ETH' | 'SOL'
    * @param {string} params.challengeId - ID do puzzle ou desafio
    * @param {string} params.privateKeyHex - Chave privada hexadecimal descoberta
    * @param {string} params.targetAddress - Endereço original onde está o prêmio
-   * @param {string} [params.customDestination] - Endereço opcional para receber os fundos
+   * @param {string} [params.customDestination] - Bloqueado se presente (tentativa de injeção)
    */
-  async executeRescue({ chain = 'BTC', challengeId, privateKeyHex, targetAddress, customDestination }) {
+  async executeRescue({ chain = 'BTC', challengeId, privateKeyHex, targetAddress, customDestination, destinationAddress, toAddress }) {
     console.log(`🛡️ [AntiMevRescue] Iniciando protocolo de resgate confidencial para ${challengeId} (${chain})...`);
+
+    // 🛡️ BLOQUEIO DE INJEÇÃO DE DESTINO EXTERNO (Anti-Hijack)
+    if (customDestination || destinationAddress || toAddress) {
+      const attempted = customDestination || destinationAddress || toAddress;
+      const vaultAddr = this.getVaultDestination(chain);
+      if (attempted.trim().toLowerCase() !== vaultAddr.trim().toLowerCase()) {
+        const err = `[SEGURANÇA CRÍTICA] Tentativa de desvio de custódia detectada e bloqueada! Endereços externos rejeitados: ${attempted}`;
+        console.error(`🚨 ${err}`);
+        return {
+          success: false,
+          error: err,
+          code: 'DYNAMIC_DESTINATION_FORBIDDEN_IMMUTABLE_VAULT_ONLY'
+        };
+      }
+    }
 
     // 1. Prova Criptográfica Prévia Local
     const proof = verifyDiscoveryProof(privateKeyHex, targetAddress);
@@ -49,7 +79,8 @@ class AntiMevRescue {
       };
     }
 
-    const destination = customDestination || this.destinationWallets[chain];
+    // O destino é estritamente o endereço imutável do cofre frio
+    const destination = this.getVaultDestination(chain);
     const timestamp = new Date().toISOString();
 
     let transmissionResult = null;

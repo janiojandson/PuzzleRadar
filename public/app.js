@@ -475,6 +475,146 @@ async function runSandboxBenchmark() {
   }
 }
 
+// ─── RADAR DE INTELIGÊNCIA IA (GEMINI FEED) ───
+async function fetchAnalystFeed() {
+  try {
+    const res = await fetch('/api/analyst/feed');
+    const data = await res.json();
+    const feed = data.feed || [];
+    const container = document.getElementById('analystFeedGrid');
+    if (!container) return;
+
+    if (feed.length === 0) {
+      container.innerHTML = `
+        <div class="glass-panel p-8 text-center rounded-2xl col-span-full border border-dashed border-white/10">
+          <i data-lucide="sparkles" class="w-8 h-8 text-amber-400 mx-auto mb-2 animate-pulse"></i>
+          <p class="text-sm text-slate-300 font-semibold">Sentinela IA em Monitoramento Contínuo</p>
+          <p class="text-xs text-slate-500 mt-1">O Gemini e o Mempool Watcher avaliam o mercado a cada 45 segundos.</p>
+        </div>
+      `;
+    } else {
+      container.innerHTML = feed.map(opp => `
+        <div class="glass-panel p-5 rounded-2xl space-y-3 border border-amber-500/20">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 uppercase">${opp.chain} • ${opp.bitRange || 66} BITS</span>
+              <h4 class="font-bold text-white text-base mt-1">${opp.title}</h4>
+            </div>
+            <div class="text-right">
+              <span class="text-lg font-extrabold text-amber-400 font-mono">${opp.prizeAmount} ${opp.prizeCurrency}</span>
+              <div class="text-[10px] text-emerald-400 font-bold">${opp.roi?.roiPerDayFormatted || '$0/dia'}</div>
+            </div>
+          </div>
+          <div class="text-xs text-slate-300 font-mono bg-cypher-950 p-3 rounded-xl border border-white/5 space-y-1">
+            <div><span class="text-slate-500">Alvo:</span> ${opp.targetAddress}</div>
+            <div><span class="text-slate-500">Algoritmo:</span> <strong class="text-cyan-300">${opp.roi?.algorithmType || opp.algorithm}</strong></div>
+            <div><span class="text-slate-500">Segurança:</span> <span class="text-emerald-400">${opp.isSafe ? '✅ Aprovado (Zero Honeypot)' : '⚠️ Risco'}</span></div>
+          </div>
+          <div class="flex items-center justify-between pt-2">
+            <span class="text-xs text-slate-400">Tempo Frota: <strong class="text-slate-200">${opp.roi?.formattedFleetTime || 'Rápido'}</strong></span>
+            <button onclick="approveAnalystTarget('${opp.targetId}')" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black font-extrabold text-xs transition">
+              Aprovar Alocação
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+    if (window.lucide) window.lucide.createIcons();
+  } catch (_) {}
+}
+
+async function approveAnalystTarget(targetId) {
+  try {
+    const res = await fetch('/api/analyst/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetId, operator: 'Operador Web' })
+    });
+    const data = await res.json();
+    alert(`🎯 ${data.message || 'Alvo aprovado e alocado para a frota!'}`);
+    fetchAnalystFeed();
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+async function evaluateCustomChallenge() {
+  const text = prompt('Cole o texto bruto ou endereço do enigma criptográfico para a IA analisar:');
+  if (!text) return;
+  try {
+    const res = await fetch('/api/analyst/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rawText: text })
+    });
+    const data = await res.json();
+    alert(`✨ Análise IA Concluída!\n\nDesafio: ${data.opportunity?.title}\nROI Diário: ${data.opportunity?.roi?.roiPerDayFormatted}\nSegurança: ${data.opportunity?.isSafe ? 'APROVADO' : 'RISCO'}`);
+    fetchAnalystFeed();
+  } catch (e) {
+    alert('Erro na análise: ' + e.message);
+  }
+}
+
+// ─── POOL PROOF-OF-SHARE & TRANSPARÊNCIA ───
+async function fetchPoolStats() {
+  try {
+    const res = await fetch('/api/pool/stats');
+    const data = await res.json();
+    setInner('poolTotalSharesDisplay', Number(data.totalPoolShares || 0).toLocaleString());
+
+    const tbody = document.getElementById('poolLeaderboardBody');
+    if (!tbody) return;
+
+    const workers = data.workers || [];
+    if (workers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">Nenhum worker submeteu DPs recentemente.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = workers.map(w => {
+      const anonId = w.workerToken.substring(0, 8) + '...' + w.workerToken.slice(-4);
+      return `
+        <tr class="hover:bg-white/5 transition font-mono text-[11px]">
+          <td class="py-2.5 px-3 text-cyan-300 font-bold">${anonId}</td>
+          <td class="py-2.5 px-3 text-white">${w.workerName}</td>
+          <td class="py-2.5 px-3 font-bold text-emerald-400">${Number(w.shares).toLocaleString()} DPs</td>
+          <td class="py-2.5 px-3 text-amber-300 font-bold">${w.sharePercent}</td>
+          <td class="py-2.5 px-3 text-emerald-300">Prêmio Proporcional</td>
+          <td class="py-2.5 px-3 text-right text-slate-400">${new Date(w.lastSeen).toLocaleTimeString()}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (_) {}
+}
+
+function calculateSubscriberYield() {
+  const ghRate = parseFloat(document.getElementById('calcHardwareSelect')?.value || '18');
+  const challengeVal = document.getElementById('calcChallengeSelect')?.value || '7.1_BTC';
+
+  let totalPrizeUSD = 461500;
+  if (challengeVal === '1.2_BTC') totalPrizeUSD = 78000;
+  if (challengeVal === '5.0_ETH') totalPrizeUSD = 16000;
+  if (challengeVal === '15.0_SOL') totalPrizeUSD = 2700;
+
+  // Participação estimada assumindo pool de 200 GH/s
+  const assumedPoolPower = 200;
+  const shareRatio = Math.min(1, ghRate / assumedPoolPower);
+  const estimatedReward = totalPrizeUSD * shareRatio;
+
+  setInner('calcEstimatedReward', `~$${Math.round(estimatedReward).toLocaleString()} USD (${(shareRatio * 100).toFixed(1)}%)`);
+}
+
+// Inicializações periódicas
+setInterval(fetchAnalystFeed, 15000);
+setInterval(fetchPoolStats, 10000);
+
+// Polling inicial de carga
+setTimeout(() => {
+  fetchAnalystFeed();
+  fetchPoolStats();
+  calculateSubscriberYield();
+}, 1000);
+
 // ─── ADVISOR CHAT ───
 function toggleAdvisorChat() {
   isChatOpen = !isChatOpen;

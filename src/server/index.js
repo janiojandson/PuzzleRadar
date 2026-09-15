@@ -70,6 +70,7 @@ app.get('/health', (req, res) => {
 const { onChainWatcher } = require('../services/onChainWatcher');
 const { antiMevRescue } = require('../services/antiMevRescue');
 const { honeypotShield } = require('../services/honeypotShield');
+const { cryptoAnalystAgent } = require('../services/cryptoAnalystAgent');
 
 // ─── ROTAS DA API ───
 app.use('/api/auth', authRoutes);
@@ -86,6 +87,35 @@ app.use('/api/nexus', nexusRoutes);
 app.use('/api/discoveries', discoveriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 app.use('/api/sandbox', sandboxRoutes);
+
+// ─── ENDPOINTS DO AGENTE ANALISTA IA (GEMINI & NEXUS) ───
+app.get('/api/analyst/feed', (req, res) => {
+  res.json({
+    success: true,
+    feed: cryptoAnalystAgent.getFeed(),
+    pending: cryptoAnalystAgent.getPendingOpportunities()
+  });
+});
+
+app.post('/api/analyst/evaluate', async (req, res) => {
+  try {
+    const { rawText, fleetHashrate } = req.body;
+    const result = await cryptoAnalystAgent.ingestAndEvaluate(rawText || '', fleetHashrate);
+    res.json({ success: true, opportunity: result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/analyst/approve', async (req, res) => {
+  try {
+    const { targetId, operator } = req.body;
+    const result = await cryptoAnalystAgent.approveTargetCommand(targetId, operator);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─── ENDPOINT DE RESGATE SEGURO (ANTI-MEV) ───
 app.post('/api/secure-rescue', async (req, res) => {
