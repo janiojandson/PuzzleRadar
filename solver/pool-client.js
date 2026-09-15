@@ -1,8 +1,8 @@
 // ============================================
-// 🧩 PuzzleRadar — Pool Client (CLI Worker & Solver)
+// 🧩 PuzzleRadar — Pool Client (CLI Multi-Chain Solver)
 // ============================================
 // Conecta o nó local ao pool do PuzzleRadar
-// Suporta Crowdsourcing, Hints de Entropia e Space Pruning
+// Suporta Multi-Chain (BTC, ETH, SOL), Hints de Entropia e Space Pruning
 // ============================================
 
 require('dotenv').config();
@@ -23,13 +23,17 @@ function getArg(flag, defaultValue = null) {
 const tokenArg = getArg('token', process.env.WORKER_TOKEN || process.env.API_TOKEN || null);
 const apiArg = getArg('apiUrl', PUZZLERADAR_API);
 const hardwareArg = getArg('hardware', process.env.HARDWARE || 'GPU');
-const speedArg = Number(getArg('speed', 15000000000)); // Default ~15 GH/s (RTX 3080 speed)
+const chainArg = getArg('chain', 'BTC').toUpperCase();
+const challengeArg = getArg('challenge', 'BTC_1000_P71');
+const speedArg = Number(getArg('speed', 15000000000)); // Default ~15 GH/s
 
 class PuzzleRadarPoolClient {
   constructor(options = {}) {
     this.apiUrl = options.apiUrl || apiArg;
     this.token = options.token || tokenArg;
     this.hardware = options.hardware || hardwareArg;
+    this.chain = options.chain || chainArg;
+    this.challengeId = options.challenge || challengeArg;
     this.speed = options.speed || speedArg;
     this.workerId = null;
     this.running = false;
@@ -46,16 +50,18 @@ class PuzzleRadarPoolClient {
    * Registra ou autentica o worker no pool
    */
   async register() {
-    console.log(`\n🧩 [PoolClient] Conectando ao PuzzleRadar em: ${this.apiUrl}`);
+    console.log(`\n🧩 [PoolClient Multi-Chain] Conectando ao PuzzleRadar em: ${this.apiUrl}`);
+    console.log(`🔗 Rede: ${this.chain} | 🎯 Desafio: ${this.challengeId}`);
     
-    // Se não tiver token, solicita um automaticamente
     if (!this.token) {
       console.log('⚡ [PoolClient] Gerando novo Worker Token para crowdsourcing...');
       const tokenRes = await fetch(`${this.apiUrl}/api/workers/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `worker-node-${Math.floor(Math.random() * 10000)}`,
+          name: `worker-${this.chain.toLowerCase()}-${Math.floor(Math.random() * 10000)}`,
+          chain: this.chain,
+          challenge_id: this.challengeId,
           hardware: this.hardware,
           gpuModel: 'NVIDIA RTX 4090 / CUDA Core'
         })
@@ -70,6 +76,8 @@ class PuzzleRadarPoolClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         token: this.token,
+        chain: this.chain,
+        challenge_id: this.challengeId,
         hardware: this.hardware,
         gpuModel: 'NVIDIA RTX CUDA Engine',
         cpuModel: 'Intel Core i9 / AMD Ryzen'
@@ -86,11 +94,12 @@ class PuzzleRadarPoolClient {
    * Pede a próxima tarefa de busca (filtrada por dicas e pruning)
    */
   async getTask() {
-    const res = await fetch(`${this.apiUrl}/api/workers/${this.workerId}/task`);
+    const res = await fetch(`${this.apiUrl}/api/workers/${this.workerId}/task?puzzleId=${this.challengeId}&chain=${this.chain}&challenge_id=${this.challengeId}`);
     const data = await res.json();
     if (data && data.task) {
       this.currentTask = data.task;
       console.log(`🎯 [PoolClient] Nova Fatia Recebida: [0x${data.task.rangeStart} ➔ 0x${data.task.rangeEnd}]`);
+      console.log(`   🔗 Rede: ${this.chain} | Desafio: ${this.challengeId}`);
       if (data.task.hints && data.task.hints.length > 0) {
         console.log(`   ⚡ Dicas ativas: ${JSON.stringify(data.task.hints)}`);
       }
@@ -109,12 +118,12 @@ class PuzzleRadarPoolClient {
         body: JSON.stringify({
           keysPerSecond: kps,
           progress,
-          status: 'COMPUTING'
+          chain: this.chain,
+          challenge_id: this.challengeId,
+          status: `MINING_${this.chain}_${this.challengeId}`
         })
       });
-    } catch (e) {
-      // Ignorar erros momentâneos de rede
-    }
+    } catch (e) {}
   }
 
   /**
@@ -124,15 +133,14 @@ class PuzzleRadarPoolClient {
     console.log(`⚡ [PoolClient] Varrendo chaves na velocidade de ${(this.speed / 1e9).toFixed(2)} GH/s...`);
     const startTime = Date.now();
     
-    // Simula blocos de computação rápida com heartbeat
     for (let p = 25; p <= 100; p += 25) {
-      await new Promise(r => setTimeout(r, 600)); // 600ms por bloco de simulação
+      await new Promise(r => setTimeout(r, 600));
       await this.sendHeartbeat(this.speed, p);
-      process.stdout.write(`   ↳ Progresso: ${p}% | Hashrate: ${(this.speed / 1e9).toFixed(2)} GH/s\r`);
+      process.stdout.write(`   ↳ Progresso: ${p}% | Hashrate: ${(this.speed / 1e9).toFixed(2)} GH/s | Desafio: ${this.challengeId}\r`);
     }
     console.log('');
 
-    const keysChecked = 1000000000; // 1 Bilhão de chaves testadas no chunk
+    const keysChecked = 1000000000;
     const computeHours = (Date.now() - startTime) / 3600000;
 
     return {
@@ -151,8 +159,13 @@ class PuzzleRadarPoolClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         taskId: task.taskId,
-        puzzleId: task.puzzleId,
+        chain: this.chain,
+        challenge_id: this.challengeId,
+        challengeId: this.challengeId,
+        puzzleId: task.puzzleId || this.challengeId,
         chunkIndex: task.chunkIndex,
+        rangeStart: task.rangeStart,
+        rangeEnd: task.rangeEnd,
         result: result.found ? 'FOUND' : 'NOT_FOUND',
         keysChecked: result.keysChecked,
         computeHours: result.computeHours
@@ -164,7 +177,7 @@ class PuzzleRadarPoolClient {
     this.stats.totalKeysChecked += result.keysChecked;
     this.stats.totalSharesEarned += data.sharesEarned || 1;
 
-    console.log(`✅ [PoolClient] Fatia concluída e reportada! Shares ganhas: +${data.sharesEarned || 1}`);
+    console.log(`✅ [PoolClient] Fatia concluída e reportada! [${this.chain} - ${this.challengeId}] Shares: +${data.sharesEarned || 1}`);
     console.log(`📊 [PoolClient Total] Fatias: ${this.stats.rangesCompleted} | Chaves: ${(this.stats.totalKeysChecked / 1e9).toFixed(2)}B | Shares: ${this.stats.totalSharesEarned.toFixed(2)}\n`);
   }
 

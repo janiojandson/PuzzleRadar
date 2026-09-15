@@ -1,8 +1,9 @@
 // ============================================
-// 🧩 PuzzleRadar v3.0 — Google Sheets & Webhook Integration (Live 200 OK)
+// 🧩 PuzzleRadar v3.0 — Google Sheets & Webhook Integration (Multi-Chain Ready)
 // ============================================
 // Armazenamento Serverless de Histórico Massivo de Ranges (Space Pruning)
 // Descarrega bilhões de ranges no Google Sheets via Webhook e CSV local sem inchar PostgreSQL / Redis.
+// Suporta Multi-Chain (BTC, ETH, SOL) e múltiplos Desafios.
 // ============================================
 
 const fs = require('fs');
@@ -25,7 +26,7 @@ if (!fs.existsSync(ARCHIVE_DIR)) {
 
 if (!fs.existsSync(ARCHIVE_FILE)) {
   try {
-    fs.writeFileSync(ARCHIVE_FILE, 'timestamp,puzzleId,chunkIndex,rangeStart,rangeEnd,source,status\n', 'utf-8');
+    fs.writeFileSync(ARCHIVE_FILE, 'timestamp,chain,challengeId,chunkIndex,rangeStart,rangeEnd,source,status\n', 'utf-8');
   } catch (e) {}
 }
 
@@ -107,14 +108,17 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
     const chunkIndex = typeof item === 'object' ? item.chunkIndex || item.chunkId || item.index || 0 : parseInt(item, 10) || 0;
     const rangeStart = typeof item === 'object' ? item.rangeStart || item.startHex || '' : '';
     const rangeEnd = typeof item === 'object' ? item.rangeEnd || item.endHex || '' : '';
-    const puzzleId = typeof item === 'object' ? item.puzzleId || 'puzzle_btc_71' : 'puzzle_btc_71';
+    const challengeId = typeof item === 'object' ? item.challengeId || item.puzzleId || 'puzzle_btc_71' : 'puzzle_btc_71';
+    const chain = typeof item === 'object' ? item.chain || (challengeId.toLowerCase().includes('eth') ? 'ETH' : challengeId.toLowerCase().includes('sol') ? 'SOL' : 'BTC') : 'BTC';
 
-    formattedRows.push([timestamp, puzzleId, chunkIndex, rangeStart, rangeEnd, source, 'PRUNED_SCANNED']);
+    formattedRows.push([timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, source, 'PRUNED_SCANNED']);
 
-    // Dispara para o Webhook do Google Apps Script
+    // Dispara para o Webhook do Google Apps Script com metadados completos
     if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
       postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
-        puzzleId,
+        chain,
+        challengeId,
+        puzzleId: challengeId,
         chunkId: chunkIndex,
         startHex: rangeStart,
         endHex: rangeEnd,
@@ -124,7 +128,7 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
         keyFound: extraMeta.keyFound || false
       }).then(res => {
         if (res && res.status === 'success') {
-          console.log(`📡 [GoogleSheets Sync] ✅ Fatia #${chunkIndex} gravada na Planilha!`);
+          console.log(`📡 [GoogleSheets Sync] ✅ Fatia #${chunkIndex} (${chain} - ${challengeId}) gravada na Planilha!`);
         }
       }).catch(() => {});
     }

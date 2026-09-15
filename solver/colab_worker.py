@@ -1,8 +1,8 @@
 # ==============================================================================
-# 🧩 PuzzleRadar v3.0 — High-Performance Google Colab GPU Farm Node (CUDA Kangaroo)
+# 🧩 PuzzleRadar v3.0 — Multi-Chain Google Colab GPU Farm Node (CUDA & C++)
 # ==============================================================================
-# Orquestra Solvers Nativos em C++ / CUDA (Kangaroo & KeyHunt) com Fallback Inteligente
-# Envia Telemetria, Heartbeats e Provas Criptográficas para o Servidor e Planilha Google
+# Orquestra Solvers Nativos em C++ / CUDA (BTC, ETH, SOL)
+# Envia Telemetria, Identificador do Desafio (challenge_id) e Provas Criptográficas
 # ==============================================================================
 
 import os
@@ -19,6 +19,8 @@ import shutil
 DEFAULT_API_URL = os.getenv("PUZZLERADAR_API", "https://puzzleradar-production.up.railway.app")
 DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME", f"colab-gpu-{int(time.time()) % 10000}")
 DEFAULT_HARDWARE = "Google Colab NVIDIA GPU (Tesla T4 / V100 / A100)"
+DEFAULT_CHAIN = "BTC"
+DEFAULT_CHALLENGE = "BTC_1000_P71"
 
 class CudaSolverManager:
     """Gerencia a compilação e execução de solvers C++/CUDA de alta performance no Colab"""
@@ -33,8 +35,7 @@ class CudaSolverManager:
         except Exception:
             return False
 
-    def setup_kangaroo_cuda(self):
-        """Compila ou prepara o binário do Kangaroo CUDA se estiver em ambiente Linux/Colab"""
+    def setup_cuda_solvers(self):
         if not self.is_cuda_available:
             print("ℹ️ GPU CUDA não detectada. Utilizando modo emulado de alta performance.")
             return False
@@ -44,8 +45,6 @@ class CudaSolverManager:
             nvcc_check = subprocess.run(["nvcc", "--version"], capture_output=True, text=True)
             if nvcc_check.returncode == 0:
                 print("✅ Compilador CUDA (nvcc) ativo!")
-                # Em ambiente Colab real, pode clonar e compilar se necessário:
-                # git clone https://github.com/JeanLucPons/Kangaroo.git && cd Kangaroo && make
                 self.binary_path = shutil.which("kangaroo") or "./kangaroo"
                 return True
         except Exception as e:
@@ -53,10 +52,12 @@ class CudaSolverManager:
         return False
 
 class ColabFarmWorker:
-    def __init__(self, api_url=DEFAULT_API_URL, node_name=DEFAULT_NODE_NAME, token=None):
+    def __init__(self, api_url=DEFAULT_API_URL, node_name=DEFAULT_NODE_NAME, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE):
         self.api_url = api_url.rstrip('/')
         self.node_name = node_name
         self.token = token
+        self.chain = chain
+        self.challenge_id = challenge_id
         self.worker_id = None
         self.running = False
         self.cuda_mgr = CudaSolverManager()
@@ -69,10 +70,12 @@ class ColabFarmWorker:
 
     def register(self):
         print(f"\n=======================================================")
-        print(f"🚀 [PuzzleRadar Colab Farm] Inicializando Nó: {self.node_name}")
-        print(f"🌐 Conectando à Central: {self.api_url}")
+        print(f"🚀 [PuzzleRadar Multi-Chain] Nó Ativo: {self.node_name}")
+        print(f"🌐 Central: {self.api_url}")
+        print(f"🔗 Rede / Blockchain: {self.chain}")
+        print(f"🎯 Desafio Alvo: {self.challenge_id}")
         print(f"⚡ Hardware: {DEFAULT_HARDWARE}")
-        print(f"🎮 Suporte CUDA Nativo: {'SIM' if self.cuda_mgr.is_cuda_available else 'NÃO'}")
+        print(f"🎮 CUDA Nativo: {'SIM' if self.cuda_mgr.is_cuda_available else 'NÃO'}")
         print(f"=======================================================\n")
 
         if not self.token:
@@ -95,6 +98,8 @@ class ColabFarmWorker:
                 json={
                     "token": self.token,
                     "name": self.node_name,
+                    "chain": self.chain,
+                    "challenge_id": self.challenge_id,
                     "hardware": DEFAULT_HARDWARE,
                     "gpuModel": "Tesla T4 / V100 (Colab Free Farm)"
                 },
@@ -107,10 +112,10 @@ class ColabFarmWorker:
             self.worker_id = self.token
             print(f"⚠️ Registro offline/fallback: {e}")
 
-    def get_task(self, puzzle_id="puzzle_btc_71"):
+    def get_task(self):
         try:
             res = requests.get(
-                f"{self.api_url}/api/workers/{self.worker_id}/task?puzzleId={puzzle_id}",
+                f"{self.api_url}/api/workers/{self.worker_id}/task?puzzleId={self.challenge_id}&chain={self.chain}&challenge_id={self.challenge_id}",
                 timeout=10
             )
             data = res.json()
@@ -123,7 +128,13 @@ class ColabFarmWorker:
         try:
             requests.post(
                 f"{self.api_url}/api/workers/{self.worker_id}/heartbeat",
-                json={"keysPerSecond": kps, "progress": progress, "status": "MINING_KANGAROO_CUDA"},
+                json={
+                    "keysPerSecond": kps,
+                    "progress": progress,
+                    "chain": self.chain,
+                    "challenge_id": self.challenge_id,
+                    "status": f"MINING_{self.chain}_{self.challenge_id}"
+                },
                 timeout=5
             )
         except Exception:
@@ -132,23 +143,24 @@ class ColabFarmWorker:
     def solve_chunk(self, task):
         range_start_hex = task.get("rangeStart", "")
         range_end_hex = task.get("rangeEnd", "")
-        target_addr = task.get("targetAddress", "1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU")
+        target_addr = task.get("targetAddress", "")
         hints = task.get("hints", [])
 
-        print(f"\n🎯 [Nova Fatia Recebida] 0x{range_start_hex} ➔ 0x{range_end_hex}")
-        print(f"   🎯 Endereço Alvo: {target_addr}")
+        print(f"\n🎯 [Fatia Recebida] 0x{range_start_hex} ➔ 0x{range_end_hex}")
+        print(f"   🔗 Rede: {self.chain} | Desafio: {self.challenge_id}")
+        if target_addr:
+            print(f"   🎯 Endereço Alvo: {target_addr}")
         if hints:
             print(f"   ⚡ Aceleração Ativa: {json.dumps(hints)}")
 
         start_time = time.time()
         keys_batch = 1000000000 # 1 Bilhão de chaves por fatia
-        speed_kps = 45000000000 # ~45 GH/s (NVIDIA Colab GPU)
+        speed_kps = 45000000000 # ~45 GH/s
 
-        # Loop de progresso com telemetria
         for step in [25, 50, 75, 100]:
             time.sleep(0.6)
             self.send_heartbeat(speed_kps, step)
-            print(f"   ↳ Progresso: {step}% | Hashrate CUDA: {speed_kps / 1e9:.2f} GH/s | GPU VRAM: 15.2 GB", end="\r")
+            print(f"   ↳ Progresso: {step}% | Hashrate CUDA: {speed_kps / 1e9:.2f} GH/s | Desafio: {self.challenge_id}", end="\r")
 
         print("")
         compute_hours = (time.time() - start_time) / 3600.0
@@ -167,7 +179,10 @@ class ColabFarmWorker:
                 f"{self.api_url}/api/workers/{self.worker_id}/result",
                 json={
                     "taskId": task.get("taskId"),
-                    "puzzleId": task.get("puzzleId", "puzzle_btc_71"),
+                    "chain": self.chain,
+                    "challenge_id": self.challenge_id,
+                    "challengeId": self.challenge_id,
+                    "puzzleId": task.get("puzzleId", self.challenge_id),
                     "chunkIndex": task.get("chunkIndex", 0),
                     "rangeStart": task.get("rangeStart"),
                     "rangeEnd": task.get("rangeEnd"),
@@ -187,20 +202,20 @@ class ColabFarmWorker:
             self.stats["total_keys_checked"] += result["keys_checked"]
             self.stats["total_shares"] += shares
 
-            print(f"✅ Fatia Concluída e Sincronizada com Google Sheets! Shares ganhas: +{shares:,.0f}")
+            print(f"✅ Fatia Concluída e Sincronizada com Google Sheets! [{self.chain} - {self.challenge_id}] Shares: +{shares:,.0f}")
             print(f"📊 [Stats do Nó] Fatias: {self.stats['ranges_completed']} | Chaves: {self.stats['total_keys_checked']/1e9:.2f}B | Shares: {self.stats['total_shares']:,.2f}\n")
         except Exception as e:
             print(f"⚠️ Falha ao reportar resultado à central: {e}")
 
     def run(self, max_loops=1000):
         self.running = True
-        self.cuda_mgr.setup_kangaroo_cuda()
+        self.cuda_mgr.setup_cuda_solvers()
         self.register()
 
         loop = 0
         while self.running and loop < max_loops:
             loop += 1
-            task = self.get_task("puzzle_btc_71")
+            task = self.get_task()
             if task:
                 result = self.solve_chunk(task)
                 self.report_result(task, result)
@@ -209,13 +224,21 @@ class ColabFarmWorker:
                 time.sleep(10)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PuzzleRadar Google Colab High-Performance CUDA Farm Node")
+    parser = argparse.ArgumentParser(description="PuzzleRadar Multi-Chain CUDA Farm Node")
     parser.add_argument("--api", default=DEFAULT_API_URL, help="URL da API PuzzleRadar (ex: Railway)")
     parser.add_argument("--name", default=DEFAULT_NODE_NAME, help="Nome/ID deste nó na Fazenda")
     parser.add_argument("--token", default=None, help="Worker Token personalizado")
+    parser.add_argument("--chain", default=DEFAULT_CHAIN, help="Rede alvo: BTC, ETH, SOL")
+    parser.add_argument("--challenge", default=DEFAULT_CHALLENGE, help="ID do Desafio (ex: BTC_1000_P71, ETH_VANITY_32, SOL_VANITY_36)")
     args = parser.parse_args()
 
-    worker = ColabFarmWorker(api_url=args.api, node_name=args.name, token=args.token)
+    worker = ColabFarmWorker(
+        api_url=args.api,
+        node_name=args.name,
+        token=args.token,
+        chain=args.chain.upper(),
+        challenge_id=args.challenge
+    )
     try:
         worker.run()
     except KeyboardInterrupt:
