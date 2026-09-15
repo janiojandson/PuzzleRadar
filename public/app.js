@@ -307,6 +307,14 @@ function generateColabTargetCommand(num) {
 }
 
 // ─── MULTI-CHAIN DATA COM ROI DINÂMICO ───
+function getExplorerUrl(chain, address) {
+  if (!address || address === 'N/A') return '#';
+  if (chain === 'BTC') return `https://mempool.space/address/${address}`;
+  if (chain === 'ETH') return `https://etherscan.io/address/${address}`;
+  if (chain === 'SOL') return `https://solscan.io/account/${address}`;
+  return `https://mempool.space/address/${address}`;
+}
+
 async function fetchMultiChainData() {
   try {
     const res = await fetch('/api/advisor/recommendations?fleetHashrate=42000000000');
@@ -338,6 +346,7 @@ async function fetchMultiChainData() {
           : '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/30">VIÁVEL</span>');
 
       const targetId = c.challengeId || c.title;
+      const explorerUrl = getExplorerUrl(c.chain, c.targetAddress);
 
       return `
         <div class="glass-panel p-5 rounded-2xl space-y-4 hover:border-purple-500/40 transition flex flex-col justify-between">
@@ -368,9 +377,34 @@ async function fetchMultiChainData() {
               </div>
             </div>
 
+            <!-- On-Chain Sentinel & Blockchain Verification Link -->
+            <div class="p-2.5 rounded-xl bg-cypher-950 border border-emerald-500/20 space-y-1 font-mono text-xs">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400 flex items-center gap-1"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Sentinela On-Chain:</span>
+                <a href="${explorerUrl}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 font-bold hover:underline flex items-center gap-1">
+                  <span>INTACTO / DISPONÍVEL</span>
+                  <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+              </div>
+              <div class="flex items-center justify-between text-[10px] text-slate-400">
+                <span>Alvo na Rede:</span>
+                <span class="text-cyan-400 font-mono text-[10px] truncate max-w-[170px]" title="${c.targetAddress || 'N/A'}">${c.targetAddress ? c.targetAddress.substring(0, 10) + '...' + c.targetAddress.slice(-6) : 'N/A'}</span>
+              </div>
+            </div>
+
+            <!-- Space Pruning Live Progress -->
+            <div class="space-y-1 font-mono">
+              <div class="flex justify-between text-[10px] text-slate-400">
+                <span>Espaço de Busca Varrido:</span>
+                <span class="text-purple-300 font-bold" id="multiProgress_${targetId}">0.0%</span>
+              </div>
+              <div class="w-full bg-white/5 h-1.5 rounded-full overflow-hidden border border-white/5">
+                <div id="multiProgressBar_${targetId}" class="bg-gradient-to-r from-purple-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 5%"></div>
+              </div>
+            </div>
+
             <div class="text-xs text-slate-300 font-mono bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
               <div><span class="text-slate-500">Algoritmo:</span> <strong class="text-slate-300">${roi.algorithmType || 'O(N)'}</strong></div>
-              <div><span class="text-slate-500">Endereço/Alvo:</span> <span class="text-cyan-400 font-mono text-[11px] break-all">${c.targetAddress || 'N/A'}</span></div>
             </div>
           </div>
 
@@ -575,8 +609,9 @@ function changeSecondaryTarget(challengeId) {
     chain: challengeId.startsWith('ETH') ? 'ETH' : challengeId.startsWith('SOL') ? 'SOL' : 'BTC',
     prize: '1.20 BTC',
     prizeCurrency: 'BTC',
+    targetAddress: '15dTwY2K7XjY83j3eTcxL5LwA7hX5N3DqX',
     difficultyLabel: 'O(1) Instantâneo',
-    scannedPercent: 100
+    scannedPercent: 0
   };
 
   const prizeStr = `${challenge.prize || '1.0'} ${challenge.prizeCurrency || challenge.chain || ''}`.trim();
@@ -584,12 +619,16 @@ function changeSecondaryTarget(challengeId) {
   const complexity = challenge.roi?.algorithmType || challenge.difficultyLabel || 'O(1) Instantâneo';
   const filter = challenge.roi?.bip39ChecksumFilter || challenge.algorithmType || 'Cálculo Algébrico O(1)';
   const timeEst = challenge.roi?.formattedFleetTime || challenge.difficultyLabel || 'Instantâneo';
-  const scanned = challenge.scannedPercent !== undefined ? challenge.scannedPercent : 100;
+  const scanned = challenge.scannedPercent !== undefined ? challenge.scannedPercent : 0;
+  const targetAddress = challenge.targetAddress || '15dTwY2K7XjY83j3eTcxL5LwA7hX5N3DqX';
+  const explorerUrl = getExplorerUrl(challenge.chain, targetAddress);
 
   currentSecondaryTarget = {
     id: challenge.challengeId || challengeId,
     chain: challenge.chain || 'BTC',
     title: challenge.title || challengeId,
+    targetAddress: targetAddress,
+    explorerUrl: explorerUrl,
     prize: prizeStr,
     prizeUSD: prizeUsd,
     complexity: complexity,
@@ -604,10 +643,15 @@ function changeSecondaryTarget(challengeId) {
   setInner('dashSecComplexity', currentSecondaryTarget.complexity);
   setInner('dashSecFilter', currentSecondaryTarget.filter);
   setInner('dashSecTime', currentSecondaryTarget.time);
-  setInner('dashSecScanned', `${currentSecondaryTarget.scanned}%`);
+  setInner('dashSecScanned', `${Number(currentSecondaryTarget.scanned).toFixed(1)}%`);
+
+  const explorerLink = document.getElementById('dashSecExplorerLink');
+  if (explorerLink) {
+    explorerLink.href = explorerUrl;
+  }
 
   const bar = document.getElementById('dashSecProgressBar');
-  if (bar) bar.style.width = `${Math.min(100, Math.max(5, currentSecondaryTarget.scanned))}%`;
+  if (bar) bar.style.width = `${Math.min(100, Math.max(3, currentSecondaryTarget.scanned))}%`;
 
   const dropdown = document.getElementById('dashSecChallengeDropdown');
   if (dropdown && dropdown.value !== challengeId) {
@@ -647,6 +691,22 @@ async function fetchLiveRangesData() {
     // Sincroniza dinamicamente o dropdown com todos os desafios retornados pela API
     if (pruningData && pruningData.multiStats) {
       updateDynamicChallengeDropdowns(pruningData.multiStats);
+
+      // Sincroniza progresso de cada card Multi-Chain e do Alvo Secundário
+      pruningData.multiStats.forEach(s => {
+        const pEl = document.getElementById(`multiProgress_${s.challengeId}`);
+        const pBar = document.getElementById(`multiProgressBar_${s.challengeId}`);
+        if (pEl) pEl.innerText = `${s.prunedPercent.toFixed(1)}%`;
+        if (pBar) pBar.style.width = `${Math.max(3, Math.min(100, s.prunedPercent))}%`;
+
+        // Se for o alvo secundário selecionado no momento
+        if (currentSecondaryTarget && currentSecondaryTarget.id === s.challengeId) {
+          currentSecondaryTarget.scanned = s.prunedPercent;
+          setInner('dashSecScanned', `${s.prunedPercent.toFixed(1)}%`);
+          const secBar = document.getElementById('dashSecProgressBar');
+          if (secBar) secBar.style.width = `${Math.max(3, Math.min(100, s.prunedPercent))}%`;
+        }
+      });
     }
 
     // 1. Atualiza métricas de Space Pruning
