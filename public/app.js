@@ -735,12 +735,23 @@ function updateAuthUI() {
         : 'px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
     }
 
-    // Injeta o workerToken exclusivo do usuário no comando e botões
-    if (currentUser.workerToken) {
-      const cli = document.getElementById('colabCliCode');
-      if (cli) {
-        cli.innerText = `python solver/colab_worker.py --api=${window.location.origin} --token=${currentUser.workerToken} --chain=BTC --challenge=BTC_1000_P71`;
-      }
+    // Injeta o workerToken exclusivo do usuário em todas as caixas de comando da interface
+    const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+    const token = currentUser.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+
+    const colabBox = document.getElementById('colabDirectCodeBox');
+    if (colabBox) {
+      colabBox.value = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+    }
+
+    const localBox = document.getElementById('localDirectCodeBox');
+    if (localBox) {
+      localBox.value = `python solver/colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+    }
+
+    const colabOneLiner = document.getElementById('colabOneLinerCode');
+    if (colabOneLiner) {
+      colabOneLiner.innerText = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
     }
   } else {
     if (unauthBox) unauthBox.classList.remove('hidden');
@@ -993,6 +1004,13 @@ function copyCudaKeyhunt() {
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
   const code = `./keyhunt -m kangaroo -c 1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU --pool-url="${origin}/api/pool"${token}`;
   copyTextToClipboard(code, 'Parâmetros KeyHunt CUDA copiados!');
+}
+
+function copyLocalWorkerCommand() {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const cmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+  copyTextToClipboard(cmd, 'Comando para rodar no Terminal Local copiado!');
 }
 
 function generateColabTargetCommand(num) {
