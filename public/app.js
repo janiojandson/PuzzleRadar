@@ -808,13 +808,12 @@ function setInner(id, val) {
   if (el) el.innerText = val;
 }
 
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => alert('Copiado! ✓'));
-}
-
-function copyCommand(id) {
-  const text = document.getElementById(id)?.innerText;
-  if (text) copyText(text);
+function copyColabOneLiner() {
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${window.location.origin}/solver/colab_worker.py\n!python colab_worker.py --api="${window.location.origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('📋 Código do Google Colab copiado com sucesso!\n\nCole em uma célula do Colab e clique em Executar.');
+  });
 }
 
 // Inicializa checagem de sessão

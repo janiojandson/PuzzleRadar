@@ -429,22 +429,31 @@
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
               <span>Gerar Novo Token Worker</span>
             </button>
-            <a href="https://colab.research.google.com/github/janiojandson/PuzzleRadar/blob/main/solver/colab_worker.ipynb" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition border border-white/10 flex items-center gap-2">
+            <a href="/solver/colab_worker.ipynb" download="PuzzleRadar_Colab_Worker.ipynb" class="px-4 py-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-semibold text-xs transition border border-amber-500/30 flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Baixar Notebook (.ipynb)</span>
+            </a>
+            <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer" class="px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition border border-white/10 flex items-center gap-2">
               <img src="https://colab.research.google.com/img/colab_favicon_256px.png" class="w-4 h-4" alt="Colab">
-              <span>Abrir Notebook no Colab</span>
+              <span>Abrir Novo Colab</span>
             </a>
           </div>
         </div>
 
         <!-- Generated CLI/Colab Command Box -->
-        <div class="p-4 rounded-xl bg-cypher-950 border border-white/10 space-y-2">
-          <div class="text-xs font-mono text-slate-400 flex items-center justify-between">
-            <span>Comando de Execução Rápida (Colab / CLI):</span>
-            <button onclick="copyCommand('colabCliCode')" class="text-emerald-400 hover:text-emerald-300 font-semibold text-xs flex items-center gap-1">
-              <i data-lucide="copy" class="w-3 h-3"></i> Copiar
+        <div class="p-4 rounded-xl bg-cypher-950 border border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono text-slate-400">Código Pronto para Colar em Qualquer Google Colab Novo:</span>
+            <button onclick="copyColabOneLiner()" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs flex items-center gap-1.5 transition shadow-md">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código 1-Clique
             </button>
           </div>
-          <pre id="colabCliCode" class="font-mono text-xs text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">python solver/colab_worker.py --api=https://puzzleradar-production.up.railway.app --chain=BTC --challenge=BTC_1000_P71</pre>
+          <pre id="colabOneLinerCode" class="font-mono text-xs text-emerald-300 overflow-x-auto p-3 bg-black/60 rounded-lg border border-white/5">!pip install -q requests ecdsa base58 pycryptodome
+!curl -s -O https://puzzleradar-production.up.railway.app/solver/colab_worker.py
+!python colab_worker.py --api="https://puzzleradar-production.up.railway.app" --chain="BTC" --challenge="BTC_1000_P71"</pre>
+          <div class="text-[11px] text-slate-400">
+            💡 <strong>Dica:</strong> Abra o <a href="https://colab.research.google.com/#create=true" target="_blank" class="text-amber-400 underline">Google Colab</a>, crie um novo notebook, selecione <strong>GPU T4</strong> no menu e cole o código acima.
+          </div>
         </div>
 
         <!-- Connected Nodes Grid -->

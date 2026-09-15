@@ -2228,25 +2228,30 @@ function popularPlanilhaPuzzles1000BTC() {
   SpreadsheetApp.getActiveSpreadsheet().toast("Planilha 100% preenchida com Puzzles BTC, ETH, SOL e Multi-Chain Tracking!", "PuzzleRadar", 5);
 }
 
-/** Webhook para receber dados do Node.js / Python / C++ Workers com Proteção de Token Secreto */
+/** Webhook para receber dados do Node.js / Python / C++ Workers com Proteção de Senha Secreta */
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
-    const configuredSecret = "PR_SECURE_WEBHOOK_2026"; // Substitua ou configure nas Propriedades do Script
+    var data = JSON.parse(e.postData.contents);
+    var SECRET = "puzzleradar_super_secret_jwt_key_2026_production"; // Senha sincronizada com o backend (.env)
+    var FALLBACK_SECRET = "PR_SECURE_WEBHOOK_2026";
     
-    // Verificação de Token de Segurança (Anti-Spam / Anti-Abuso)
-    const clientSecret = data.secretToken || data.secret_token || (e.parameter && e.parameter.secretToken);
-    if (configuredSecret && clientSecret !== configuredSecret) {
+    // Verificação estrita de Token de Segurança (Anti-Spam / Anti-Abuso)
+    var clientSecret = data.secretToken || data.secret_token || (e.parameter && e.parameter.secretToken);
+    if (!clientSecret || (clientSecret !== SECRET && clientSecret !== FALLBACK_SECRET)) {
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "error", 
         code: 401, 
-        message: "HTTP 401: Unauthorized - Invalid or missing secretToken" 
+        message: "401 Unauthorized: Token secreto invalido ou ausente" 
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Ranges_Varredura");
-    const chain = data.chain || (data.challengeId && data.challengeId.includes("ETH") ? "ETH" : data.challengeId && data.challengeId.includes("SOL") ? "SOL" : "BTC");
-    const challengeId = data.challengeId || data.challenge_id || data.puzzleId || "BTC_1000_P71";
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Ranges_Varredura");
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Ranges_Varredura");
+    }
+
+    var chain = data.chain || (data.challengeId && data.challengeId.includes("ETH") ? "ETH" : data.challengeId && data.challengeId.includes("SOL") ? "SOL" : "BTC");
+    var challengeId = data.challengeId || data.challenge_id || data.puzzleId || "BTC_1000_P71";
     
     sheet.insertRowBefore(2);
     sheet.getRange(2, 1, 1, 10).setValues([[
@@ -2256,16 +2261,20 @@ function doPost(e) {
       data.chunkId || data.chunkIndex || "",
       "'" + (data.startHex || data.rangeStart || ""),
       "'" + (data.endHex || data.rangeEnd || ""),
-      data.workerName || "Anônimo",
+      data.workerName || "Anonimo",
       data.status || "COMPLETED",
       data.hashrate || "0 MK/s",
       data.keyFound ? "🚨 CHAVE ENCONTRADA!" : "Nada"
     ]]);
     
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Log inserido no cluster multi-chain autenticado" }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "success", 
+      message: "Log inserido no cluster multi-chain com sucesso (Autenticado)" 
+    })).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "error", 
+      message: error.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
