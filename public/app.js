@@ -9,6 +9,9 @@ let currentStatusFilter = 'all';
 let isChatOpen = false;
 let p1000DebounceTimer = null;
 let telemetryEventSource = null;
+let currentActiveChain = 'BTC';
+let currentActiveChallenge = 'BTC_1000_P71';
+let currentActiveTitle = 'Puzzle #71 (7.1 BTC)';
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
@@ -237,14 +240,23 @@ function applyP1000Filters() {
 }
 
 function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
+  currentActiveChain = chain || 'BTC';
+  currentActiveChallenge = challengeId || 'BTC_1000_P71';
+  currentActiveTitle = titleDisplay || `[${currentActiveChain}] ${currentActiveChallenge}`;
+
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = (currentUser && currentUser.workerToken) ? ` --token="${currentUser.workerToken}"` : '';
 
-  const colabCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${chain}" --challenge="${challengeId}"`;
-  const localCmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${chain}" --challenge="${challengeId}"`;
+  const colabCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const localCmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const kaggleCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --threads=4 --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const linuxCmd = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
 
   const colabOneLiner = document.getElementById('colabOneLinerCode');
   if (colabOneLiner) colabOneLiner.innerText = colabCmd;
+
+  const kaggleOneLiner = document.getElementById('kaggleOneLinerCode');
+  if (kaggleOneLiner) kaggleOneLiner.innerText = kaggleCmd;
 
   const colabBox = document.getElementById('colabDirectCodeBox');
   if (colabBox) colabBox.value = colabCmd;
@@ -255,7 +267,11 @@ function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
   const colabCli = document.getElementById('colabCliCode');
   if (colabCli) colabCli.innerText = localCmd;
 
-  setInner('headerTarget', titleDisplay || `[${chain}] ${challengeId}`);
+  const linuxCli = document.getElementById('linuxCliCode');
+  if (linuxCli) linuxCli.innerText = linuxCmd;
+
+  setInner('headerTarget', currentActiveTitle);
+  setInner('currentSelectedTargetDisplay', currentActiveTitle);
 }
 
 function setTargetPuzzle(num) {
@@ -265,7 +281,8 @@ function setTargetPuzzle(num) {
   
   updateAllTargetCodeBoxes('BTC', challengeId, `Puzzle #${num} (${prize})`);
   switchTab('tab-fleet');
-  showToast(`🎯 Alvo #${num} (${prize}) definido! Comandos GPU Colab atualizados na aba Fleet.`);
+  copyColabOneLiner();
+  showToast(`🎯 Alvo Puzzle #${num} (${prize}) selecionado! Comando Colab copiado.`);
 }
 
 function generateColabTargetCommand(num) {
@@ -362,7 +379,8 @@ function setMultiChainTarget(chain, challengeId, title, prize) {
   const displayTitle = title ? `${title} (${prize || ''})` : `[${chain}] ${challengeId}`;
   updateAllTargetCodeBoxes(chain, challengeId, displayTitle);
   switchTab('tab-fleet');
-  showToast(`🎯 Alvo [${chain}] ${challengeId} selecionado! Comandos GPU Colab atualizados na aba Fleet.`);
+  copyColabOneLiner();
+  showToast(`🎯 Alvo [${chain}] ${challengeId} selecionado! Comando Colab específico copiado.`);
 }
 
 // ─── FLEET MANAGEMENT ───
@@ -718,11 +736,10 @@ async function evaluateCustomChallenge() {
 function openColabWithCode() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-  // Codifica o código como notebook Colab via URL
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const encoded = encodeURIComponent(code);
   window.open(`https://colab.research.google.com/#create=true&code=${encoded}`, '_blank');
-  showToast('🚀 Abrindo Google Colab com código pré-preenchido!');
+  showToast(`🚀 Abrindo Colab para [${currentActiveChain}] ${currentActiveChallenge}!`);
 }
 
 // ─── ALIAS COPY HELPER ───
@@ -891,28 +908,13 @@ function updateAuthUI() {
         : 'px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
     }
 
-    // Injeta o workerToken exclusivo do usuário em todas as caixas de comando da interface
-    const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
-    const token = currentUser.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-
-    const colabBox = document.getElementById('colabDirectCodeBox');
-    if (colabBox) {
-      colabBox.value = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-    }
-
-    const localBox = document.getElementById('localDirectCodeBox');
-    if (localBox) {
-      localBox.value = `python solver/colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-    }
-
-    const colabOneLiner = document.getElementById('colabOneLinerCode');
-    if (colabOneLiner) {
-      colabOneLiner.innerText = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-    }
+    // Atualiza todas as caixas mantendo o alvo ativo
+    updateAllTargetCodeBoxes(currentActiveChain, currentActiveChallenge, currentActiveTitle);
   } else {
     if (unauthBox) unauthBox.classList.remove('hidden');
     if (authPill) authPill.classList.add('hidden');
     if (authPill) authPill.classList.remove('flex');
+    updateAllTargetCodeBoxes(currentActiveChain, currentActiveChallenge, currentActiveTitle);
   }
   if (window.lucide) window.lucide.createIcons();
 }
@@ -1137,22 +1139,22 @@ function showToast(message) {
 function copyColabOneLiner() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-  copyTextToClipboard(code, 'Código do Google Colab copiado! Cole na célula do Colab e execute.');
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(code, `📋 Código Colab para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
 function copyKaggleOneLiner() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --threads=4 --chain="BTC" --challenge="BTC_1000_P71"`;
-  copyTextToClipboard(code, 'Código Kaggle Dual GPU copiado! Cole no seu notebook Kaggle.');
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --threads=4 --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(code, `📋 Código Kaggle para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
 function copyLinuxCli() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token=${currentUser.workerToken}` : '';
-  const code = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --challenge=BTC_1000_P71`;
-  copyTextToClipboard(code, 'Comando Linux / WSL copiado!');
+  const code = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(code, `Comando Linux para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
 function copyCudaKeyhunt() {
@@ -1165,8 +1167,8 @@ function copyCudaKeyhunt() {
 function copyLocalWorkerCommand() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const cmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P71"`;
-  copyTextToClipboard(cmd, 'Comando para rodar no Terminal Local copiado!');
+  const cmd = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(cmd, `Comando Terminal para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
 function generateColabTargetCommand(num) {
