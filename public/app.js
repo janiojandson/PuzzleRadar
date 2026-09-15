@@ -168,28 +168,28 @@ function render1000Table(puzzles) {
       : '<span class="text-slate-600 italic text-[10px]">Oculta</span>';
 
     return `
-      <tr class="${rowClass} transition">
-        <td class="py-3 px-3 font-bold ${isTarget ? 'text-amber-400 font-extrabold' : 'text-white'}">#${p.num}</td>
-        <td class="py-3 px-3 text-slate-400 text-[10px] font-mono">
+      <tr class="${rowClass} transition whitespace-nowrap">
+        <td class="py-3 px-3 font-bold ${isTarget ? 'text-amber-400 font-extrabold' : 'text-white'} whitespace-nowrap">#${p.num}</td>
+        <td class="py-3 px-3 text-slate-400 text-[10px] font-mono whitespace-nowrap">
           <div title="${p.rangeStart} ➔ ${p.rangeEnd}">${p.rangeStart} ➔ ${p.rangeEnd.substring(0, 8)}...</div>
         </td>
-        <td class="py-3 px-3">
-          <a href="${p.mempoolUrl}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:underline flex items-center gap-1 text-[11px] font-mono">
+        <td class="py-3 px-3 whitespace-nowrap">
+          <a href="${p.mempoolUrl}" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:underline flex items-center gap-1 text-[11px] font-mono whitespace-nowrap">
             <span>${p.address.substring(0, 10)}...${p.address.slice(-5)}</span>
             <i data-lucide="external-link" class="w-3 h-3 shrink-0"></i>
           </a>
         </td>
-        <td class="py-3 px-3">${pubKeyDisplay}</td>
-        <td class="py-3 px-3">${privKeyDisplay}</td>
-        <td class="py-3 px-3 font-bold text-amber-400">${p.btcPrize} BTC</td>
-        <td class="py-3 px-3">${roiBadge}</td>
-        <td class="py-3 px-3">${statusBadge}</td>
-        <td class="py-3 px-3 text-right">
+        <td class="py-3 px-3 whitespace-nowrap">${pubKeyDisplay}</td>
+        <td class="py-3 px-3 whitespace-nowrap">${privKeyDisplay}</td>
+        <td class="py-3 px-3 font-bold text-amber-400 whitespace-nowrap">${p.btcPrize} BTC</td>
+        <td class="py-3 px-3 whitespace-nowrap">${roiBadge}</td>
+        <td class="py-3 px-3 whitespace-nowrap">${statusBadge}</td>
+        <td class="py-3 px-3 text-right whitespace-nowrap">
           ${!isSolved
-            ? `<button onclick="setTargetPuzzle(${p.num})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-[10px] transition">
+            ? `<button onclick="setTargetPuzzle(${p.num})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-[10px] transition whitespace-nowrap">
                 🎯 Atacar
               </button>`
-            : `<span class="text-[10px] text-slate-500">Concluído</span>`
+            : `<span class="text-[10px] text-slate-500 whitespace-nowrap">Concluído</span>`
           }
         </td>
       </tr>`;
@@ -1067,15 +1067,33 @@ function updateAuthUI() {
         : 'px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
     }
 
+    const tokenDisp = document.getElementById('authUserTokenDisplay');
+    const tokenContainer = document.getElementById('authUserTokenContainer');
+    if (tokenDisp && currentUser.workerToken) {
+      tokenDisp.innerText = currentUser.workerToken;
+      tokenDisp.title = currentUser.workerToken;
+      if (tokenContainer) tokenContainer.classList.remove('hidden');
+    }
+
     // Atualiza todas as caixas mantendo o alvo ativo
     updateAllTargetCodeBoxes(currentActiveChain, currentActiveChallenge, currentActiveTitle);
   } else {
     if (unauthBox) unauthBox.classList.remove('hidden');
     if (authPill) authPill.classList.add('hidden');
     if (authPill) authPill.classList.remove('flex');
+    const tokenContainer = document.getElementById('authUserTokenContainer');
+    if (tokenContainer) tokenContainer.classList.add('hidden');
     updateAllTargetCodeBoxes(currentActiveChain, currentActiveChallenge, currentActiveTitle);
   }
   if (window.lucide) window.lucide.createIcons();
+}
+
+function copyCurrentUserToken() {
+  if (currentUser && currentUser.workerToken) {
+    navigator.clipboard.writeText(currentUser.workerToken).then(() => {
+      showToast('📋 Token de mineração copiado com sucesso!');
+    });
+  }
 }
 
 function logoutUser() {
