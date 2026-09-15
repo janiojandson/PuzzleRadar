@@ -63,14 +63,20 @@ router.get('/active', async (req, res) => {
 
     for (const [id, worker] of activeWorkersMap.entries()) {
       if (now - worker.lastSeen <= 120000) {
+        const activeChain = worker.chain || (worker.currentTask ? worker.currentTask.chain : 'BTC');
+        const activeChallenge = worker.challengeId || (worker.currentTask ? worker.currentTask.challengeId : 'BTC_1000_P71');
+
         activeList.push({
           id,
           name: worker.name,
           hardware: worker.hardware,
           gpuModel: worker.gpuModel,
+          chain: activeChain,
+          challengeId: activeChallenge,
           keysPerSecond: worker.keysPerSecond,
           hashrateFormatted: formatHashrate(worker.keysPerSecond),
           status: worker.status,
+          progress: worker.progress || 0,
           totalKeysChecked: worker.totalKeysChecked || 0,
           currentTask: worker.currentTask || null,
           lastSeenAgoSeconds: Math.floor((now - worker.lastSeen) / 1000)
@@ -96,7 +102,7 @@ router.get('/active', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { token, name, hardware, gpuModel, cpuModel } = req.body;
+    const { token, name, hardware, gpuModel, cpuModel, chain, challenge_id, challengeId } = req.body;
     const workerId = token || `wrk_${crypto.randomBytes(8).toString('hex')}`;
 
     const workerRecord = {
@@ -105,9 +111,12 @@ router.post('/register', async (req, res) => {
       hardware: hardware || 'GPU',
       gpuModel: gpuModel || 'Generic GPU',
       cpuModel: cpuModel || 'Generic CPU',
+      chain: (chain || 'BTC').toUpperCase(),
+      challengeId: challenge_id || challengeId || 'BTC_1000_P71',
       keysPerSecond: 0,
       totalKeysChecked: 0,
       status: 'IDLE',
+      progress: 0,
       lastSeen: Date.now()
     };
 
@@ -182,6 +191,8 @@ router.get('/:id/task', async (req, res) => {
     if (worker) {
       worker.status = 'COMPUTING';
       worker.currentTask = task;
+      worker.chain = activeChain;
+      worker.challengeId = activePuzzleKey;
       worker.lastSeen = Date.now();
     }
 
@@ -201,7 +212,7 @@ router.get('/:id/task', async (req, res) => {
 router.post('/:id/heartbeat', async (req, res) => {
   try {
     const { id } = req.params;
-    const { keysPerSecond, progress, status } = req.body;
+    const { keysPerSecond, progress, status, chain, challenge_id, challengeId } = req.body;
 
     let worker = activeWorkersMap.get(id);
     if (!worker) {
@@ -210,11 +221,15 @@ router.post('/:id/heartbeat', async (req, res) => {
         name: `worker-${id.substring(0, 6)}`,
         hardware: 'GPU',
         status: status || 'RUNNING',
+        chain: (chain || 'BTC').toUpperCase(),
+        challengeId: challenge_id || challengeId || 'BTC_1000_P71',
         totalKeysChecked: 0
       };
       activeWorkersMap.set(id, worker);
     }
 
+    if (chain) worker.chain = chain.toUpperCase();
+    if (challenge_id || challengeId) worker.challengeId = challenge_id || challengeId;
     worker.keysPerSecond = Number(keysPerSecond) || worker.keysPerSecond || 0;
     worker.status = status || 'RUNNING';
     worker.progress = progress || 0;

@@ -405,27 +405,64 @@ async function fetchFleetData() {
           <p class="text-xs text-slate-500 mt-1">Copie o comando acima e execute no Google Colab para conectar nós GPU!</p>
         </div>`;
     } else {
-      container.innerHTML = workers.map(w => `
-        <div class="glass-panel p-4 rounded-xl space-y-2 border border-emerald-500/20">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span class="font-bold text-white text-sm font-mono">${w.name}</span>
+      container.innerHTML = workers.map(w => {
+        const chain = w.chain || 'BTC';
+        const challenge = w.challengeId || 'BTC_1000_P71';
+        const chainColor = chain === 'ETH'
+          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+          : chain === 'SOL'
+            ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+            : 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+
+        const progressPercent = Math.min(100, Math.max(0, w.progress || 0));
+
+        return `
+          <div class="glass-panel p-4 rounded-xl space-y-3 border border-emerald-500/20 hover:border-emerald-500/40 transition">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-white text-sm font-mono">${w.name}</span>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">ONLINE</span>
             </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">ONLINE</span>
+
+            <!-- Active Target Challenge Info -->
+            <div class="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
+              <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                <span>Alvo em Mineração:</span>
+                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold border ${chainColor}">${chain}</span>
+              </div>
+              <div class="font-mono text-xs font-bold text-cyan-300 flex items-center gap-1.5 truncate">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                <span class="truncate" title="${challenge}">${challenge}</span>
+              </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div class="p-2 rounded bg-white/5">
+                <div class="text-slate-400 text-[10px]">Hashrate</div>
+                <div class="font-bold text-emerald-400">${w.hashrateFormatted}</div>
+              </div>
+              <div class="p-2 rounded bg-white/5">
+                <div class="text-slate-400 text-[10px]">Hardware</div>
+                <div class="font-bold text-slate-200 truncate" title="${w.hardware}">${w.hardware}</div>
+              </div>
+            </div>
+
+            <!-- Progress Bar of current chunk -->
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                <span>Fatia Atual</span>
+                <span>${progressPercent > 0 ? progressPercent + '%' : 'Varrendo...'}</span>
+              </div>
+              <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-300" style="width: ${Math.max(5, progressPercent)}%"></div>
+              </div>
+            </div>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
-            <div class="p-2 rounded bg-white/5">
-              <div class="text-slate-400 text-[10px]">Hashrate</div>
-              <div class="font-bold text-cyan-300">${w.hashrateFormatted}</div>
-            </div>
-            <div class="p-2 rounded bg-white/5">
-              <div class="text-slate-400 text-[10px]">Hardware</div>
-              <div class="font-bold text-slate-200 truncate">${w.hardware}</div>
-            </div>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
     if (window.lucide) window.lucide.createIcons();
   } catch (_) {}
