@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>PuzzleRadar Extension</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      background: #060a10;
+      color: #f1f5f9;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 12px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-weight: 800;
+      font-size: 14px;
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .card {
+      background: #0d1522;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .label {
+      color: #94a3b8;
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+    .val {
+      font-weight: 700;
+      font-family: monospace;
+      color: #38bdf8;
+    }
+    .btn {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    .btn-start {
+      background: #10b981;
+      color: #000;
+    }
+    .btn-stop {
+      background: #ef4444;
+      color: #fff;
+    }
+    .input {
+      width: calc(100% - 16px);
+      padding: 6px 8px;
+      background: #020407;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="title">🧩 PuzzleRadar v4.0</div>
+    <div class="badge" id="statusBadge">STANDBY</div>
+  </div>
+
+  <div class="card">
+    <div class="label">Token do Minerador (Opcional / Login):</div>
+    <input type="text" id="tokenInput" class="input" placeholder="Ex: pzk_abc123 ou deixe vazio" />
+
+    <div class="label">Servidor da API:</div>
+    <input type="text" id="apiUrlInput" class="input" value="http://localhost:3010" />
+
+    <button id="toggleBtn" class="btn btn-start">▶ Iniciar Mineração Kangaroo</button>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+      <span class="label">Passos Executados:</span>
+      <span class="val" id="stepsCount">0</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+      <span class="label">DPs Enviados:</span>
+      <span class="val" style="color: #10b981;" id="dpsCount">0</span>
+    </div>
+    <div style="display: flex; justify-content: space-between;">
+      <span class="label">Alvo Atual:</span>
+      <span class="val" style="color: #f59e0b;">Puzzle #71 (7.1 BTC)</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

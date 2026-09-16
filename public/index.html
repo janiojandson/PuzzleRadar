@@ -328,23 +328,25 @@
           </button>
         </div>
 
-        <!-- Card 6: Browser JS (em breve) -->
-        <div class="glass-panel rounded-2xl p-5 border border-slate-600/30 opacity-75">
+        <!-- Card 6: Plugin / Extensão Chrome -->
+        <div class="glass-panel rounded-2xl p-5 border border-amber-500/20 hover:border-amber-400/40 transition group">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-slate-600/10 border border-slate-600/30 flex items-center justify-center text-xl">🌐</div>
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">🧩</div>
             <div>
-              <div class="font-bold text-slate-300 text-sm">Browser (WebAssembly)</div>
-              <div class="text-[11px] text-slate-500">Sem instalar nada — em breve</div>
+              <div class="font-bold text-white text-sm">Plugin Google Chrome</div>
+              <div class="text-[11px] text-slate-400">Extensão MV3 • Mineração em 2º Plano</div>
             </div>
-            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-600/20 text-slate-400 border border-slate-600/30">Em Breve</span>
+            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">Disponível</span>
           </div>
-          <div class="terminal-box rounded-xl p-4 font-mono text-[11px] text-slate-500 mb-4 text-center">
-            <div class="text-2xl mb-2">🚧</div>
-            <div>Worker Kangaroo em WebAssembly</div>
-            <div>Rode direto no navegador sem instalar nada</div>
+          <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-amber-300 mb-4 space-y-1">
+            <div class="text-slate-500"># Como instalar no Chrome / Brave / Edge:</div>
+            <div>1. Acesse chrome://extensions</div>
+            <div>2. Ative o "Modo do Desenvolvedor"</div>
+            <div class="text-emerald-400 font-bold">3. Clique em "Carregar sem compactação"</div>
+            <div>4. Selecione a pasta: /PuzzleRadar/extension</div>
           </div>
-          <button disabled class="w-full py-2 rounded-xl bg-slate-700/30 text-slate-500 text-xs font-semibold border border-slate-700/30 cursor-not-allowed">
-            Disponível em Breve
+          <button onclick="showToast('🧩 A pasta da extensão está pronta em: PuzzleRadar/extension')" class="w-full py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="puzzle" class="w-3.5 h-3.5"></i> Ver Pasta da Extensão
           </button>
         </div>
 

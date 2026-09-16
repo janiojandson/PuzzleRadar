@@ -29,7 +29,7 @@ function getAll160Puzzles(filter = {}) {
       title: `Bitcoin Puzzle #${p.puzzleNumber}`,
       chain: 'BTC',
       address: p.btcAddress,
-      publicKey: p.pubKey,
+      publicKey: p.pubKey || (p.puzzleNumber === 71 ? '03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895' : ''),
       privateKey: p.privKey,
       btcPrize: p.prizeBtc,
       prize: p.prizeBtc,
@@ -44,7 +44,7 @@ function getAll160Puzzles(filter = {}) {
       difficulty: p.bits <= 30 ? 'EASY' : p.bits <= 65 ? 'MEDIUM' : p.bits <= 74 ? 'HARD' : 'EXTREME',
       difficultyLabel: isSolved ? 'Resolvido' : (p.bits <= 74 ? '🎯 ALVO IMEDIATO' : (p.bits <= 80 ? '🟡 Viável em Pool' : '⚫ Desafio Extremo')),
       emoji: isSolved ? '✅' : (p.puzzleNumber === 71 ? '🎯' : (p.bits <= 74 ? '🔥' : '🔓')),
-      publicKeyExposed: Boolean(p.pubKey && !isSolved)
+      publicKeyExposed: Boolean((p.pubKey || p.puzzleNumber === 71) && !isSolved)
     };
   });
 

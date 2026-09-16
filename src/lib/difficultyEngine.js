@@ -648,7 +648,7 @@ function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, 
   const safeScannedChunks = Math.min(safeTotalChunks, Math.max(0, Number(scannedChunks) || 0));
   const safeKps = Math.max(1e5, Number(clusterKps) || 42e9);
 
-  const bits = Number(chal.effectiveBits || chal.bits || chal.bitRange || 66);
+  const bits = Number(chal.bits || chal.bitRange || chal.search_space_bits || chal.effectiveBits || 66);
   const algo = (chal.algorithm || chal.algorithmType || '').toUpperCase();
   const isNonceReuse = chal.challengeId === 'BTC_SATOSHI_NONCE_REUSE' || algo.includes('NONCE_REUSE') || algo.includes('O1') || bits <= 1;
   const isKangaroo = Boolean(chal.publicKeyExposed || chal.targetPublicKey || (chal.publicKey && String(chal.publicKey).length >= 64) || algo.includes('KANGAROO') || algo.includes('SQRT'));
@@ -676,43 +676,51 @@ function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, 
     };
   }
 
-  // ─── CASO 2: KANGAROO POLLARD O(√N) (PUZZLE #71, ETC.) ───
+    // ─── CASO 2: KANGAROO POLLARD O(√N) (PUZZLE #71, ETC.) ───
   if (isKangaroo) {
-    const KANGAROO_TARGET_DPS_PER_HERD = 1024; // Meta para m=26 bits (1.024 Tame e 1.024 Wild)
+    const KANGAROO_TARGET_DPS_PER_HERD = 1024; // Meta para m=24/26 bits (1.024 Tame e 1.024 Wild)
     const KANGAROO_TOTAL_TARGET_DPS = 2048;
     const safeDps = Math.max(0, Number(totalDps) || 0);
     const tameDps = Math.max(0, Number(chal.tameDps !== undefined ? chal.tameDps : Math.floor(safeDps / 2)));
     const wildDps = Math.max(0, Number(chal.wildDps !== undefined ? chal.wildDps : Math.ceil(safeDps / 2)));
 
-    // Fórmula Real do Paradoxo do Aniversário: P = 1 - exp(- (DPs_T * DPs_W) / (2 * (1024)^2)) = 1 - exp(- (DPs_T * DPs_W) / 2097152)
-    const pCollision = 1 - Math.exp(-(tameDps * wildDps) / 2097152);
-    const cumulativeProb = Math.min(99.99, Math.max(0, pCollision * 100));
+    // Fórmula do Paradoxo do Aniversário: P = 1 - exp(- (DPs_T * DPs_W) / (2 * (1024)^2))
+    const pCollision = safeDps > 0 ? (1 - Math.exp(-Math.max(1, tameDps * wildDps) / 2097152)) : 0;
+    const cumulativeProb = Math.min(99.99, Math.max(0.01, pCollision * 100));
 
-    const totalOps = Math.pow(2, Math.min((bits / 2) + 1, 62));
+    // W = 2^(bits - 1) = 2^70. Operações médias esperadas E[X] = 2.08 * sqrt(W) = 2.08 * 2^(35) = ~71.47 Bilhões de operações EC
+    const wExponent = Math.max(1, bits - 1);
+    const sqrtW = Math.pow(2, wExponent / 2);
+    const totalOps = 2.08 * sqrtW; // ~71.47 Bilhões de passos
     const opsPerChunk = totalOps / safeTotalChunks;
     const opsTested = safeScannedChunks * opsPerChunk;
+
     const remainingToMidpoint = Math.max(0, (safeTotalChunks * 0.5) - safeScannedChunks);
     const remainingToExhaustion = Math.max(0, safeTotalChunks - safeScannedChunks);
 
-    const secondsToMidpoint = (remainingToMidpoint * (opsPerChunk / safeKps));
-    const secondsToExhaustion = (remainingToExhaustion * (opsPerChunk / safeKps));
+    // EC Point Additions por segundo (com GPU CUDA / Python Colab ~200k a 500k ops/s por nó)
+    const effectiveEcRate = Math.max(100000, Math.min(safeKps / 1000, 2000000));
+    const secondsToMidpoint = (remainingToMidpoint * (opsPerChunk / effectiveEcRate));
+    const secondsToExhaustion = (remainingToExhaustion * (opsPerChunk / effectiveEcRate));
 
     function formatDuration(sec) {
-      if (sec <= 0) return 'Concluído';
+      if (sec <= 0) return '0 seg';
       if (sec < 60) return `${Math.ceil(sec)} seg`;
       const hours = sec / 3600;
-      if (hours < 24) return `${hours.toFixed(1)}h`;
+      if (hours < 24) return `${hours.toFixed(1)} horas`;
       const days = hours / 24;
-      if (days < 365) return `${days.toFixed(1)}d`;
+      if (days < 365) return `${days.toFixed(1)} dias`;
       return `${(days / 365).toFixed(1)} anos`;
     }
 
     function formatKeys(num) {
-      if (num >= 1e15) return (num / 1e15).toFixed(2) + ' PKeys';
+      if (num >= 1e18) return (num / 1e18).toFixed(2) + ' Quintilhões';
+      if (num >= 1e15) return (num / 1e15).toFixed(2) + ' Quadrilhões';
       if (num >= 1e12) return (num / 1e12).toFixed(2) + ' Trilhões';
       if (num >= 1e9) return (num / 1e9).toFixed(2) + ' Bilhões';
       if (num >= 1e6) return (num / 1e6).toFixed(2) + ' Milhões';
-      return num.toLocaleString() + ' Chaves';
+      if (num >= 1e3) return (num / 1e3).toFixed(2) + ' Mil';
+      return Math.round(num).toLocaleString() + ' Passos';
     }
 
     const dpsConvergencePercent = Math.min(100, Math.max(0, (safeDps / KANGAROO_TOTAL_TARGET_DPS) * 100));
