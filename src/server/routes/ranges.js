@@ -181,12 +181,29 @@ router.get('/recent', async (req, res) => {
 router.get('/space-pruning-live', async (req, res) => {
   try {
     const puzzleId = req.query.puzzleId || 'BTC_1000_P71';
-    const total = Number(req.query.total) || 10000;
+    const total = Number(req.query.total) || 1000;
 
     const challenge = getChallengeById(puzzleId) || getChallengeById('BTC_1000_P71');
     const targetKey = challenge ? (challenge.challengeId || `BTC_1000_P${challenge.puzzleNumber || 71}`) : puzzleId;
 
+    const workersRouter = require('./workers');
+    const activeNodesMap = workersRouter.activeWorkersMap || new Map();
+    const now = Date.now();
+    const liveWorkers = [];
+    for (const [id, w] of activeNodesMap.entries()) {
+      if (now - w.lastSeen <= 180000) {
+        liveWorkers.push(w);
+      }
+    }
+
     const stats = await getPruningStats(targetKey, total);
+    const targetInFlight = liveWorkers
+      .filter(w => (w.challengeId === targetKey || w.currentTask?.puzzleId === targetKey) && w.status === 'COMPUTING')
+      .reduce((acc, w) => acc + (Math.max(0, Math.min(100, Number(w.progress) || 0)) / 100), 0);
+
+    const effectiveScanned = stats.scannedChunks + targetInFlight;
+    const dynamicPrunedPercent = Math.min(100, parseFloat(((effectiveScanned / total) * 100).toFixed(2)));
+
     const sheetsStats = await getSheetsStats();
 
     // Calcula dinamicamente o progresso para todos os desafios monitorados ativos
@@ -195,20 +212,32 @@ router.get('/space-pruning-live', async (req, res) => {
 
     for (const chal of allPuzzles) {
       const cKey = chal.challengeId || `BTC_1000_P${chal.puzzleNumber || 71}`;
-      const pStats = await getPruningStats(cKey, 10000);
+      const pStats = await getPruningStats(cKey, 1000);
+      const chalInFlight = liveWorkers
+        .filter(w => (w.challengeId === cKey || w.currentTask?.puzzleId === cKey) && w.status === 'COMPUTING')
+        .reduce((acc, w) => acc + (Math.max(0, Math.min(100, Number(w.progress) || 0)) / 100), 0);
+      const chalEffective = pStats.scannedChunks + chalInFlight;
+      const chalPercent = (chal.bits && chal.bits <= 1) || chal.challengeId === 'BTC_SATOSHI_NONCE_REUSE'
+        ? 100.00
+        : Math.min(100, parseFloat(((chalEffective / 1000) * 100).toFixed(2)));
+
       multiStats.push({
         challengeId: cKey,
         chain: chal.chain || 'BTC',
         title: chal.title || cKey,
         prize: chal.prize ? `${chal.prize} ${chal.prizeCurrency || chal.chain}` : '',
         scannedChunks: pStats.scannedChunks,
-        totalChunks: pStats.totalChunks,
-        prunedPercent: pStats.prunedPercent
+        totalChunks: 1000,
+        prunedPercent: chalPercent
       });
     }
 
     res.json({
       ...stats,
+      scannedChunks: stats.scannedChunks,
+      totalChunks: total,
+      prunedPercent: dynamicPrunedPercent,
+      effectiveScannedChunks: parseFloat(effectiveScanned.toFixed(2)),
       sheetsStats,
       targetPuzzle: targetKey,
       chain: (challenge && challenge.chain) || 'BTC',

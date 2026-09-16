@@ -682,7 +682,7 @@ async function fetchLiveRangesData() {
     const targetChallenge = currentSelectedPruningChallenge || currentActiveChallenge || 'BTC_1000_P71';
     const [recentRes, pruningRes] = await Promise.all([
       fetch('/api/ranges/recent'),
-      fetch(`/api/ranges/space-pruning-live?puzzleId=${encodeURIComponent(targetChallenge)}&total=10000`)
+      fetch(`/api/ranges/space-pruning-live?puzzleId=${encodeURIComponent(targetChallenge)}&total=1000`)
     ]);
 
     const recentData = await recentRes.json();
@@ -696,15 +696,15 @@ async function fetchLiveRangesData() {
       pruningData.multiStats.forEach(s => {
         const pEl = document.getElementById(`multiProgress_${s.challengeId}`);
         const pBar = document.getElementById(`multiProgressBar_${s.challengeId}`);
-        if (pEl) pEl.innerText = `${s.prunedPercent.toFixed(1)}%`;
-        if (pBar) pBar.style.width = `${Math.max(3, Math.min(100, s.prunedPercent))}%`;
+        if (pEl) pEl.innerText = `${s.prunedPercent.toFixed(2)}% (${s.scannedChunks}/${s.totalChunks || 1000})`;
+        if (pBar) pBar.style.width = `${Math.max(2, Math.min(100, s.prunedPercent))}%`;
 
         // Se for o alvo secundário selecionado no momento
         if (currentSecondaryTarget && currentSecondaryTarget.id === s.challengeId) {
           currentSecondaryTarget.scanned = s.prunedPercent;
-          setInner('dashSecScanned', `${s.prunedPercent.toFixed(1)}%`);
+          setInner('dashSecScanned', `${s.prunedPercent.toFixed(2)}%`);
           const secBar = document.getElementById('dashSecProgressBar');
-          if (secBar) secBar.style.width = `${Math.max(3, Math.min(100, s.prunedPercent))}%`;
+          if (secBar) secBar.style.width = `${Math.max(2, Math.min(100, s.prunedPercent))}%`;
         }
       });
     }
@@ -713,11 +713,12 @@ async function fetchLiveRangesData() {
     if (pruningData) {
       const percent = pruningData.prunedPercent || 0;
       const scanned = pruningData.scannedChunks || 0;
-      const total = pruningData.totalChunks || 10000;
+      const effectiveScanned = pruningData.effectiveScannedChunks || scanned;
+      const total = pruningData.totalChunks || 1000;
       const chalTitle = pruningData.title || targetChallenge;
 
       setInner('pruningChallengeTitleDisplay', `Space Pruning [${pruningData.chain || 'BTC'}] ${chalTitle}:`);
-      setInner('pruningPercentDisplay', `${percent.toFixed(2)}% do espaço podado`);
+      setInner('pruningPercentDisplay', `${percent.toFixed(2)}% do espaço podado (${effectiveScanned} de ${total} fatias)`);
       setInner('pruningScannedCount', Number(scanned).toLocaleString());
       setInner('pruningTotalCount', Number(total).toLocaleString() + ' fatias');
 
@@ -1375,9 +1376,14 @@ function handleTelemetryPulse(pulse) {
     setInner('dashSentinelStatus', pulse.activeTarget.sentinelStatus || 'INTACTO / LIMPO');
     setInner('dashTargetAlgo', pulse.activeTarget.complexity || 'Kangaroo O(√N)');
     setInner('dashTargetTime', pulse.activeTarget.estimatedFleetTime || '4.8 dias');
-    setInner('dashTargetScanned', `${pulse.activeTarget.scannedPercent || 18.4}%`);
+    
+    const pVal = Number(pulse.activeTarget.scannedPercent || 0).toFixed(2);
+    const scannedCh = pulse.activeTarget.scannedChunks || 0;
+    const totCh = pulse.activeTarget.totalChunks || 1000;
+    setInner('dashTargetScanned', `${pVal}% (${scannedCh}/${totCh} fatias)`);
+
     const bar = document.getElementById('dashTargetProgressBar');
-    if (bar) bar.style.width = `${pulse.activeTarget.scannedPercent || 18.4}%`;
+    if (bar) bar.style.width = `${Math.max(2, Math.min(100, parseFloat(pVal)))}%`;
   }
 
   // Alvo Secundário (Sincronizado 100% com Multi-Chain)
@@ -1391,6 +1397,11 @@ function handleTelemetryPulse(pulse) {
     setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(1) Instantâneo');
     setInner('dashSecFilter', pulse.secondaryTarget.bip39ChecksumFilter || 'Cálculo Algébrico O(1)');
     setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || 'Instantâneo');
+    
+    const secVal = Number(pulse.secondaryTarget.scannedPercent || 0).toFixed(2);
+    setInner('dashSecScanned', `${secVal}%`);
+    const secBar = document.getElementById('dashSecProgressBar');
+    if (secBar) secBar.style.width = `${Math.max(2, Math.min(100, parseFloat(secVal)))}%`;
 
     const secBtn = document.getElementById('dashSecActionButton');
     if (secBtn) {
