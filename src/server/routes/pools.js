@@ -327,7 +327,7 @@ const getTransparencyData = async () => {
   // 15% Taxa da Casa / Autor do Projeto para infraestrutura e custódia privada
   const houseFeeRate = 0.15;
   const houseBaseUsd = poolTotalPrizeUsd * houseFeeRate; // $69.225
-  const distributablePoolUsd = poolTotalPrizeUsd * (1 - houseFeeRate); // $392.275 (85%)
+  const distributableSubscribersPoolUsd = poolTotalPrizeUsd * (1 - houseFeeRate); // $392.275 (85%)
 
   // Agrupa todas as sessões e nós conectados por Operador / Login / Token
   const operatorsMap = new Map();
@@ -409,7 +409,7 @@ const getTransparencyData = async () => {
     if (op.isSubscriberActive && activeSubscribersShares > 0) {
       const shareFrac = op.shares / activeSubscribersShares;
       sharePercent = shareFrac * 100;
-      projectedPayoutUsd = parseFloat((shareFrac * distributablePoolUsd).toFixed(2));
+      projectedPayoutUsd = parseFloat((shareFrac * distributableSubscribersPoolUsd).toFixed(2));
     }
 
     return {
@@ -430,7 +430,7 @@ const getTransparencyData = async () => {
 
   // Reversão de cotas inativas para a Casa
   const revertedSharesAmountUsd = totalPoolShares > 0 && activeSubscribersShares > 0
-    ? parseFloat(((inactiveRevertedShares / totalPoolShares) * distributablePoolUsd).toFixed(2))
+    ? parseFloat(((inactiveRevertedShares / totalPoolShares) * distributableSubscribersPoolUsd).toFixed(2))
     : 0;
 
   const totalHouseTakeUsd = parseFloat((houseBaseUsd + revertedSharesAmountUsd).toFixed(2));
