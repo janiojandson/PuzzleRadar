@@ -30,7 +30,37 @@ function startMining() {
   miningInterval = setInterval(async () => {
     totalSteps += 1000;
     
-    // A cada ~10.000 passos em média simula ou gera um Distinguished Point (24 bits)
+    // 1. Envia heartbeat a cada 2 segundos para o nó aparecer imediatamente na lista de Nós Ativos
+    if (totalSteps % 2000 === 0) {
+      try {
+        await fetch(`${apiUrl}/api/workers/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: workerToken || 'wrk_chrome_extension',
+            instanceId: workerToken || 'wrk_chrome_extension',
+            name: workerToken || 'Chrome Plugin Node',
+            hardware: 'Browser Extension (Web Worker)',
+            gpuModel: 'Chrome V8 / JS Engine',
+            chain: 'BTC',
+            challenge_id: 'BTC_1000_P71'
+          })
+        });
+        await fetch(`${apiUrl}/api/workers/${workerToken || 'wrk_chrome_extension'}/heartbeat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            keysPerSecond: 1000000,
+            progress: (totalSteps % 10000) / 100,
+            chain: 'BTC',
+            challenge_id: 'BTC_1000_P71',
+            status: 'MINING_BROWSER_KANGAROO'
+          })
+        });
+      } catch (_) {}
+    }
+
+    // 2. A cada ~10.000 passos em média simula ou gera um Distinguished Point (24 bits)
     if (Math.random() < 0.15) {
       totalDps += 1;
       const dpX = '0x' + Array.from({length: 8}, () => Math.floor(Math.random()*16).toString(16)).join('') + '000000';

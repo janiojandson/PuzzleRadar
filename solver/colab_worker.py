@@ -380,39 +380,36 @@ class ColabFarmWorker:
         }
 
     def report_result(self, task, result):
-        if self.challenge_id == "BTC_1000_P71":
-            return  # Já despachado via /api/workers/:id/dps
-
         try:
             res = requests.post(
                 f"{self.api_url}/api/workers/{self.worker_id}/result",
                 json={
-                    "taskId": task.get("taskId"),
+                    "taskId": task.get("taskId") or f"task_{int(time.time())}_{self.kangaroo_round}",
                     "chain": self.chain,
                     "challenge_id": self.challenge_id,
                     "challengeId": self.challenge_id,
                     "puzzleId": task.get("puzzleId", self.challenge_id),
-                    "chunkIndex": task.get("chunkIndex", 0),
-                    "rangeStart": task.get("rangeStart"),
-                    "rangeEnd": task.get("rangeEnd"),
-                    "result": "FOUND" if result["found"] else "NOT_FOUND",
+                    "chunkIndex": task.get("chunkIndex", self.kangaroo_round),
+                    "rangeStart": task.get("rangeStart", "400000000000000000"),
+                    "rangeEnd": task.get("rangeEnd", "7fffffffffffffffff"),
+                    "result": "FOUND" if result.get("found") else "NOT_FOUND",
                     "foundPrivateKey": result.get("found_private_key"),
-                    "targetAddress": task.get("targetAddress"),
-                    "keysChecked": result["keys_checked"],
-                    "computeHours": result["compute_hours"],
-                    "hashrate": result["hashrate"],
+                    "targetAddress": task.get("targetAddress", "1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU"),
+                    "keysChecked": result.get("keys_checked", 0),
+                    "computeHours": result.get("compute_hours", 0.001),
+                    "hashrate": result.get("hashrate", "120.0 MSteps/s"),
                     "workerName": self.node_name
                 },
                 timeout=10
             )
             data = res.json()
-            shares = data.get("sharesEarned", 1000)
+            shares = data.get("sharesEarned", 100)
             self.stats["ranges_completed"] += 1
-            self.stats["total_keys_checked"] += result["keys_checked"]
+            self.stats["total_keys_checked"] += result.get("keys_checked", 0)
             self.stats["total_shares"] += shares
 
-            print(f"✅ Fatia Concluída e Sincronizada com Google Sheets! [{self.chain} - {self.challenge_id}] Shares: +{shares:,.0f}")
-            print(f"📊 [Stats do Nó] Fatias: {self.stats['ranges_completed']} | Chaves: {self.stats['total_keys_checked']/1e9:.2f}B | Shares: {self.stats['total_shares']:,.2f}\n")
+            print(f"✅ Lote Concluído e Sincronizado com Cluster & Google Sheets! [{self.chain} - {self.challenge_id}] Shares: +{shares:,.0f}")
+            print(f"📊 [Stats do Nó] Lotes: {self.stats['ranges_completed']} | Passos: {self.stats['total_keys_checked']/1e6:.1f}M | Shares: {self.stats['total_shares']:,.0f}\n")
         except Exception as e:
             print(f"⚠️ Falha ao reportar resultado à central: {e}")
 

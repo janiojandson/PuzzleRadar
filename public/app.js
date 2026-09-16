@@ -63,35 +63,48 @@ function switchTab(tabId) {
 // ─── 1000 BTC PUZZLE DATA & TABLE ───
 async function fetch1000BtcData() {
   try {
-    // Busca recomendações de ROI e puzzles simultaneamente
-    const [puzzlesRes, recRes] = await Promise.all([
-      fetch('/api/puzzle1000btc?limit=160'),
-      fetch('/api/advisor/recommendations?fleetHashrate=42000000000')
-    ]);
+    // Busca puzzles de 1000 BTC e recomendações de ROI de forma resiliente
+    let puzzlesData = null;
+    let recData = null;
 
-    const data = await puzzlesRes.json();
-    const recData = await recRes.json();
-    advisorRecommendations = recData.recommendations || [];
+    try {
+      const pRes = await fetch('/api/puzzle1000btc?limit=160');
+      if (pRes.ok) puzzlesData = await pRes.json();
+    } catch (pErr) {
+      console.warn('Falha ao obter /api/puzzle1000btc:', pErr);
+    }
+
+    try {
+      const rRes = await fetch('/api/advisor/recommendations?fleetHashrate=42000000000');
+      if (rRes.ok) recData = await rRes.json();
+    } catch (rErr) {
+      console.warn('Falha ao obter /api/advisor/recommendations:', rErr);
+    }
+
+    advisorRecommendations = (recData && recData.recommendations) || [];
 
     // Mapeia dados de ROI nos puzzles
     const roiMap = new Map();
     advisorRecommendations.forEach(r => {
-      roiMap.set(r.puzzleNumber, r.roi);
+      if (r.puzzleNumber) roiMap.set(r.puzzleNumber, r.roi);
       if (r.challengeId) roiMap.set(r.challengeId, r.roi);
+      if (r.num) roiMap.set(r.num, r.roi);
     });
 
-    all1000Puzzles = (data.puzzles || []).map(p => ({
+    const rawPuzzles = (puzzlesData && puzzlesData.puzzles) || [];
+    all1000Puzzles = rawPuzzles.map(p => ({
       ...p,
-      roi: roiMap.get(p.num) || null
+      roi: roiMap.get(p.num || p.puzzleNumber) || null
     }));
+
     filtered1000Puzzles = [...all1000Puzzles];
 
-    if (data.stats) {
-      setInner('statTotalWallets', data.stats.total || 160);
-      setInner('statSolvedWallets', `${data.stats.solved} (51.9%)`);
-      setInner('statUnsolvedWallets', `${data.stats.unsolved} Carteiras`);
-      setInner('statBtcDispute', `${data.stats.btcInDispute} BTC (~$${(Number(data.stats.btcInDispute) * (recData.fleetConfig ? 65000 : 65000) / 1e6).toFixed(1)}M)`);
-      setInner('headerDispute', `${data.stats.btcInDispute} BTC`);
+    if (puzzlesData && puzzlesData.stats) {
+      setInner('statTotalWallets', puzzlesData.stats.total || 160);
+      setInner('statSolvedWallets', `${puzzlesData.stats.solved} (51.9%)`);
+      setInner('statUnsolvedWallets', `${puzzlesData.stats.unsolved} Carteiras`);
+      setInner('statBtcDispute', `${puzzlesData.stats.btcInDispute} BTC (~$${(Number(puzzlesData.stats.btcInDispute) * 65000 / 1e6).toFixed(1)}M)`);
+      setInner('headerDispute', `${puzzlesData.stats.btcInDispute} BTC`);
     }
 
     render1000Ticks(all1000Puzzles);
