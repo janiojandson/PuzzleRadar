@@ -421,6 +421,99 @@ router.post('/:id/result', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/puzzle/:id/parameters — Exporta parâmetros determinísticos do desafio (tabela de saltos, máscara, chaves)
+ */
+router.get('/puzzle/:id/parameters', (req, res) => {
+  const { id } = req.params;
+  const { PUZZLE_71_PARAMS } = require('../../lib/kangarooTable');
+  if (id === '71' || id === 'BTC_1000_P71' || id === 'puzzle_btc_71') {
+    return res.json({ success: true, parameters: PUZZLE_71_PARAMS });
+  }
+  const { getChallengeById } = require('../../lib/difficultyEngine');
+  const chal = getChallengeById(id);
+  res.json({
+    success: true,
+    parameters: chal || { challengeId: id, bitRange: 66, dpMaskBits: 24, dpMaskHex: '0xffffff' }
+  });
+});
+
+/**
+ * POST /api/workers/:id/dps — Despacho em lote de Distinguished Points (DPs) capturados pelo worker
+ */
+router.post('/:id/dps', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { challengeId = 'BTC_1000_P71', chain = 'BTC', points = [], hashrate, totalStepsChecked } = req.body;
+    const { storeDistinguishedPoint } = require('../../lib/redis');
+    const { resolveCollisionPrivateKey } = require('../../lib/kangarooTable');
+    const { antiMevRescue } = require('../../services/antiMevRescue');
+
+    let worker = activeWorkersMap.get(id);
+    if (worker) {
+      worker.lastSeen = Date.now();
+      if (hashrate) worker.keysPerSecond = Number(hashrate) || worker.keysPerSecond;
+      if (totalStepsChecked) worker.totalKeysChecked = (worker.totalKeysChecked || 0) + Number(totalStepsChecked);
+      worker.shares = (worker.shares || 0) + (points.length * 10);
+    }
+
+    let detectedCollision = null;
+    let registeredCount = 0;
+
+    for (const pt of points) {
+      const pointKey = pt.pointKey || pt.pointHex || pt.xCoordHex;
+      if (!pointKey) continue;
+
+      const dpRes = await storeDistinguishedPoint(challengeId, pointKey, {
+        userId: id,
+        isTame: Boolean(pt.isTame),
+        yCoordHex: pt.yCoordHex || '',
+        stepDistanceHex: pt.stepDistanceHex || String(pt.distanceSteps || '0')
+      });
+
+      registeredCount++;
+
+      if (dpRes.collisionDetected && dpRes.collisionData) {
+        detectedCollision = dpRes.collisionData;
+        console.log(`🎯 [Cluster Kangaroo] 🚨 COLISÃO VÁLIDA DETECTADA PARA ${challengeId}! Ponto: ${pointKey}`);
+
+        // Resolve algebricamente a chave privada com verificação escalar em ambas as hipóteses de paridade
+        const resolution = resolveCollisionPrivateKey(
+          dpRes.collisionData.tamePoint,
+          dpRes.collisionData.wildPoint,
+          '0x400000000000000000',
+          '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU'
+        );
+
+        if (resolution.isValid) {
+          console.log(`🎉🎉🎉 [Cluster Kangaroo] CHAVE PRIVADA DEDUZIDA COM SUCESSO! Chave: ${resolution.privateKeyHex} (${resolution.hypothesis}) 🎉🎉🎉`);
+          broadcastTelemetryEvent('SENTINEL', `🚨🎉 [CHAVE AUTÊNTICA ENCONTRADA!] Colisão Kangaroo em [${challengeId}]! Chave deduzida. Resgate acionado!`);
+          
+          antiMevRescue.executeRescue({
+            chain,
+            challengeId,
+            privateKeyHex: resolution.privateKeyHex,
+            targetAddress: '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU'
+          }).catch(err => console.error('Erro no resgate:', err.message));
+        }
+      }
+    }
+
+    if (registeredCount > 0) {
+      broadcastTelemetryEvent('DP_SUBMITTED', `🦘 [LOTE DP] Nó ${worker ? worker.name : id} registrou +${registeredCount} DPs para [${challengeId}].`);
+    }
+
+    res.json({
+      success: true,
+      registeredCount,
+      collisionDetected: Boolean(detectedCollision),
+      sharesEarned: points.length * 10
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 function formatHashrate(kps = 0) {
   const n = Number(kps) || 0;
   if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TH/s';

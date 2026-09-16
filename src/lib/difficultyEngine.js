@@ -678,13 +678,15 @@ function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, 
 
   // ─── CASO 2: KANGAROO POLLARD O(√N) (PUZZLE #71, ETC.) ───
   if (isKangaroo) {
-    const KANGAROO_TARGET_DPS = 4096; // Meta para m=24 bits (Paradoxo do Aniversário)
+    const KANGAROO_TARGET_DPS_PER_HERD = 1024; // Meta para m=26 bits (1.024 Tame e 1.024 Wild)
+    const KANGAROO_TOTAL_TARGET_DPS = 2048;
     const safeDps = Math.max(0, Number(totalDps) || 0);
-    const dpsConvergencePercent = Math.min(100, Math.max(0, (safeDps / KANGAROO_TARGET_DPS) * 100));
-    
-    // Probabilidade por Paradoxo do Aniversário: P ≈ 1 - exp(- (dps^2) / (2 * N_DP))
-    const pCollision = 1 - Math.exp(-Math.pow(safeDps / 2, 2) / (2 * KANGAROO_TARGET_DPS));
-    const cumulativeProb = Math.min(99.99, Math.max(parseFloat(((safeScannedChunks / safeTotalChunks) * 100).toFixed(2)), pCollision * 100));
+    const tameDps = Math.max(0, Number(chal.tameDps !== undefined ? chal.tameDps : Math.floor(safeDps / 2)));
+    const wildDps = Math.max(0, Number(chal.wildDps !== undefined ? chal.wildDps : Math.ceil(safeDps / 2)));
+
+    // Fórmula Real do Paradoxo do Aniversário: P = 1 - exp(- (DPs_T * DPs_W) / (2 * (1024)^2)) = 1 - exp(- (DPs_T * DPs_W) / 2097152)
+    const pCollision = 1 - Math.exp(-(tameDps * wildDps) / 2097152);
+    const cumulativeProb = Math.min(99.99, Math.max(0, pCollision * 100));
 
     const totalOps = Math.pow(2, Math.min((bits / 2) + 1, 62));
     const opsPerChunk = totalOps / safeTotalChunks;
@@ -713,6 +715,7 @@ function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, 
       return num.toLocaleString() + ' Chaves';
     }
 
+    const dpsConvergencePercent = Math.min(100, Math.max(0, (safeDps / KANGAROO_TOTAL_TARGET_DPS) * 100));
     const progressToMidpoint = Math.min(100, (safeScannedChunks / (safeTotalChunks * 0.5)) * 100);
 
     return {
@@ -728,7 +731,10 @@ function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, 
       midpointTargetChunks: Math.ceil(safeTotalChunks * 0.5),
       progressToMidpointPercent: parseFloat(progressToMidpoint.toFixed(1)),
       kangarooDps: safeDps,
-      kangarooTargetDps: KANGAROO_TARGET_DPS,
+      tameDps,
+      wildDps,
+      kangarooTargetDps: KANGAROO_TOTAL_TARGET_DPS,
+      kangarooTargetPerHerd: KANGAROO_TARGET_DPS_PER_HERD,
       kangarooConvergencePercent: parseFloat(dpsConvergencePercent.toFixed(1)),
       keysScannedFormatted: formatKeys(opsTested),
       totalKeysFormatted: formatKeys(totalOps),

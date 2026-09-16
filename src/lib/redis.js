@@ -154,61 +154,136 @@ async function sanitizeBitmap(puzzleId, maxChunks = 100000) {
 const memoryDpStore = new Map(); // Fallback in-memory para Distinguished Points (dp:<puzzleId> -> Map(xHex -> payload))
 
 /**
- * Armazena um Distinguished Point no Redis Hash O(1) e verifica colisão Tame vs Wild
+ * Script Lua Nativo para inserção atômica e detecção instantânea de colisão no Redis
+ */
+const PROCESS_DP_LUA = `
+local hash_key = KEYS[1]
+local point_key = ARGV[1]
+local incoming_type = ARGV[2]
+local incoming_dist = ARGV[3]
+local incoming_worker = ARGV[4]
+local incoming_y = ARGV[5]
+
+local existing = redis.call("HGET", hash_key, point_key)
+
+if existing then
+    local p_user, p_tame, p_y, p_dist = string.match(existing, "([^|]+)|([^|]+)|([^|]*)|([^|]+)")
+    local stored_is_tame = (p_tame == "1")
+    local incoming_is_tame = (incoming_type == "1")
+
+    if stored_is_tame ~= incoming_is_tame then
+        return {
+            "COLLISION_FOUND",
+            p_user, tostring(p_tame), p_y or "", p_dist,
+            incoming_worker, tostring(incoming_type), incoming_y or "", incoming_dist
+        }
+    else
+        return {"DUPLICATE_SAME_HERD", redis.call("HLEN", hash_key)}
+    end
+else
+    local val_str = incoming_worker .. "|" .. incoming_type .. "|" .. (incoming_y or "") .. "|" .. incoming_dist
+    redis.call("HSET", hash_key, point_key, val_str)
+    return {"STORED", tostring(redis.call("HLEN", hash_key))}
+end
+`;
+
+/**
+ * Armazena um Distinguished Point no Redis Hash O(1) indexando ponto completo ou coordenada X com paridade
  * Formato do valor: "<USER_ID>|<IS_TAME>|<Y_COORD_HEX>|<DISTANCE_HEX>"
  */
-async function storeDistinguishedPoint(challengeId, xCoordHex, { userId, isTame, yCoordHex, stepDistanceHex }) {
+async function storeDistinguishedPoint(challengeId, pointHexOrX, { userId, isTame, yCoordHex, stepDistanceHex }) {
   const hashKey = `puzzleradar:dp:${challengeId}`;
-  const cleanX = (xCoordHex || '').trim().toLowerCase().replace(/^0x/i, '');
+  
+  let cleanKey = (pointHexOrX || '').trim().toLowerCase().replace(/^0x/i, '');
   const cleanY = (yCoordHex || '').trim().toLowerCase().replace(/^0x/i, '');
   const cleanDist = (stepDistanceHex || '0').trim().toLowerCase().replace(/^0x/i, '');
   const isTameInt = isTame ? 1 : 0;
-  const valString = `${userId}|${isTameInt}|${cleanY}|${cleanDist}`;
+  
+  // Se recebemos apenas a coordenada X de 64 chars e temos Y, prefixa com 02 (par) ou 03 (ímpar)
+  if (cleanKey.length === 64 && cleanY.length > 0) {
+    const lastByte = parseInt(cleanY.slice(-1), 16);
+    const prefix = (lastByte % 2 === 0) ? '02' : '03';
+    cleanKey = prefix + cleanKey;
+  }
 
-  let existingPoint = null;
+  const valString = `${userId || 'anon'}|${isTameInt}|${cleanY}|${cleanDist}`;
+  let collisionDetected = false;
+  let collisionData = null;
 
   if (redisClient && redisClient.status === 'ready') {
-    const prev = await redisClient.hget(hashKey, cleanX);
-    if (prev) {
-      const [pUser, pTame, pY, pDist] = prev.split('|');
-      existingPoint = {
-        userId: pUser,
-        isTame: Number(pTame) === 1,
-        yCoordHex: pY,
-        stepDistanceHex: pDist
-      };
+    try {
+      const res = await redisClient.eval(
+        PROCESS_DP_LUA,
+        1,
+        hashKey,
+        cleanKey,
+        String(isTameInt),
+        cleanDist,
+        String(userId || 'anon'),
+        cleanY
+      );
+
+      if (Array.isArray(res) && res[0] === 'COLLISION_FOUND') {
+        collisionDetected = true;
+        const storedIsTame = res[2] === '1';
+        collisionData = {
+          challengeId,
+          pointKey: cleanKey,
+          tamePoint: storedIsTame
+            ? { userId: res[1], yCoordHex: res[3], stepDistanceHex: res[4] }
+            : { userId: res[5], yCoordHex: res[7], stepDistanceHex: res[8] },
+          wildPoint: !storedIsTame
+            ? { userId: res[1], yCoordHex: res[3], stepDistanceHex: res[4] }
+            : { userId: res[5], yCoordHex: res[7], stepDistanceHex: res[8] }
+        };
+      }
+    } catch (luaErr) {
+      // Fallback para HGET/HSET tradicional se o Redis server não suportar eval
+      const prev = await redisClient.hget(hashKey, cleanKey);
+      if (prev) {
+        const [pUser, pTame, pY, pDist] = prev.split('|');
+        if (Number(pTame) !== isTameInt) {
+          collisionDetected = true;
+          collisionData = {
+            challengeId,
+            pointKey: cleanKey,
+            tamePoint: Number(pTame) === 1
+              ? { userId: pUser, yCoordHex: pY, stepDistanceHex: pDist }
+              : { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist },
+            wildPoint: Number(pTame) === 0
+              ? { userId: pUser, yCoordHex: pY, stepDistanceHex: pDist }
+              : { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist }
+          };
+        }
+      } else {
+        await redisClient.hset(hashKey, cleanKey, valString);
+      }
     }
-    await redisClient.hset(hashKey, cleanX, valString);
   } else {
+    // In-memory atomic store fallback
     if (!memoryDpStore.has(hashKey)) {
       memoryDpStore.set(hashKey, new Map());
     }
     const map = memoryDpStore.get(hashKey);
-    const prev = map.get(cleanX);
+    const prev = map.get(cleanKey);
     if (prev) {
       const [pUser, pTame, pY, pDist] = prev.split('|');
-      existingPoint = {
-        userId: pUser,
-        isTame: Number(pTame) === 1,
-        yCoordHex: pY,
-        stepDistanceHex: pDist
-      };
+      if (Number(pTame) !== isTameInt) {
+        collisionDetected = true;
+        collisionData = {
+          challengeId,
+          pointKey: cleanKey,
+          tamePoint: Number(pTame) === 1
+            ? { userId: pUser, yCoordHex: pY, stepDistanceHex: pDist }
+            : { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist },
+          wildPoint: Number(pTame) === 0
+            ? { userId: pUser, yCoordHex: pY, stepDistanceHex: pDist }
+            : { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist }
+        };
+      }
+    } else {
+      map.set(cleanKey, valString);
     }
-    map.set(cleanX, valString);
-  }
-
-  // Verifica colisão: mesmo ponto X registrado por rebanhos opostos (Tame vs Wild)
-  let collisionDetected = false;
-  let collisionData = null;
-
-  if (existingPoint && existingPoint.isTame !== Boolean(isTame)) {
-    collisionDetected = true;
-    collisionData = {
-      challengeId,
-      xCoordHex: cleanX,
-      tamePoint: isTame ? { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist } : existingPoint,
-      wildPoint: !isTame ? { userId, yCoordHex: cleanY, stepDistanceHex: cleanDist } : existingPoint
-    };
   }
 
   return {
@@ -217,7 +292,7 @@ async function storeDistinguishedPoint(challengeId, xCoordHex, { userId, isTame,
     collisionData,
     point: {
       challengeId,
-      xCoordHex: cleanX,
+      pointKey: cleanKey,
       userId,
       isTame: Boolean(isTame),
       stepDistanceHex: cleanDist
@@ -240,17 +315,35 @@ async function publishRevocation(challengeId, reason = 'TARGET_DRAINED_ON_CHAIN'
 }
 
 /**
- * Retorna contagem de DPs registrados para um desafio
+ * Retorna contagem de DPs registrados para um desafio e distribuição Tame vs Wild
  */
 async function getDpStats(challengeId) {
   const hashKey = `puzzleradar:dp:${challengeId}`;
+  let totalDps = 0;
+  let tameDps = 0;
+  let wildDps = 0;
+
   if (redisClient && redisClient.status === 'ready') {
-    const count = await redisClient.hlen(hashKey);
-    return { challengeId, totalDps: count };
+    const all = await redisClient.hgetall(hashKey);
+    totalDps = Object.keys(all).length;
+    for (const val of Object.values(all)) {
+      const parts = val.split('|');
+      if (parts[1] === '1') tameDps++;
+      else wildDps++;
+    }
   } else {
     const map = memoryDpStore.get(hashKey);
-    return { challengeId, totalDps: map ? map.size : 0 };
+    if (map) {
+      totalDps = map.size;
+      for (const val of map.values()) {
+        const parts = val.split('|');
+        if (parts[1] === '1') tameDps++;
+        else wildDps++;
+      }
+    }
   }
+
+  return { challengeId, totalDps, tameDps, wildDps };
 }
 
 module.exports = {

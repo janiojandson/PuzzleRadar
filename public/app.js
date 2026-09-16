@@ -1411,7 +1411,11 @@ function handleTelemetryPulse(pulse) {
       setInner('dashTargetProb', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
       setInner('dashTargetProgressMid', `${Number(ms.progressToMidpointPercent || 0).toFixed(1)}% da meta`);
       setInner('dashTargetKeysStats', `${ms.keysScannedFormatted || '0'} / ${ms.totalKeysFormatted || 'Espaço'}`);
-      setInner('dashTargetDpsMeta', `${Number(ms.kangarooDps || 0).toLocaleString()} / ${Number(ms.kangarooTargetDps || 4096).toLocaleString()} DPs`);
+      
+      const tameCount = ms.tameDps !== undefined ? ms.tameDps : Math.floor((ms.kangarooDps || 0) / 2);
+      const wildCount = ms.wildDps !== undefined ? ms.wildDps : Math.ceil((ms.kangarooDps || 0) / 2);
+      setInner('dashTargetDpsMeta', `${Number(ms.kangarooDps || 0).toLocaleString()} / ${Number(ms.kangarooTargetDps || 2048).toLocaleString()} DPs (${tameCount} Tame | ${wildCount} Wild)`);
+      
       setInner('dashTargetEta50', ms.realisticEta50Formatted || 'Calculando...');
       setInner('dashTargetEta100', ms.maxEta100Formatted || 'Calculando...');
     }
