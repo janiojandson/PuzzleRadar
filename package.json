@@ -1,19 +1,24 @@
 {
   "name": "puzzleradar",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "description": "SaaS Colaborativo para Resolução de Desafios Criptográficos e Redução de Entropia",
   "private": true,
   "main": "src/server/index.js",
   "scripts": {
     "dev": "node src/server/index.js",
     "dev:worker": "node src/workers/worker.js",
+    "dev:kangaroo:tame": "WALK_TYPE=tame node src/workers/kangarooWorker.js",
+    "dev:kangaroo:wild": "WALK_TYPE=wild node src/workers/kangarooWorker.js",
+    "dev:kangaroo:mobile": "MAX_STEPS=10000 node src/workers/kangarooWorker.js",
     "build": "npx prisma generate",
     "start": "node src/server/index.js",
     "test": "node tests/masterValidation.test.js && node tests/telemetryStream.test.js && node tests/difficultyEngine.test.js && node tests/importHistory.test.js && node tests/e2eWorkerFlow.test.js && node tests/v3Scale.test.js",
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "db:validate": "npx prisma validate",
+    "kangaroo:cleanup": "node -e \"require('./src/lib/kangarooManager').cleanupOrphanDPs().then(r => console.log('Cleaned:', r))\""
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",

@@ -233,6 +233,7 @@ model Puzzle {
   sourceName       String?
   solvedBy         String?
   solvedAt         DateTime?
+  hash160          String?          // hash160 derivado do endereço (RIPEMD160(SHA256(pubKey)))
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -310,6 +311,9 @@ model Range {
   completedAt     DateTime?
   result          RangeResult     @default(NOT_FOUND)
   foundPrivateKey String?
+  priorityScore   Int             @default(50)  // Score de prioridade do lote (0-1000)
+  filterApplied   String?                        // Filtros matemáticos aplicados
+  progressPct     Float           @default(0)   // Percentual do lote concluído
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -409,6 +413,8 @@ model DistinguishedPoint {
   yCoordHex       String   // Coordenada Y
   stepDistanceHex String   // Distância acumulada d
   isTameKangaroo  Boolean  @default(false)
+  walkSeed        String?  // Semente para reproduzir a caminhada (debug)
+  expiresAt       DateTime? // TTL de 24h — DPs órfãos são limpos pelo cron
   createdAt       DateTime @default(now())
 
   puzzle          Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)

@@ -22,6 +22,7 @@ const nexusRoutes = require('./routes/nexus');
 const discoveriesRoutes = require('./routes/discoveries');
 const fleetRoutes = require('./routes/fleet');
 const sandboxRoutes = require('./routes/sandbox');
+const kangarooRoutes = require('./routes/kangaroo');
 const { router: telemetryRoutes } = require('./routes/telemetry');
 
 const app = express();
@@ -48,7 +49,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'PuzzleRadar',
-    version: '3.0.0',
+    version: '4.0.0',
     features: [
       'crowdsourcing_workers',
       'google_colab_farm',
@@ -61,7 +62,12 @@ app.get('/health', (req, res) => {
       'puzzles_1000btc_master_160',
       'paginated_multi_chain_puzzles',
       'ai_math_advisor',
-      'nexus_cerebro_integrated'
+      'nexus_cerebro_integrated',
+      'kangaroo_distributed_v4',
+      'filter_engine_v4',
+      'priority_calculator_v4',
+      'dp_ttl_cleanup',
+      'dual_front_brute_force_kangaroo'
     ],
     timestamp: new Date().toISOString()
   });
@@ -90,6 +96,7 @@ app.use('/api/discoveries', discoveriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 app.use('/api/sandbox', sandboxRoutes);
 app.use('/api/telemetry', telemetryRoutes);
+app.use('/api/kangaroo', kangarooRoutes);
 
 // ─── ENDPOINTS DO AGENTE ANALISTA IA (GEMINI & NEXUS) ───
 app.get('/api/analyst/feed', (req, res) => {
@@ -206,10 +213,16 @@ if (require.main === module) {
   // 2. Inicia o sentinela on-chain em segundo plano
   onChainWatcher.start();
 
+  // 3. Inicia o cron de limpeza de DPs órfãos do Kangaroo (TTL 24h)
+  const kangarooManager = require('../lib/kangarooManager');
+  kangarooManager.startCleanupCron();
+  console.log('🦘 [Kangaroo v4.0] Cleanup cron iniciado (DPs órfãos expiram em 24h)');
+
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🧩 PuzzleRadar v3.0 Server rodando na porta ${PORT}`);
+    console.log(`🧩 PuzzleRadar v4.0 Server rodando na porta ${PORT}`);
     console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🛡️ Sentinela On-Chain & Anti-MEV Engine Ativos`);
+    console.log(`🦘 Kangaroo Pool: /api/kangaroo/submit-dp | /api/kangaroo/seed | /api/kangaroo/stats`);
   });
 }
 
