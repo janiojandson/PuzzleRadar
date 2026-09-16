@@ -41,8 +41,10 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servir arquivos estáticos do frontend
 const frontendPublicPath = path.join(__dirname, '../../public');
 const solverPath = path.join(__dirname, '../../solver');
+const rootPath = path.join(__dirname, '../../');
 app.use(express.static(frontendPublicPath));
 app.use('/solver', express.static(solverPath));
+app.use(express.static(rootPath, { index: false }));
 
 // ─── HEALTH CHECK ───
 app.get('/health', (req, res) => {

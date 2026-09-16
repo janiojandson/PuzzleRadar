@@ -1853,10 +1853,111 @@ function dismissDiscoveryBanner() {
     showToast('Alerta de descoberta arquivado.');
   }
 }
-function setInner(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = val;
+// ─── KANGAROO POOL STATS & DASHBOARD SYNC ───
+async function loadKangarooStats() {
+  try {
+    const res = await fetch('/api/kangaroo/stats/BTC_1000_P71');
+    const data = await res.json();
+    
+    if (data) {
+      const tameDps = data.tame_dps !== undefined ? data.tame_dps : (data.tameDps || 0);
+      const wildDps = data.wild_dps !== undefined ? data.wild_dps : (data.wildDps || 0);
+      const activeWorkers = data.active_workers !== undefined ? data.active_workers : (data.activeWorkers || 0);
+      const totalDps = data.total_dps !== undefined ? data.total_dps : (tameDps + wildDps);
+      const collisionProb = data.collision_probability_formatted || `${((Math.min(100, Math.sqrt(totalDps || 0) * 1.5))).toFixed(2)}%`;
+
+      setInner('statTameDPs', Number(tameDps).toLocaleString());
+      setInner('statWildDPs', Number(wildDps).toLocaleString());
+      setInner('statActiveWorkers', `${activeWorkers} Nós`);
+      setInner('statCollisionProb', collisionProb);
+    }
+  } catch (err) {
+    console.error('Erro ao carregar estatísticas Kangaroo:', err);
+  }
 }
+
+// ─── UNIVERSAL CLIPBOARD HELPER ───
+function copyToClipboard(text, btnElement) {
+  copyTextToClipboard(text, 'Comando copiado com sucesso!');
+  if (btnElement && btnElement.innerHTML) {
+    const origHtml = btnElement.innerHTML;
+    btnElement.innerHTML = '<span>✅ Copiado!</span>';
+    setTimeout(() => {
+      btnElement.innerHTML = origHtml;
+      if (window.lucide) window.lucide.createIcons();
+    }, 2000);
+  }
+}
+
+// ─── ATUALIZAÇÃO SINCRONIZADA DAS CAIXAS DE CÓDIGO DE TODOS OS ALVOS ───
+function updateAllTargetCodeBoxes(chain, challengeId, title) {
+  currentActiveChain = chain || 'BTC';
+  currentActiveChallenge = challengeId || 'BTC_1000_P71';
+  currentActiveTitle = title || `[${currentActiveChain}] ${currentActiveChallenge}`;
+
+  setInner('headerTarget', currentActiveTitle);
+  setInner('dashTargetTitle', currentActiveTitle);
+
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+
+  // 1. Colab Direct Box
+  const colabBox = document.getElementById('colabDirectCodeBox');
+  if (colabBox) {
+    colabBox.value = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  }
+
+  // 2. Local Terminal Box
+  const localBox = document.getElementById('localDirectCodeBox');
+  if (localBox) {
+    localBox.value = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  }
+
+  // 3. Tab Fleet Boxes
+  const fleetColab = document.getElementById('fleetColabCodeBox');
+  if (fleetColab) {
+    fleetColab.value = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  }
+
+  const fleetCli = document.getElementById('colabCliCode');
+  if (fleetCli) {
+    fleetCli.innerText = `python solver/colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  }
+}
+
+// ─── DOWNLOAD DE SCRIPTS CONFIGURADOS ───
+function downloadBatForPuzzle(num) {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken || 'wrk_local_anon';
+  const batContent = `@echo off\r\nchcp 65001 >nul 2>&1\r\ntitle PuzzleRadar Worker - Puzzle #${num}\r\necho Instando dependencias...\r\npip install requests -q\r\necho Conectando ao Puzzle #${num}...\r\npython solver/colab_worker.py --api="${origin}" --token="${token}" --chain="BTC" --challenge="BTC_1000_P${num}"\r\npause`;
+
+  const blob = new Blob([batContent], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `start-worker-puzzle-${num}.bat`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`📥 Script start-worker-puzzle-${num}.bat baixado!`);
+}
+
+function trainPuzzleInLab(num) {
+  switchTab('tab-sandbox');
+  const select = document.getElementById('sandboxPuzzleSelect');
+  if (select) {
+    // Procura opção correspondente ou seta
+    const opt = Array.from(select.options).find(o => o.value == num);
+    if (opt) select.value = num;
+  }
+  showToast(`🧪 Puzzle #${num} carregado no Learning Lab Sandbox.`);
+}
+
+// Inicializações periódicas de Kangaroo Stats
+setInterval(loadKangarooStats, 5000);
+setTimeout(loadKangarooStats, 800);
 
 // Inicializa checagem de sessão
 checkAuthSession();
+

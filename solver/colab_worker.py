@@ -1,8 +1,8 @@
 # ==============================================================================
-# 🧩 PuzzleRadar v3.0 — Multi-Chain Google Colab GPU Farm Node (CUDA Native)
+# 🧩 PuzzleRadar v4.0 — Multi-Chain Google Colab GPU Farm Node (Kangaroo + Brute Force)
 # ==============================================================================
-# Orquestra Solvers Nativos em C++ / CUDA (BTC, ETH, SOL)
-# Envia Telemetria, Identificador do Desafio (challenge_id) e Provas Criptográficas
+# Envia Distinguished Points (DPs) ao endpoint /api/kangaroo/submit-dp
+# Suporta: GPU CUDA (Colab), CPU local, modo Mobile (lotes curtos)
 # ==============================================================================
 
 import os
@@ -17,11 +17,12 @@ import threading
 import shutil
 import random
 
-DEFAULT_API_URL = os.getenv("PUZZLERADAR_API", "https://puzzleradar-production.up.railway.app")
-DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME", f"colab-gpu-{random.randint(1000, 9999)}")
-DEFAULT_HARDWARE = "Google Colab NVIDIA GPU (Tesla T4 / V100 / A100)"
-DEFAULT_CHAIN = "BTC"
+DEFAULT_API_URL   = os.getenv("PUZZLERADAR_API",    "https://puzzleradar-production.up.railway.app")
+DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME",   f"colab-gpu-{random.randint(1000, 9999)}")
+DEFAULT_HARDWARE  = "Google Colab NVIDIA GPU (Tesla T4 / V100 / A100)"
+DEFAULT_CHAIN     = "BTC"
 DEFAULT_CHALLENGE = "BTC_1000_P71"
+MOBILE_MAX_STEPS  = int(os.getenv("MAX_STEPS", "0"))  # 0 = ilímitado; >0 = modo mobile
 
 class CudaSolverManager:
     """Gerencia a compilação e execução de solvers C++/CUDA de alta performance no Colab"""
@@ -95,7 +96,7 @@ class CudaSolverManager:
         return False
 
 class ColabFarmWorker:
-    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, allow_cpu=False):
+    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, allow_cpu=False, mobile=False):
         self.api_url = api_url.rstrip('/')
         self.instance_id = f"inst_{int(time.time())}_{random.randint(1000, 9999)}"
         self.node_name = node_name or f"colab-gpu-{random.randint(1000, 9999)}"
@@ -105,6 +106,7 @@ class ColabFarmWorker:
         self.worker_id = None
         self.running = False
         self.allow_cpu = allow_cpu
+        self.mobile = mobile  # Modo mobile: lotes curtos de 10.000 passos
         self.cuda_mgr = CudaSolverManager(allow_cpu_override=allow_cpu)
         self.kangaroo_round = 0
         self.stats = {
@@ -114,16 +116,44 @@ class ColabFarmWorker:
             "keys_found": 0
         }
 
+    def print_banner(self):
+        """Exibe banner com instruções completas de conexão"""
+        is_mobile = self.mobile or (MOBILE_MAX_STEPS > 0)
+        print("\n" + "=" * 72)
+        print("  🧩 PuzzleRadar v4.0 — Kangaroo Pool Distribuído")
+        print(f"  🎯 Puzzle #71 — 7.1 BTC | Algoritmo: Pollard's Kangaroo")
+        print("=" * 72)
+        print(f"  Worker ID  : {self.node_name}")
+        print(f"  Servidor   : {self.api_url}")
+        print(f"  Rede       : {self.chain} | Desafio: {self.challenge_id}")
+        print(f"  GPU        : {self.cuda_mgr.gpu_name}")
+        print(f"  Modo       : {'MOBILE (lotes curtos)' if is_mobile else 'CONTINUO (GPU/CPU)'}")
+        print("=" * 72)
+        print()
+        print("  🚀 COMO CONECTAR EM OUTRAS PLATAFORMAS:")
+        print()
+        print("  📱 MOBILE / SESSÃO CURTA (Android, iOS, PC fraco):")
+        print(f"     MAX_STEPS=10000 python colab_worker.py --api='{self.api_url}' --allow-cpu --mobile")
+        print()
+        print("  🖥️ TERMINAL WINDOWS:")
+        print("     start-kangaroo-worker.bat  (dentro da pasta PuzzleRadar)")
+        print()
+        print("  🎐 TERMINAL LINUX/MAC:")
+        print("     bash start-kangaroo-worker.sh")
+        print()
+        print("  💻 GOOGLE COLAB:")
+        print("     Abra solver/colab_worker.ipynb e execute as células")
+        print()
+        print("  🌐 BROWSER (em breve):")
+        print(f"     {self.api_url}  → Aba 'Conectar ao Pool' → Kangaroo Browser")
+        print()
+        print("  🔑 TOKEN WORKER ATIVO:")
+        print(f"     {self.token or '(será gerado automaticamente ao conectar)'}")
+        print("=" * 72)
+        print()
+
     def register(self):
-        print(f"\n=======================================================")
-        print(f"🚀 [PuzzleRadar Multi-Chain] Nó Ativo: {self.node_name}")
-        print(f"🆔 Instância ID: {self.instance_id}")
-        print(f"🌐 Central: {self.api_url}")
-        print(f"🔗 Rede / Blockchain: {self.chain}")
-        print(f"🎯 Desafio Alvo: {self.challenge_id}")
-        print(f"⚡ Hardware: {self.cuda_mgr.gpu_name}")
-        print(f"🎮 CUDA Nativo: {'SIM' if self.cuda_mgr.is_cuda_available else 'NÃO'}")
-        print(f"=======================================================\n")
+        self.print_banner()
 
         if not self.token:
             try:
@@ -263,32 +293,46 @@ class ColabFarmWorker:
         # Envia heartbeat com passos reais
         self.send_heartbeat(int(real_steps / elapsed), 100)
 
-        # Despacha o buffer de DPs reais para a central se houver
+        # ——— ENVIO DOS DPs AO ENDPOINT v4.0 /api/kangaroo/submit-dp ———
         if dp_buffer:
-            try:
-                res = requests.post(
-                    f"{self.api_url}/api/workers/{self.worker_id}/dps",
-                    json={
-                        "challengeId": self.challenge_id,
-                        "chain": self.chain,
-                        "points": dp_buffer,
-                        "hashrate": int(real_steps / elapsed),
-                        "totalStepsChecked": real_steps
-                    },
-                    timeout=10
-                )
-                data = res.json()
-                shares_earned = data.get("sharesEarned", len(dp_buffer) * 10)
-                print(f"   ↳ 💎 DPs Entregues: {len(dp_buffer)} ao Redis | Passos: {real_steps:,.0f} | Shares: +{shares_earned}")
-                self.stats["ranges_completed"] += 1
-                self.stats["total_keys_checked"] += real_steps
-                self.stats["total_shares"] += shares_earned
-                if data.get("isSolved"):
-                    print(f"\n🎉🎉🎉 [COLISÃO ENCONTRADA!] Chave Privada Resolvida: {data.get('foundPrivateKey')} 🎉🎉🎉\n")
-            except Exception as err:
-                print(f"   ↳ ⚠️ Falha ao enviar buffer de DPs: {err}")
+            submitted = 0
+            for dp in dp_buffer:
+                try:
+                    # Determinar walk_type (Tame = par, Wild = ímpar)
+                    walk_type = "tame" if self.kangaroo_round % 2 == 0 else "wild"
+
+                    res = requests.post(
+                        f"{self.api_url}/api/kangaroo/submit-dp",
+                        json={
+                            "puzzle_id":         self.challenge_id,
+                            "worker_id":         self.worker_id or self.node_name,
+                            "point_x":           dp.get("pointKey", dp.get("xCoordHex", "")),
+                            "point_y":           dp.get("yCoordHex", "0x0"),
+                            "walk_type":         walk_type,
+                            "start_key":         range_start_hex,
+                            "step_distance_hex": dp.get("stepDistanceHex", "0"),
+                            "steps_taken":       real_steps,
+                        },
+                        timeout=10
+                    )
+                    data = res.json()
+                    submitted += 1
+
+                    if data.get("status") == "found":
+                        print(f"\n🎉🎉🎉 [COLISÃO DETECTADA!] Chave Privada: {data.get('private_key')} | Puzzle #{data.get('puzzle_number')} | {data.get('btc_value')} BTC 🎉\n")
+                        self.stats["keys_found"] += 1
+                        return {"found": True, "keys_checked": real_steps, "compute_hours": elapsed / 3600.0, "hashrate": f"{real_steps/elapsed/1e6:.1f} MSteps/s"}
+
+                except Exception as err:
+                    print(f"   ⚠️ Falha ao enviar DP: {err}")
+
+            shares_earned = submitted * 10
+            print(f"   ↓ 💎 DPs Enviados: {submitted}/{len(dp_buffer)} | Passos: {real_steps:,.0f} | Shares: +{shares_earned}")
+            self.stats["ranges_completed"] += 1
+            self.stats["total_keys_checked"] += real_steps
+            self.stats["total_shares"] += shares_earned
         else:
-            print(f"   ↳ ⚡ Lote concluído ({real_steps:,.0f} passos na GPU) | Nenhum DP atingiu a máscara neste ciclo de 10s (Esperado).")
+            print(f"   ↓ ⚡ {real_steps:,.0f} passos concluídos | Nenhum DP atingiu a máscara neste ciclo (Esperado).")
             self.stats["total_keys_checked"] += real_steps
 
         return {
@@ -390,12 +434,13 @@ class ColabFarmWorker:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PuzzleRadar Multi-Chain CUDA Farm Node")
-    parser.add_argument("--api", default=DEFAULT_API_URL, help="URL da API PuzzleRadar (ex: Railway)")
-    parser.add_argument("--name", default=DEFAULT_NODE_NAME, help="Nome/ID deste nó na Fazenda")
-    parser.add_argument("--token", default=None, help="Worker Token personalizado")
-    parser.add_argument("--chain", default=DEFAULT_CHAIN, help="Rede alvo: BTC, ETH, SOL")
-    parser.add_argument("--challenge", default=DEFAULT_CHALLENGE, help="ID do Desafio (ex: BTC_1000_P71, ETH_VANITY_32, SOL_VANITY_36)")
-    parser.add_argument("--allow-cpu", action="store_true", help="Permitir modo CPU apenas para testes locais (NÃO envia DPs simulados)")
+    parser.add_argument("--api",       default=DEFAULT_API_URL,  help="URL da API PuzzleRadar (ex: Railway)")
+    parser.add_argument("--name",      default=DEFAULT_NODE_NAME, help="Nome/ID deste nó na Fazenda")
+    parser.add_argument("--token",     default=None,              help="Worker Token personalizado")
+    parser.add_argument("--chain",     default=DEFAULT_CHAIN,     help="Rede alvo: BTC, ETH, SOL")
+    parser.add_argument("--challenge", default=DEFAULT_CHALLENGE, help="ID do Desafio (ex: BTC_1000_P71)")
+    parser.add_argument("--allow-cpu", action="store_true",       help="Permitir modo CPU (para testes locais)")
+    parser.add_argument("--mobile",    action="store_true",       help="Modo mobile: sessões curtas de 10.000 passos")
     args = parser.parse_args()
 
     worker = ColabFarmWorker(
@@ -404,9 +449,12 @@ if __name__ == "__main__":
         token=args.token,
         chain=args.chain.upper(),
         challenge_id=args.challenge,
-        allow_cpu=args.allow_cpu
+        allow_cpu=args.allow_cpu,
+        mobile=args.mobile
     )
     try:
         worker.run()
     except KeyboardInterrupt:
-        print("\n🛑 Nó Colab interrompido pelo usuário.")
+        print("\n🛑 Nó interrompido pelo usuário.")
+        print(f"   Stats: {worker.stats['ranges_completed']} lotes | {worker.stats['total_keys_checked']/1e9:.3f}B passos | {worker.stats['total_shares']:.0f} shares")
+
