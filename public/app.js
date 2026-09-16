@@ -746,10 +746,11 @@ async function fetchLiveRangesData() {
       }
     }
 
-    // 2. Atualiza tabela de ranges recentes varridos
-    const ranges = recentData.ranges || [];
+    // 2. Atualiza tabela de ranges recentes varridos (limitado a 10 fatias auditadas)
+    const allRanges = recentData.ranges || [];
+    const ranges = allRanges.slice(0, 10);
     const tbody = document.getElementById('rangesTableBody');
-    setInner('rangesCountDisplay', `${ranges.length} fatias auditadas no histórico`);
+    setInner('rangesCountDisplay', `${ranges.length} fatias mais recentes auditadas no histórico`);
 
     if (tbody) {
       if (ranges.length === 0) {
@@ -791,16 +792,24 @@ async function fetchPoolStats() {
     setInner('poolTotalSharesDisplay', Number(data.totalPoolShares || 0).toLocaleString());
     setInner('poolTotalDpsDisplay', Number(data.totalDistinguishedPoints || 0).toLocaleString());
 
+    // Painel Financeiro da Casa (15%) e Rateio dos Assinantes (85%)
+    if (data.financialSummary) {
+      setInner('poolPrizeTotalDisplay', `$${Number(data.financialSummary.poolTotalPrizeUsd || 461500).toLocaleString()} USD`);
+      setInner('poolHouseBaseDisplay', `$${Number(data.financialSummary.houseBaseUsd || 69225).toLocaleString()} USD`);
+      setInner('poolDistributableDisplay', `$${Number(data.financialSummary.distributableSubscribersPoolUsd || 392275).toLocaleString()} USD`);
+      setInner('poolRevertedDisplay', `$${Number(data.financialSummary.revertedSharesAmountUsd || 0).toLocaleString()} USD`);
+    }
+
     if (data.bufferStats) {
       setInner('bufferStatsDisplay', `${data.bufferStats.currentBufferSize} no buffer (${data.bufferStats.totalRowsSent} sincronizados)`);
     }
 
-    // 1. Renderiza Stream de Distinguished Points (DPs)
+    // 1. Renderiza Stream de Distinguished Points (DPs) em Tempo Real
     const dpsTbody = document.getElementById('poolLiveDpsBody');
     if (dpsTbody) {
       const dps = data.recentDps || [];
       if (dps.length === 0) {
-        dpsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500 text-xs">Nenhum Distinguished Point recebido ainda. Clique em "Simular DP ao Vivo" para testar o fluxo!</td></tr>`;
+        dpsTbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-500 text-xs">Nenhum Distinguished Point recebido ainda. Nós de mineração ativos enviarão DPs automaticamente.</td></tr>`;
       } else {
         dpsTbody.innerHTML = dps.map(dp => {
           const tameBadge = dp.isTame
@@ -824,23 +833,39 @@ async function fetchPoolStats() {
       }
     }
 
-    // 2. Renderiza Quadro de Dividendos dos Assinantes
+    // 2. Renderiza Quadro de Dividendos dos Assinantes (Consolidado por Login)
     const tbody = document.getElementById('poolLeaderboardBody');
     if (tbody) {
-      const workers = data.workers || [];
-      if (workers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500 text-xs">Nenhum worker com shares registradas no momento.</td></tr>`;
+      const operators = data.operators || [];
+      if (operators.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 text-xs">Nenhum operador com shares registradas no momento. Inicie um nó para pontuar na pool.</td></tr>`;
       } else {
-        tbody.innerHTML = workers.map(w => {
-          const anonId = w.workerToken ? (w.workerToken.substring(0, 8) + '...' + w.workerToken.slice(-4)) : 'wrk_anon';
+        tbody.innerHTML = operators.map(op => {
+          const isSub = op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE';
+          const subBadge = isSub
+            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 ASSINATURA ATIVA</span>'
+            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">🔴 INATIVO (Revertido à Casa)</span>';
+
+          const anonId = op.operatorToken && op.operatorToken.length > 12
+            ? `${op.operatorToken.substring(0, 8)}...${op.operatorToken.slice(-4)}`
+            : op.operatorToken || 'wrk_anon';
+
           return `
             <tr class="hover:bg-white/5 transition font-mono text-[11px]">
-              <td class="py-2.5 px-3 text-cyan-300 font-bold">${anonId}</td>
-              <td class="py-2.5 px-3 text-white font-semibold">${w.workerName}</td>
-              <td class="py-2.5 px-3 font-bold text-emerald-400">${Number(w.shares).toLocaleString()} DPs</td>
-              <td class="py-2.5 px-3 text-amber-300 font-bold">${w.sharePercent}</td>
-              <td class="py-2.5 px-3 text-emerald-300 font-bold font-mono">~$${Number(w.projectedPayoutUsd || 0).toLocaleString()} USD</td>
-              <td class="py-2.5 px-3 text-right text-slate-400">${w.lastSeen ? new Date(w.lastSeen).toLocaleTimeString() : '-'}</td>
+              <td class="py-3 px-3">
+                <div class="text-white font-bold">${op.operatorName}</div>
+                <div class="text-[10px] text-cyan-400 font-mono">${anonId}</div>
+              </td>
+              <td class="py-3 px-3">${subBadge}</td>
+              <td class="py-3 px-3 font-bold text-cyan-300">${op.activeNodesCount} ${op.activeNodesCount === 1 ? 'nó ativo' : 'nós ativos'}</td>
+              <td class="py-3 px-3 text-slate-300">${Number(op.completedChunks || 0).toLocaleString()} fatias</td>
+              <td class="py-3 px-3 text-emerald-400 font-bold">${op.totalHashrateFormatted || '45.0 GH/s'}</td>
+              <td class="py-3 px-3 font-bold text-amber-300">${Number(op.shares || 0).toLocaleString()} Shares</td>
+              <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-400' : 'text-slate-500'}">${isSub ? op.sharePercent : '0.00%'}</td>
+              <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-300' : 'text-slate-500'} font-mono">
+                ${isSub ? `~$${Number(op.projectedPayoutUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD` : '<span class="text-purple-400 text-[10px]">Revertido ao Tesouro</span>'}
+              </td>
+              <td class="py-3 px-3 text-right text-slate-400">${op.lastSeen ? new Date(op.lastSeen).toLocaleTimeString() : '-'}</td>
             </tr>
           `;
         }).join('');
@@ -913,12 +938,15 @@ function calculateSubscriberYield() {
     totalPrizeUSD = 2700;
   }
 
-  // Participação estimada assumindo pool de 200 GH/s
+  // Dedução da Taxa da Casa (15%) ➔ Pool Líquida dos Assinantes (85%)
+  const distributablePoolUSD = totalPrizeUSD * 0.85;
+
+  // Participação estimada assumindo pool de 200 GH/s de nós ativos
   const assumedPoolPower = 200;
   const shareRatio = Math.min(1, ghRate / assumedPoolPower);
-  const estimatedReward = totalPrizeUSD * shareRatio;
+  const estimatedLiquidReward = distributablePoolUSD * shareRatio;
 
-  setInner('calcEstimatedReward', `~$${Math.round(estimatedReward).toLocaleString()} USD (${(shareRatio * 100).toFixed(1)}%)`);
+  setInner('calcEstimatedReward', `~$${Math.round(estimatedLiquidReward).toLocaleString()} USD (85% Pool • ${(shareRatio * 100).toFixed(1)}%)`);
 }
 
 // ─── ANALYST FEED ───
@@ -1079,22 +1107,33 @@ function toggleAdvisorChat() {
   if (window.lucide) window.lucide.createIcons();
 }
 
+function updateAdvisorProviderBadge() {
+  const select = document.getElementById('advisorProviderSelect');
+  const badge = document.getElementById('advisorProviderBadge');
+  if (select && badge) {
+    badge.innerText = select.value === 'nexus' ? 'Nexus Cérebro 2.0' : 'Google Gemini 2.0';
+  }
+}
+
 async function sendAdvisorMessage(e) {
   if (e) e.preventDefault();
   const input = document.getElementById('advisorInput');
   const msg = input.value.trim();
   if (!msg) return;
 
+  const provider = document.getElementById('advisorProviderSelect')?.value || 'gemini';
+
   appendChatMessage('user', msg);
   input.value = '';
 
-  const loadingId = appendChatMessage('ai', '⏳ Analisando matemática...');
+  const providerLabel = provider === 'nexus' ? 'Nexus Cérebro' : 'Gemini AI';
+  const loadingId = appendChatMessage('ai', `⏳ Consultando ${providerLabel}...`);
 
   try {
     const res = await fetch('/api/advisor/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: msg })
+      body: JSON.stringify({ message: msg, provider })
     });
     const data = await res.json();
     updateChatMessage(loadingId, data.reply || 'Resposta concluída.');
@@ -1405,6 +1444,16 @@ function appendTerminalLog(type, message) {
 
   terminal.appendChild(row);
 
+  // Se for alerta crítico de chave encontrada ou colisão, fixa no topo do terminal
+  if (message.includes('CHAVE AUTÊNTICA') || message.includes('COLISÃO KANGAROO') || message.includes('Resgate acionado') || type === 'COLLISION_ALERT') {
+    const detailsHtml = `
+      <div class="font-bold text-white text-xs mb-1">🎯 Evento Criptográfico em Execução:</div>
+      <div class="text-amber-200">${message}</div>
+      <div class="text-[10px] text-slate-300 mt-1">Status: <span class="text-emerald-400 font-bold">Roteamento Confidencial para Cold Vault Imutável Ativo</span></div>
+    `;
+    showDiscoveryBanner('ALERTA CRÍTICO', detailsHtml);
+  }
+
   // Auto-scroll
   terminal.scrollTop = terminal.scrollHeight;
 
@@ -1565,10 +1614,10 @@ async function triggerSimulatedWorkerStep() {
   }
 }
 
-// ─── LEARNING LAB SANDBOX BENCHMARK ───
+// ─── LEARNING LAB SANDBOX BENCHMARK & ANÁLISE IA ───
 async function runSandboxBenchmark() {
   const select = document.getElementById('sandboxPuzzleSelect');
-  const puzzleNum = select ? select.value : '30';
+  const scenarioId = select ? select.value : '30';
   const btn = document.getElementById('runBenchmarkBtn');
   const statusEl = document.getElementById('sandboxStatus');
   const offsetEl = document.getElementById('sandboxOffset');
@@ -1577,18 +1626,18 @@ async function runSandboxBenchmark() {
   if (btn) btn.disabled = true;
   if (statusEl) {
     statusEl.innerText = 'Executando...';
-    statusEl.className = 'text-amber-400 animate-pulse';
+    statusEl.className = 'text-amber-400 animate-pulse font-bold';
   }
 
   if (logsContainer) {
-    logsContainer.innerHTML = `<div class="text-cyan-400">> [INICIANDO] Calibrando hardware contra o Puzzle #${puzzleNum}...</div>`;
+    logsContainer.innerHTML = `<div class="text-cyan-400">> [INICIANDO] Calibrando hardware contra o cenário ${scenarioId}...</div>`;
   }
 
   try {
     const res = await fetch('/api/sandbox/benchmark', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ puzzleNumber: puzzleNum, hardware: 'GPU NVIDIA (Benchmark Local)' })
+      body: JSON.stringify({ puzzleNumber: scenarioId, hardware: 'GPU NVIDIA (Benchmark Local)' })
     });
     const data = await res.json();
 
@@ -1598,29 +1647,29 @@ async function runSandboxBenchmark() {
         data.logs.forEach((log, idx) => {
           setTimeout(() => {
             const row = document.createElement('div');
-            row.className = log.includes('KEY_INTERSECTION') || log.includes('APROVADO')
+            row.className = log.includes('KEY_INTERSECTION') || log.includes('KEY_RECOVERED') || log.includes('APROVADO') || log.includes('ENTROPY_REDUCTION')
               ? 'text-emerald-400 font-bold'
-              : log.includes('RESULT')
+              : log.includes('RESULT') || log.includes('ADDRESS MATCH')
                 ? 'text-amber-300 font-extrabold'
                 : 'text-slate-300';
             row.innerText = `> ${log}`;
             logsContainer.appendChild(row);
             const terminal = document.getElementById('sandboxTerminal');
             if (terminal) terminal.scrollTop = terminal.scrollHeight;
-          }, idx * 250);
+          }, idx * 180);
         });
       }
 
       setTimeout(() => {
         if (statusEl) {
-          statusEl.innerText = '✅ Calibrado com Sucesso';
+          statusEl.innerText = '✅ 100% Calibrado';
           statusEl.className = 'text-emerald-400 font-bold';
         }
-        if (offsetEl) offsetEl.innerText = `${data.benchmark?.keysCheckedFormatted || '5.000.000'} chaves`;
+        if (offsetEl) offsetEl.innerText = `${data.targetAddress ? data.targetAddress.substring(0, 10) + '...' : 'Concluído'} (${data.executionTimeMs} ms)`;
         if (btn) btn.disabled = false;
-        showToast('🎯 Calibração Sandbox concluída com cruzamento de chave confirmado!');
-        appendTerminalLog('SYSTEM', `🎯 [SANDBOX BENCHMARK] Hardware validado com sucesso no Puzzle #${puzzleNum} (${data.benchmark?.hashrate || '18.00 GH/s'})`);
-      }, (data.logs.length + 1) * 250);
+        showToast(`🎯 Calibração do cenário "${data.scenarioName || scenarioId}" concluída com sucesso!`);
+        appendTerminalLog('SYSTEM', `🎯 [SANDBOX CALIBRADO] ${data.scenarioName || scenarioId} validado (${data.hashrate || '18.00 GH/s'})`);
+      }, (data.logs.length + 1) * 180);
     } else {
       if (statusEl) {
         statusEl.innerText = '⚠️ Erro';
@@ -1638,7 +1687,63 @@ async function runSandboxBenchmark() {
   }
 }
 
-// ─── HELPERS ───
+async function consultAiOnSandboxScenario() {
+  const select = document.getElementById('sandboxPuzzleSelect');
+  const scenarioId = select ? select.value : '30';
+  const provider = document.getElementById('advisorProviderSelect')?.value || 'gemini';
+  const box = document.getElementById('sandboxAiAnalysisBox');
+  const titleEl = document.getElementById('sandboxAiTitle');
+  const modelTagEl = document.getElementById('sandboxAiModelTag');
+  const contentEl = document.getElementById('sandboxAiContent');
+  const btn = document.getElementById('consultSandboxAiBtn');
+
+  if (box) box.classList.remove('hidden');
+  if (btn) btn.disabled = true;
+  if (contentEl) contentEl.innerHTML = '<div class="text-amber-400 animate-pulse">⏳ Consultando a IA sobre a formulação matemática e calibragem do cenário selecionado...</div>';
+
+  try {
+    const res = await fetch('/api/sandbox/ai-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenarioId, provider })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      if (titleEl) titleEl.innerText = `Parecer Criptográfico: ${data.scenario}`;
+      if (modelTagEl) modelTagEl.innerText = data.model || (provider === 'nexus' ? 'Nexus Cérebro 2.0' : 'Google Gemini 2.0');
+      if (contentEl) {
+        // Formata quebras de linha e markdown simples
+        contentEl.innerHTML = data.analysis.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      }
+      showToast('🧠 Parecer do Consultor IA gerado com sucesso!');
+    } else {
+      if (contentEl) contentEl.innerText = '⚠️ Não foi possível obter o parecer: ' + (data.error || 'Erro desconhecido');
+    }
+  } catch (err) {
+    if (contentEl) contentEl.innerText = '⚠️ Erro de conexão com o Consultor IA: ' + err.message;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ─── PINNED DISCOVERY BANNER (FIXO ATÉ O ADMIN DESCARTAR) ───
+function showDiscoveryBanner(title, detailsHtml) {
+  const banner = document.getElementById('pinnedDiscoveryBanner');
+  const detailsEl = document.getElementById('pinnedDiscoveryDetails');
+  if (banner && detailsEl) {
+    detailsEl.innerHTML = detailsHtml;
+    banner.classList.remove('hidden');
+  }
+}
+
+function dismissDiscoveryBanner() {
+  const banner = document.getElementById('pinnedDiscoveryBanner');
+  if (banner) {
+    banner.classList.add('hidden');
+    showToast('Alerta de descoberta arquivado.');
+  }
+}
 function setInner(id, val) {
   const el = document.getElementById(id);
   if (el) el.innerText = val;

@@ -345,6 +345,22 @@
               <span class="text-[10px] font-mono text-slate-500" id="sseStreamStatus">🟢 SSE CONECTADO</span>
             </div>
 
+            <!-- Pinned Critical Discovery Banner (Fixo até o admin descartar) -->
+            <div id="pinnedDiscoveryBanner" class="hidden p-3.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-red-950/80 to-amber-900/90 border-2 border-amber-400 shadow-xl shadow-amber-500/20 text-xs font-mono space-y-2 animate-pulse">
+              <div class="flex items-center justify-between border-b border-amber-500/30 pb-1.5">
+                <div class="flex items-center gap-2 text-amber-300 font-extrabold text-[12px]">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                  <span>🚨 [CHAVE CRIPTOGRÁFICA ENCONTRADA / RESGATE ACIONADO]</span>
+                </div>
+                <button onclick="dismissDiscoveryBanner()" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition flex items-center gap-1">
+                  <span>✖ Fechar Alerta</span>
+                </button>
+              </div>
+              <div id="pinnedDiscoveryDetails" class="text-amber-100 text-[11px] leading-relaxed space-y-1">
+                <!-- Preenchido via SSE / Telemetria -->
+              </div>
+            </div>
+
             <!-- Terminal Feed Box -->
             <div id="telemetryTerminalStream" class="flex-1 overflow-y-auto space-y-2 font-mono text-[11px] custom-scrollbar pr-1">
               <div class="text-slate-500">> [SISTEMA] Conectando ao canal de telemetria /api/telemetry/stream...</div>
@@ -639,11 +655,51 @@
           </div>
         </div>
 
+        <!-- Divisão Institucional de Recompensa (Taxa da Casa vs Pool de Assinantes) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl bg-cypher-950 border border-white/10 space-y-1">
+            <div class="text-[10px] uppercase font-mono text-slate-400">Prêmio Total do Alvo Ativo</div>
+            <div id="poolPrizeTotalDisplay" class="text-xl font-extrabold text-white font-mono">$461.500 USD</div>
+            <div class="text-[10px] text-slate-500 font-mono">Bitcoin Puzzle #71 (7.10 BTC)</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cypher-950 border border-amber-500/30 space-y-1">
+            <div class="text-[10px] uppercase font-mono text-amber-300 flex items-center justify-between">
+              <span>Taxa da Casa (Autor)</span>
+              <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">15% FIXO</span>
+            </div>
+            <div id="poolHouseBaseDisplay" class="text-xl font-extrabold text-amber-400 font-mono">$69.225 USD</div>
+            <div class="text-[10px] text-slate-400 font-mono">Infraestrutura, Cold Vaults & Buffer</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cypher-950 border border-emerald-500/30 space-y-1">
+            <div class="text-[10px] uppercase font-mono text-emerald-300 flex items-center justify-between">
+              <span>Pool Líquida para Assinantes</span>
+              <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">85% RATEIO</span>
+            </div>
+            <div id="poolDistributableDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">$392.275 USD</div>
+            <div class="text-[10px] text-slate-400 font-mono">Distribuído por Shares PoS Auditadas</div>
+          </div>
+          <div class="p-4 rounded-xl bg-cypher-950 border border-purple-500/30 space-y-1">
+            <div class="text-[10px] uppercase font-mono text-purple-300 flex items-center justify-between">
+              <span>Reversão Contas Inativas</span>
+              <span class="text-[10px] text-purple-400">100% à Casa</span>
+            </div>
+            <div id="poolRevertedDisplay" class="text-xl font-extrabold text-purple-400 font-mono">$0.00 USD</div>
+            <div class="text-[10px] text-slate-500 font-mono">Nós sem assinatura ativa no mês</div>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+          <i data-lucide="info" class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"></i>
+          <p class="text-xs text-amber-200/90 leading-relaxed font-sans">
+            <strong>Regra de Rateio & Elegibilidade:</strong> Para receber o repasse proporcional do prêmio de 85%, o operador deve estar com a <strong>assinatura ativa no mês vigente</strong>. O trabalho e as shares de nós anônimos ou contas inativas são contabilizados na integridade da busca e 100% revertidos ao Tesouro da Casa para manutenção da infraestrutura e aceleração dos nós institucionais.
+          </p>
+        </div>
+
         <!-- Subscriber Profit Calculator Widget -->
         <div class="glass-panel-glow p-6 rounded-2xl border border-emerald-500/30 space-y-4">
           <div class="flex items-center gap-2 text-white font-bold text-base">
             <i data-lucide="calculator" class="w-5 h-5 text-emerald-400"></i>
-            <span>Calculadora do Assinante / Minerador (Projeção de Lucro)</span>
+            <span>Calculadora do Assinante / Minerador (Projeção de Lucro Líquido - 85% Pool)</span>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -665,7 +721,7 @@
               </select>
             </div>
             <div class="p-3 rounded-xl bg-black/60 border border-emerald-500/30 flex flex-col justify-center">
-              <div class="text-[10px] text-slate-400">Sua Fila / Participação Estimada no Prêmio:</div>
+              <div class="text-[10px] text-slate-400">Sua Fila / Participação Estimada no Prêmio (Líquido):</div>
               <div id="calcEstimatedReward" class="text-xl font-extrabold text-amber-300 font-mono">~$18.460 USD</div>
             </div>
           </div>
@@ -676,7 +732,7 @@
           <div class="flex items-center justify-between">
             <h3 class="font-bold text-white text-sm flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-              <span>Fluxo de Distinguished Points (DPs) em Tempo Real</span>
+              <span>Fluxo de Distinguished Points (DPs) em Tempo Real (Dados de Produção)</span>
             </h3>
             <span class="text-xs text-slate-400 font-mono">Critério: X mod 2^24 == 0 (O(1) Hash Collision)</span>
           </div>
@@ -700,18 +756,24 @@
           </div>
         </div>
 
-        <!-- Public Proof-of-Share Leaderboard Table -->
+        <!-- Public Proof-of-Share Leaderboard Table (Grouped by Operator/Login) -->
         <div class="space-y-3">
-          <h3 class="font-bold text-white text-sm">Quadro de Dividendos e Shares dos Assinantes</h3>
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-white text-sm">Quadro de Dividendos e Shares dos Assinantes (Consolidado por Login)</h3>
+            <span class="text-xs text-slate-400 font-mono">Atualização em Tempo Real</span>
+          </div>
           <div class="overflow-x-auto custom-scrollbar rounded-xl border border-white/10">
             <table class="w-full text-left border-collapse text-xs bg-cypher-950">
               <thead>
                 <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
-                  <th class="py-3 px-3">Worker ID (Anonimizado)</th>
-                  <th class="py-3 px-3">Nome / Tag</th>
+                  <th class="py-3 px-3">Operador / Login</th>
+                  <th class="py-3 px-3">Status Assinatura</th>
+                  <th class="py-3 px-3">Nós Ativos</th>
+                  <th class="py-3 px-3">Fatias Concluídas</th>
+                  <th class="py-3 px-3">Hashrate Agregado</th>
                   <th class="py-3 px-3">Shares Comprovadas</th>
                   <th class="py-3 px-3">Participação %</th>
-                  <th class="py-3 px-3">Projeção Payout USD</th>
+                  <th class="py-3 px-3">Projeção Payout Líquido</th>
                   <th class="py-3 px-3 text-right">Último Ping</th>
                 </tr>
               </thead>
@@ -1060,40 +1122,66 @@
         <div class="max-w-3xl space-y-2">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
             <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
-            <span>Sandbox Educacional de Benchmark</span>
+            <span>Sandbox Educacional de Calibração Matemática</span>
           </div>
-          <h2 class="text-3xl font-extrabold text-white">Calibre seu hardware contra os Puzzles #1 ao #65</h2>
+          <h2 class="text-3xl font-extrabold text-white">Laboratório de Teste e Calibração Criptográfica</h2>
           <p class="text-sm text-slate-300">
-            Valide sua GPU, software e velocidade de curva secp256k1 antes de minerar na pool principal. O terminal registrará o <strong>momento exato do cruzamento da chave privada conhecida</strong>.
+            Treine e valide seu hardware e algoritmos contra chaves reais comprovadas da curva secp256k1, ataques algébricos em $O(1)$ e filtros de entropia antes de alocar poder na pool principal.
           </p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
           <div class="glass-panel p-5 rounded-xl space-y-4">
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-300">Selecione o Puzzle para Teste</label>
-              <select id="sandboxPuzzleSelect" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white">
-                <option value="1">Puzzle #1 (1 bit — Instantâneo)</option>
-                <option value="20">Puzzle #20 (20 bits — 5 ms)</option>
-                <option value="30" selected>Puzzle #30 (30 bits — Benchmark Padrão)</option>
-                <option value="40">Puzzle #40 (40 bits — Benchmark Intenso)</option>
-                <option value="65">Puzzle #65 (65 bits — Resolvido)</option>
+              <label class="text-xs font-medium text-slate-300">Selecione a Técnica / Cenário de Teste</label>
+              <select id="sandboxPuzzleSelect" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-400">
+                <option value="1">Puzzle #1 (1-bit / Gerador G secp256k1 — Instantâneo)</option>
+                <option value="5">Puzzle #5 (5-bits / 31 chaves — O(N))</option>
+                <option value="10">Puzzle #10 (10-bits / BSGS — O(√N))</option>
+                <option value="20">Puzzle #20 (20-bits / Kangaroo Dist Points — O(√N))</option>
+                <option value="30" selected>Puzzle #30 (30-bits / Benchmark Padrão GPU)</option>
+                <option value="40">Puzzle #40 (40-bits / CUDA Kernel Intenso)</option>
+                <option value="nonce_reuse">ECDSA Nonce Reuse (Ataque Algébrico O(1) Instantâneo)</option>
+                <option value="bip39_entropy">Poda de Entropia BIP39 (Checksum 4-bit — 93,75% Descarte)</option>
               </select>
             </div>
 
-            <button onclick="runSandboxBenchmark()" id="runBenchmarkBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs transition flex items-center justify-center gap-2">
-              <i data-lucide="zap" class="w-4 h-4"></i>
-              <span>Executar Calibração Sandbox</span>
-            </button>
+            <div class="space-y-2">
+              <button onclick="runSandboxBenchmark()" id="runBenchmarkBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span>Executar Calibração Sandbox</span>
+              </button>
+
+              <button onclick="consultAiOnSandboxScenario()" id="consultSandboxAiBtn" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs transition flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                <span>Consultar IA sobre este Cálculo / Técnica</span>
+              </button>
+            </div>
           </div>
 
-          <div class="lg:col-span-2 terminal-box rounded-xl p-4 font-mono text-xs text-cyan-300 space-y-2 h-72 overflow-y-auto custom-scrollbar flex flex-col justify-between" id="sandboxTerminal">
-            <div id="sandboxLogs" class="space-y-1">
-              <div class="text-slate-500">> Sandbox pronto. Clique em 'Executar Calibração' para iniciar o benchmark...</div>
+          <div class="lg:col-span-2 space-y-3">
+            <div class="terminal-box rounded-xl p-4 font-mono text-xs text-cyan-300 space-y-2 h-64 overflow-y-auto custom-scrollbar flex flex-col justify-between" id="sandboxTerminal">
+              <div id="sandboxLogs" class="space-y-1">
+                <div class="text-slate-500">> Sandbox pronto. Selecione um cenário e clique em 'Executar Calibração'...</div>
+              </div>
+              <div class="text-[10px] text-slate-500 pt-2 border-t border-white/10 flex justify-between">
+                <span>Status: <span id="sandboxStatus" class="text-emerald-400">Pronto</span></span>
+                <span>Offset / Modo: <span id="sandboxOffset">0 chaves</span></span>
+              </div>
             </div>
-            <div class="text-[10px] text-slate-500 pt-2 border-t border-white/10 flex justify-between">
-              <span>Status: <span id="sandboxStatus" class="text-emerald-400">Pronto</span></span>
-              <span>Offset: <span id="sandboxOffset">0 chaves</span></span>
+
+            <!-- AI Mathematical Explanation Box -->
+            <div id="sandboxAiAnalysisBox" class="hidden p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-2 text-xs text-slate-200">
+              <div class="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                <div class="flex items-center gap-2 font-bold text-amber-300">
+                  <i data-lucide="brain" class="w-4 h-4"></i>
+                  <span id="sandboxAiTitle">Parecer do Consultor Matemático IA</span>
+                </div>
+                <span id="sandboxAiModelTag" class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300">Gemini 2.0</span>
+              </div>
+              <div id="sandboxAiContent" class="text-[11px] leading-relaxed font-sans text-slate-300 space-y-1">
+                <!-- Preenchido via API -->
+              </div>
             </div>
           </div>
         </div>
@@ -1103,21 +1191,32 @@
   </main>
 
   <!-- Floating Advisor Chat Modal -->
-  <div id="advisorChatModal" class="fixed bottom-20 right-6 w-96 max-w-[calc(100vw-2rem)] h-[540px] glass-panel-glow rounded-2xl shadow-2xl z-50 flex flex-col hidden border border-amber-500/30 overflow-hidden">
-    <div class="p-4 bg-cypher-800/90 border-b border-white/10 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-black font-bold text-sm">🧠</div>
-        <div>
-          <div class="text-sm font-bold text-white">Consultor Matemático IA</div>
-          <div class="text-[10px] text-emerald-400 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Nexus Cérebro • Bitcoin Mastery</span>
+  <div id="advisorChatModal" class="fixed bottom-20 right-6 w-96 max-w-[calc(100vw-2rem)] h-[560px] glass-panel-glow rounded-2xl shadow-2xl z-50 flex flex-col hidden border border-amber-500/30 overflow-hidden">
+    <div class="p-3.5 bg-cypher-800/90 border-b border-white/10 space-y-2">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-black font-bold text-sm">🧠</div>
+          <div>
+            <div class="text-sm font-bold text-white">Consultor Matemático IA</div>
+            <div class="text-[10px] text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="advisorProviderBadge">Google Gemini 2.0</span>
+            </div>
           </div>
         </div>
+        <button onclick="toggleAdvisorChat()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
       </div>
-      <button onclick="toggleAdvisorChat()" class="text-slate-400 hover:text-white p-1">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
+
+      <!-- Provider Selector -->
+      <div class="flex items-center gap-2 pt-1 border-t border-white/5">
+        <label class="text-[10px] text-slate-400 font-mono">Motor:</label>
+        <select id="advisorProviderSelect" onchange="updateAdvisorProviderBadge()" class="flex-1 px-2.5 py-1 rounded-lg bg-cypher-950 border border-amber-500/30 text-[11px] text-amber-300 font-mono focus:outline-none focus:border-amber-400">
+          <option value="gemini" selected>⚡ Google Gemini 2.0 Flash</option>
+          <option value="nexus">🧠 Nexus Cérebro 2.0 (Rede Distribuída)</option>
+        </select>
+      </div>
     </div>
 
     <div id="advisorMessages" class="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar text-xs">

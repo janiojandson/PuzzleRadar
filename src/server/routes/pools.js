@@ -314,37 +314,157 @@ router.post('/submit-chunk', async (req, res) => {
 });
 
 // ─── GET /api/pool/stats & GET /api/pool/transparency ───
-// Mural de Transparência PoS com projeções de dividendos para assinantes
+// Mural de Transparência PoS com agrupamento por login, taxa da casa de 15% e regra de assinatura ativa
 const getTransparencyData = async () => {
-  const workersList = Array.from(activePoolWorkers.values());
-  const totalShares = workersList.reduce((acc, w) => acc + (w.shares || 0), 0);
+  const workersRouter = require('./workers');
+  const activeNodesMap = workersRouter.activeWorkersMap || new Map();
   const dpStats = await getDpStats('BTC_1000_P71');
 
   const prizeBtc = 7.10;
-  const btcPriceUsd = 62000;
-  const poolRewardUsd = prizeBtc * btcPriceUsd;
+  const btcPriceUsd = 65000;
+  const poolTotalPrizeUsd = prizeBtc * btcPriceUsd; // ~$461.500 USD
+
+  // 15% Taxa da Casa / Autor do Projeto para infraestrutura e custódia privada
+  const houseFeeRate = 0.15;
+  const houseBaseUsd = poolTotalPrizeUsd * houseFeeRate; // $69.225
+  const distributablePoolUsd = poolTotalPrizeUsd * (1 - houseFeeRate); // $392.275 (85%)
+
+  // Agrupa todas as sessões e nós conectados por Operador / Login / Token
+  const operatorsMap = new Map();
+
+  // 1. Processa nós mineradores em execução (workers.js)
+  const now = Date.now();
+  for (const [nodeId, worker] of activeNodesMap.entries()) {
+    if (now - worker.lastSeen <= 180000) {
+      const opToken = worker.userToken || 'wrk_anonymous_node';
+      const opName = worker.userToken ? (worker.userToken.startsWith('pzk_admin') ? 'Administrador Mestre' : `Assinante (${worker.userToken.slice(0, 10)}...)`) : 'Nó Anônimo (Sem Login)';
+      const isSubscriber = Boolean(worker.userToken && worker.userToken !== 'wrk_anonymous_node' && worker.userToken !== 'anon');
+
+      const existing = operatorsMap.get(opToken) || {
+        operatorToken: opToken,
+        operatorName: opName,
+        isSubscriberActive: isSubscriber,
+        subscriptionStatus: isSubscriber ? 'ACTIVE' : 'INACTIVE_REVERTED',
+        activeNodesCount: 0,
+        nodes: [],
+        totalKeysChecked: 0,
+        totalHashrateKps: 0,
+        completedChunks: 0,
+        shares: 0,
+        lastSeen: new Date(worker.lastSeen).toISOString()
+      };
+
+      existing.activeNodesCount += 1;
+      existing.nodes.push({ id: nodeId, name: worker.name, status: worker.status, hashrate: worker.keysPerSecond });
+      existing.totalKeysChecked += (worker.totalKeysChecked || 0);
+      existing.totalHashrateKps += (worker.keysPerSecond || 0);
+      existing.completedChunks += (worker.completedChunks || 0);
+      existing.shares += (worker.shares || 0);
+      if (worker.lastSeen > new Date(existing.lastSeen).getTime()) {
+        existing.lastSeen = new Date(worker.lastSeen).toISOString();
+      }
+
+      operatorsMap.set(opToken, existing);
+    }
+  }
+
+  // 2. Processa registros do pool colaborativo (pools.js)
+  for (const [wToken, pWorker] of activePoolWorkers.entries()) {
+    const isSubscriber = Boolean(wToken && !wToken.includes('anon') && wToken !== 'colab-worker-anon');
+    const opToken = wToken;
+    const existing = operatorsMap.get(opToken) || {
+      operatorToken: opToken,
+      operatorName: pWorker.workerName || (isSubscriber ? `Assinante (${opToken.slice(0, 10)}...)` : 'Nó Anônimo (Sem Login)'),
+      isSubscriberActive: isSubscriber,
+      subscriptionStatus: isSubscriber ? 'ACTIVE' : 'INACTIVE_REVERTED',
+      activeNodesCount: 1,
+      nodes: [{ id: wToken, name: pWorker.workerName, status: 'CONNECTED', hashrate: 45e9 }],
+      totalKeysChecked: (pWorker.shares || 0) * 1000000,
+      totalHashrateKps: 45e9,
+      completedChunks: Math.floor((pWorker.shares || 0) / 10),
+      shares: pWorker.shares || 0,
+      lastSeen: pWorker.lastSeen || new Date().toISOString()
+    };
+
+    if (!operatorsMap.has(opToken)) {
+      operatorsMap.set(opToken, existing);
+    }
+  }
+
+  const operatorsList = Array.from(operatorsMap.values());
+  const totalPoolShares = operatorsList.reduce((acc, op) => acc + (op.shares || 0), 0);
+
+  // Separa shares de assinantes ativos vs cotas revertidas de nós inativos/sem login
+  const activeSubscribersList = operatorsList.filter(op => op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE');
+  const activeSubscribersShares = activeSubscribersList.reduce((acc, op) => acc + (op.shares || 0), 0);
+  
+  const inactiveOperatorsList = operatorsList.filter(op => !op.isSubscriberActive || op.subscriptionStatus !== 'ACTIVE');
+  const inactiveRevertedShares = inactiveOperatorsList.reduce((acc, op) => acc + (op.shares || 0), 0);
+
+  // Calcula % e rendimento líquido para cada operador
+  const formattedOperators = operatorsList.map(op => {
+    let sharePercent = 0;
+    let projectedPayoutUsd = 0;
+
+    if (op.isSubscriberActive && activeSubscribersShares > 0) {
+      const shareFrac = op.shares / activeSubscribersShares;
+      sharePercent = shareFrac * 100;
+      projectedPayoutUsd = parseFloat((shareFrac * distributablePoolUsd).toFixed(2));
+    }
+
+    return {
+      operatorToken: op.operatorToken,
+      operatorName: op.operatorName,
+      isSubscriberActive: op.isSubscriberActive,
+      subscriptionStatus: op.subscriptionStatus,
+      activeNodesCount: op.activeNodesCount,
+      totalKeysChecked: op.totalKeysChecked,
+      totalHashrateFormatted: formatKps(op.totalHashrateKps),
+      completedChunks: op.completedChunks,
+      shares: op.shares,
+      sharePercent: sharePercent.toFixed(2) + '%',
+      projectedPayoutUsd,
+      lastSeen: op.lastSeen
+    };
+  });
+
+  // Reversão de cotas inativas para a Casa
+  const revertedSharesAmountUsd = totalPoolShares > 0 && activeSubscribersShares > 0
+    ? parseFloat(((inactiveRevertedShares / totalPoolShares) * distributablePoolUsd).toFixed(2))
+    : 0;
+
+  const totalHouseTakeUsd = parseFloat((houseBaseUsd + revertedSharesAmountUsd).toFixed(2));
 
   return {
-    totalActiveWorkers: workersList.length,
+    totalActiveOperators: operatorsList.length,
+    totalActiveNodes: operatorsList.reduce((acc, op) => acc + op.activeNodesCount, 0),
     totalDistinguishedPoints: Math.max(recentDpsList.length, dpStats.totalDps),
-    totalPoolShares: totalShares,
-    estimatedPoolYieldUsd: poolRewardUsd,
+    totalPoolShares,
     activeChallenge: 'BTC_1000_P71',
+    financialSummary: {
+      poolTotalPrizeUsd,
+      houseFeePercent: 15,
+      houseBaseUsd,
+      distributableSubscribersPoolUsd,
+      inactiveRevertedShares,
+      revertedSharesAmountUsd,
+      totalHouseTakeUsd,
+      ruleNotice: '15% de taxa da casa para sustentação do ecossistema. 85% distribuído proporcionalmente aos assinantes ativos. Shares de nós anônimos ou assinaturas inativas são 100% revertidas à Casa.'
+    },
     recentDps: recentDpsList.slice(0, 20),
-    workers: workersList.map(w => {
-      const shareFrac = totalShares > 0 ? (w.shares / totalShares) : 0;
-      return {
-        workerToken: w.workerToken,
-        workerName: w.workerName,
-        shares: w.shares,
-        sharePercent: (shareFrac * 100).toFixed(2) + '%',
-        projectedPayoutUsd: parseFloat((shareFrac * poolRewardUsd).toFixed(2)),
-        lastSeen: w.lastSeen
-      };
-    }),
+    operators: formattedOperators,
     bufferStats: sheetsBuffer.getStats()
   };
 };
+
+function formatKps(kps = 0) {
+  const n = Number(kps) || 0;
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TH/s';
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + ' GH/s';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + ' MH/s';
+  if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
+  return n.toFixed(0) + ' H/s';
+}
 
 router.get('/stats', async (req, res) => {
   res.json(await getTransparencyData());

@@ -391,6 +391,8 @@ router.post('/:id/result', async (req, res) => {
     if (worker) {
       worker.status = 'IDLE';
       worker.totalKeysChecked = (worker.totalKeysChecked || 0) + (Number(keysChecked) || 0);
+      worker.shares = (worker.shares || 0) + sharesEarned;
+      worker.completedChunks = (worker.completedChunks || 0) + 1;
       worker.currentTask = null;
       worker.lastSeen = Date.now();
     }
@@ -427,5 +429,7 @@ function formatHashrate(kps = 0) {
   if (n >= 1e3) return (n / 1e3).toFixed(2) + ' KH/s';
   return n.toFixed(0) + ' H/s';
 }
+
+router.activeWorkersMap = activeWorkersMap;
 
 module.exports = router;

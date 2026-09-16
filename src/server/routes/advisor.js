@@ -60,7 +60,7 @@ router.get('/recommendations', async (req, res) => {
  */
 router.post('/chat', async (req, res) => {
   try {
-    const { message, prompt, context, history } = req.body;
+    const { message, prompt, context, history, provider } = req.body;
     const userPrompt = message || prompt;
 
     if (!userPrompt) {
@@ -70,7 +70,8 @@ router.post('/chat', async (req, res) => {
     const response = await generateAdvisorResponse({
       prompt: userPrompt,
       context: context || {},
-      history: history || []
+      history: history || [],
+      provider: provider || 'gemini'
     });
 
     res.json(response);
