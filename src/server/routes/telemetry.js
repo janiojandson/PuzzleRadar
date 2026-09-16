@@ -130,6 +130,21 @@ async function buildTelemetryPulse() {
     0
   );
 
+  // Ranking real de nós ativos para o mural PoS
+  const totalShares = liveWorkers.reduce((acc, w) => acc + (w.shares || 0), 0);
+  const topWorkersFormatted = liveWorkers
+    .slice(0, 4)
+    .map(w => {
+      const shareFrac = totalShares > 0 ? (w.shares / totalShares) : (1 / Math.max(1, liveWorkers.length));
+      return {
+        id: w.id,
+        name: w.name,
+        shares: w.shares || 0,
+        sharePercent: (shareFrac * 100).toFixed(1) + '%',
+        projectedPayoutUsd: Math.round(shareFrac * (primaryRoi.prizeUSD || 461500) * 0.85)
+      };
+    });
+
   // Total de chaves físicas já salvas no cluster
   const totalArchivedSheets = sheetsBuffer ? (sheetsBuffer.getStats()?.totalRowsSent || 0) : 0;
   const totalKeysTestedInCluster = (primaryCompletedChunks * (Math.pow(2, 36) / 1000)) + (totalArchivedSheets * 1e9);
