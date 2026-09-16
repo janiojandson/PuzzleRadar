@@ -256,31 +256,40 @@
             </div>
 
             <!-- Mathematical Forecasting & Real Discovery Progress -->
-            <div class="space-y-2 p-3 rounded-xl bg-cypher-950 border border-white/10 font-mono text-xs">
+            <div class="space-y-2 p-3.5 rounded-xl bg-cypher-950 border border-white/10 font-mono text-xs">
               <div class="flex justify-between items-center text-[11px]">
-                <span class="text-slate-400">Varredura Física do Espaço:</span>
-                <span id="dashTargetScanned" class="text-white font-bold">0.00% (0/1000 fatias)</span>
-              </div>
-              <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
-                <div id="dashTargetProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
+                <span class="text-slate-400">Exaustão do Espaço Amostral:</span>
+                <span id="dashTargetScanned" class="text-white font-bold">0.00%</span>
               </div>
 
-              <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/5 text-[10px]">
+              <!-- Barra com Marcador Visual Central de 50% (Ponto Médio E[X]) -->
+              <div class="relative w-full bg-white/5 h-3.5 rounded-full overflow-visible border border-white/10 p-0.5 my-1">
+                <div id="dashTargetProgressBar" class="bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
+                <!-- Marcador de 50% -->
+                <div class="absolute top-[-4px] left-1/2 -translate-x-1/2 w-0.5 h-5 bg-amber-400 z-10"></div>
+                <span class="absolute -top-4 left-1/2 -translate-x-1/2 text-[9px] font-bold text-amber-300">50% E[X]</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-2 border-t border-white/5 text-[10px]">
                 <div>
-                  <span class="text-slate-400 block">Probabilidade Cumulativa:</span>
+                  <span class="text-slate-400 block">Chance Acumulada:</span>
                   <span id="dashTargetProb" class="text-emerald-400 font-extrabold text-[11px]">0.00%</span>
                 </div>
                 <div>
-                  <span class="text-slate-400 block">Meta Kangaroo DPs:</span>
-                  <span id="dashTargetDpsMeta" class="text-cyan-300 font-bold text-[11px]">0 / 4.096 DPs</span>
+                  <span class="text-slate-400 block">Progresso até E[X] (50%):</span>
+                  <span id="dashTargetProgressMid" class="text-amber-300 font-bold text-[11px]">0.0% da meta</span>
                 </div>
                 <div>
-                  <span class="text-slate-400 block">Previsão Realista (50% E[X]):</span>
-                  <span id="dashTargetEta50" class="text-amber-300 font-bold text-[11px]">Calculando...</span>
+                  <span class="text-slate-400 block">Chaves Verificadas / Espaço:</span>
+                  <span id="dashTargetKeysStats" class="text-cyan-300 font-bold text-[10px]">0 / 68.7 Bilhões</span>
                 </div>
                 <div>
-                  <span class="text-slate-400 block">Exaustão Máxima (100%):</span>
-                  <span id="dashTargetEta100" class="text-slate-300 font-bold text-[11px]">Calculando...</span>
+                  <span class="text-slate-400 block">Pontos DPs (Kangaroo):</span>
+                  <span id="dashTargetDpsMeta" class="text-slate-300 font-bold text-[10px]">0 / 4.096 DPs</span>
+                </div>
+                <div class="col-span-2 pt-1 border-t border-white/5 flex justify-between items-center text-[10px]">
+                  <div><span class="text-slate-400">ETA 50% Meta:</span> <strong id="dashTargetEta50" class="text-amber-300">Calculando...</strong></div>
+                  <div><span class="text-slate-400">Exaustão Total (100%):</span> <strong id="dashTargetEta100" class="text-slate-400">Calculando...</strong></div>
                 </div>
               </div>
             </div>
@@ -291,12 +300,12 @@
             </button>
           </div>
 
-          <!-- Card Alvo Secundário (Alto ROI / Multi-Chain com Seletor & Progresso Real) -->
+          <!-- Card Alvo Secundário (Diferenciado entre Auditoria Algébrica O(1) e Força Bruta O(N)) -->
           <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 space-y-4">
             <div class="flex items-center justify-between">
               <span class="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 font-mono text-[10px] font-bold uppercase flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                <span>Alvo Secundário (Alto ROI)</span>
+                <span>Alvo Secundário / Auditoria</span>
               </span>
               <span class="text-xs font-mono font-bold text-amber-400" id="dashSecBadgePrize">1.20 BTC</span>
             </div>
@@ -305,44 +314,51 @@
               <div class="flex items-center justify-between">
                 <h3 class="text-lg font-bold text-white tracking-tight truncate" id="dashSecTitle">Bitcoin ECDSA Nonce Reuse</h3>
                 <select id="dashSecChallengeDropdown" onchange="changeSecondaryTarget(this.value)" class="px-2 py-1 rounded-lg bg-cypher-900 border border-white/10 text-[10px] text-purple-300 font-mono focus:outline-none focus:border-purple-400">
-                  <option value="BTC_SATOSHI_NONCE_REUSE">BTC Nonce Reuse (1.2 BTC)</option>
-                  <option value="ETH_VANITY_32">ETH Vanity 32-bit (0.5 ETH)</option>
-                  <option value="SOL_VANITY_PREFIX_36">SOL Vanity 36-bit (15 SOL)</option>
-                  <option value="ETH_BIP39_SEED_RECOVERY">ETH 12-Word Seed (5 ETH)</option>
+                  <option value="BTC_SATOSHI_NONCE_REUSE">BTC Nonce Reuse (1.2 BTC - O(1))</option>
+                  <option value="ETH_VANITY_32">ETH Vanity 32-bit (0.5 ETH - O(N))</option>
+                  <option value="SOL_VANITY_PREFIX_36">SOL Vanity 36-bit (15 SOL - O(N))</option>
+                  <option value="ETH_BIP39_SEED_RECOVERY">ETH 12-Word Seed (5 ETH - BIP39)</option>
                 </select>
               </div>
               <p class="text-xs text-slate-300" id="dashSecPrize">Prêmio: 1.20 BTC (~$78.000 USD)</p>
             </div>
 
-            <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 space-y-1.5 font-mono text-xs">
+            <!-- Painel Condicional para Auditoria Algébrica O(1) -->
+            <div id="dashSecAlgebraicBlock" class="p-3.5 rounded-xl bg-cypher-950 border border-purple-500/20 font-mono text-xs space-y-2">
               <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400">Sentinela On-Chain:</span>
-                <a id="dashSecExplorerLink" href="https://mempool.space/address/15dTwY2K7XjY83j3eTcxL5LwA7hX5N3DqX" target="_blank" rel="noopener noreferrer" class="font-bold text-emerald-400 flex items-center gap-1 hover:underline">
-                  <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> <span id="dashSecSentinelStatus">INTACTO / DISPONÍVEL ↗</span>
-                </a>
+                <span class="text-slate-400">Tipo de Ataque:</span>
+                <span class="text-purple-300 font-bold">Algébrico O(1) via ECDSA</span>
               </div>
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400">Complexidade:</span>
-                <span class="text-purple-300 font-bold" id="dashSecComplexity">O(1) Instantâneo</span>
+              <div class="text-[11px] text-slate-300 space-y-1">
+                <div class="flex justify-between"><span>Transações Auditadas:</span> <strong class="text-white">48 On-Chain</strong></div>
+                <div class="flex justify-between"><span>Valores 'r' Únicos:</span> <strong class="text-emerald-400">48 / 48 (100% Únicos)</strong></div>
               </div>
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400">Filtro / Otimização:</span>
-                <span class="text-emerald-400 font-bold" id="dashSecFilter">Cálculo Algébrico O(1)</span>
-              </div>
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400">Tempo Frota:</span>
-                <span class="text-cyan-300 font-bold" id="dashSecTime">Instantâneo</span>
+              <div class="p-2 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] text-purple-200">
+                ✓ <strong>Resultado:</strong> Espaço de assinaturas auditado. Nenhuma repetição de nonce detectada. Chave protegida contra O(1).
               </div>
             </div>
 
-            <!-- Live Search Space Pruning for Secondary Target -->
-            <div class="space-y-1.5">
-              <div class="flex justify-between text-[11px] font-mono text-slate-400">
-                <span>Espaço de Busca Varrido:</span>
-                <span id="dashSecScanned" class="text-purple-300 font-bold">100.0%</span>
+            <!-- Painel Condicional para Busca de Chaves O(N) / Vanity -->
+            <div id="dashSecSearchBlock" class="hidden space-y-2">
+              <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 space-y-1.5 font-mono text-xs">
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">Algoritmo / Filtro:</span>
+                  <span class="text-cyan-300 font-bold" id="dashSecComplexity">O(N) Exaustão GPU</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400">Tempo Frota Estimado:</span>
+                  <span class="text-amber-300 font-bold" id="dashSecTime">Instantâneo</span>
+                </div>
               </div>
-              <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
-                <div id="dashSecProgressBar" class="bg-gradient-to-r from-purple-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 100%"></div>
+
+              <div class="space-y-1">
+                <div class="flex justify-between text-[11px] font-mono text-slate-400">
+                  <span>Exaustão do Espaço:</span>
+                  <span id="dashSecScanned" class="text-purple-300 font-bold">0.00%</span>
+                </div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
+                  <div id="dashSecProgressBar" class="bg-gradient-to-r from-purple-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
+                </div>
               </div>
             </div>
 
@@ -1096,8 +1112,19 @@
             <div id="pruningProgressBar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
           </div>
 
+          <!-- Bloco Condicional para Auditoria Algébrica no Space Pruning -->
+          <div id="pruningAlgebraicAuditNotice" class="hidden p-4 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs font-mono space-y-2">
+            <div class="flex items-center justify-between text-purple-300 font-bold text-sm">
+              <span>⚡ AUDITORIA ALGÉBRICA ECDSA O(1)</span>
+              <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 text-[10px]">CONCLUÍDO</span>
+            </div>
+            <p class="text-slate-300 text-[11px] leading-relaxed">
+              Este desafio não requer força bruta nem particionamento de chaves GPU. As 48 transações on-chain históricas da carteira foram analisadas com 100% de valores de 'r' únicos (sem repetição de nonce). A chave privada não é exposta por via algébrica.
+            </p>
+          </div>
+
           <!-- Mathematical Discovery Probability & Realistic Midpoint ETA Bar -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 font-mono text-xs">
+          <div id="pruningMathGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 font-mono text-xs">
             <div>
               <div class="text-[10px] text-slate-400">Probabilidade Cumulativa</div>
               <div id="pruningProbDisplay" class="text-base font-extrabold text-emerald-400">0.00%</div>

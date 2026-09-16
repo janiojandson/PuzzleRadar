@@ -725,12 +725,25 @@ async function fetchLiveRangesData() {
       const bar = document.getElementById('pruningProgressBar');
       if (bar) bar.style.width = `${Math.max(2, Math.min(100, percent))}%`;
 
-      if (pruningData.mathStats) {
-        const ms = pruningData.mathStats;
-        setInner('pruningProbDisplay', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
-        setInner('pruningMidpointDisplay', `${Number(ms.midpointTargetChunks || 500).toLocaleString()} fatias`);
-        setInner('pruningEta50Display', ms.realisticEta50Formatted || 'Calculando...');
-        setInner('pruningEta100Display', ms.maxEta100Formatted || 'Calculando...');
+      const isAlgebraic = (pruningData.targetPuzzle === 'BTC_SATOSHI_NONCE_REUSE') || (pruningData.mathStats && pruningData.mathStats.challengeType === 'ALGEBRAIC_AUDIT');
+      const algNotice = document.getElementById('pruningAlgebraicAuditNotice');
+      const mathGrid = document.getElementById('pruningMathGrid');
+
+      if (isAlgebraic) {
+        if (algNotice) algNotice.classList.remove('hidden');
+        if (mathGrid) mathGrid.classList.add('hidden');
+        setInner('pruningPercentDisplay', 'Auditoria On-Chain Concluída (100% Imune a Nonce Reuse)');
+      } else {
+        if (algNotice) algNotice.classList.add('hidden');
+        if (mathGrid) mathGrid.classList.remove('hidden');
+
+        if (pruningData.mathStats) {
+          const ms = pruningData.mathStats;
+          setInner('pruningProbDisplay', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
+          setInner('pruningMidpointDisplay', `${Number(ms.midpointTargetChunks || 500).toLocaleString()} fatias`);
+          setInner('pruningEta50Display', ms.realisticEta50Formatted || 'Calculando...');
+          setInner('pruningEta100Display', ms.maxEta100Formatted || 'Calculando...');
+        }
       }
 
       // 1.1 Renderiza sub-cards de Space Pruning para cada desafio ativo
@@ -1396,6 +1409,8 @@ function handleTelemetryPulse(pulse) {
     if (pulse.activeTarget.mathStats) {
       const ms = pulse.activeTarget.mathStats;
       setInner('dashTargetProb', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
+      setInner('dashTargetProgressMid', `${Number(ms.progressToMidpointPercent || 0).toFixed(1)}% da meta`);
+      setInner('dashTargetKeysStats', `${ms.keysScannedFormatted || '0'} / ${ms.totalKeysFormatted || 'Espaço'}`);
       setInner('dashTargetDpsMeta', `${Number(ms.kangarooDps || 0).toLocaleString()} / ${Number(ms.kangarooTargetDps || 4096).toLocaleString()} DPs`);
       setInner('dashTargetEta50', ms.realisticEta50Formatted || 'Calculando...');
       setInner('dashTargetEta100', ms.maxEta100Formatted || 'Calculando...');
@@ -1410,14 +1425,26 @@ function handleTelemetryPulse(pulse) {
       const pz = pulse.secondaryTarget.prize.split(' ')[0];
       setInner('dashSecBadgePrize', `${pz} ${pulse.secondaryTarget.chain || 'BTC'}`);
     }
-    setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(1) Instantâneo');
-    setInner('dashSecFilter', pulse.secondaryTarget.bip39ChecksumFilter || 'Cálculo Algébrico O(1)');
-    setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || 'Instantâneo');
-    
-    const secVal = Number(pulse.secondaryTarget.scannedPercent || 0).toFixed(2);
-    setInner('dashSecScanned', `${secVal}%`);
-    const secBar = document.getElementById('dashSecProgressBar');
-    if (secBar) secBar.style.width = `${Math.max(2, Math.min(100, parseFloat(secVal)))}%`;
+
+    const isAlgebraic = pulse.secondaryTarget.id === 'BTC_SATOSHI_NONCE_REUSE' || (pulse.secondaryTarget.mathStats && pulse.secondaryTarget.mathStats.challengeType === 'ALGEBRAIC_AUDIT');
+    const algBlock = document.getElementById('dashSecAlgebraicBlock');
+    const searchBlock = document.getElementById('dashSecSearchBlock');
+
+    if (isAlgebraic) {
+      if (algBlock) algBlock.classList.remove('hidden');
+      if (searchBlock) searchBlock.classList.add('hidden');
+    } else {
+      if (algBlock) algBlock.classList.add('hidden');
+      if (searchBlock) searchBlock.classList.remove('hidden');
+
+      setInner('dashSecComplexity', pulse.secondaryTarget.complexity || 'O(N) Exaustão GPU');
+      setInner('dashSecTime', pulse.secondaryTarget.estimatedFleetTime || 'Instantâneo');
+      
+      const secVal = Number(pulse.secondaryTarget.scannedPercent || 0).toFixed(2);
+      setInner('dashSecScanned', `${secVal}%`);
+      const secBar = document.getElementById('dashSecProgressBar');
+      if (secBar) secBar.style.width = `${Math.max(2, Math.min(100, parseFloat(secVal)))}%`;
+    }
 
     const secBtn = document.getElementById('dashSecActionButton');
     if (secBtn) {

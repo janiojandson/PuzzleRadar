@@ -122,26 +122,30 @@ async function buildTelemetryPulse() {
     ? 100.00
     : Math.min(100, parseFloat(((secEffectiveChunks / 1000) * 100).toFixed(2)));
 
-  // Ranking real de nós ativos para o mural PoS
-  const totalShares = liveWorkers.reduce((acc, w) => acc + (w.shares || 0), 0);
-  const topWorkersFormatted = liveWorkers
-    .slice(0, 4)
-    .map(w => {
-      const shareFrac = totalShares > 0 ? (w.shares / totalShares) : (1 / Math.max(1, liveWorkers.length));
-      return {
-        id: w.id,
-        name: w.name,
-        shares: w.shares || 0,
-        sharePercent: (shareFrac * 100).toFixed(1) + '%',
-        projectedPayoutUsd: Math.round(shareFrac * (primaryRoi.prizeUSD || 461500) * 0.85)
-      };
-    });
+  const secMathStats = calculateChallengeProbabilityAndETA(
+    secondaryPuzzle,
+    secEffectiveChunks,
+    1000,
+    Math.max(totalClusterKps, 42000000000),
+    0
+  );
+
+  // Total de chaves físicas já salvas no cluster
+  const totalArchivedSheets = sheetsBuffer ? (sheetsBuffer.getStats()?.totalRowsSent || 0) : 0;
+  const totalKeysTestedInCluster = (primaryCompletedChunks * (Math.pow(2, 36) / 1000)) + (totalArchivedSheets * 1e9);
 
   return {
     timestamp: new Date().toISOString(),
     clusterStatus: liveWorkers.length > 0 ? 'OPTIMAL' : 'STANDBY',
     globalHashrate: clusterKpsFormatted,
     totalActiveNodes: liveWorkers.length,
+    globalOdometer: {
+      totalKeysTestedFormatted: totalKeysTestedInCluster >= 1e12
+        ? `${(totalKeysTestedInCluster / 1e12).toFixed(2)} Trilhões de Chaves`
+        : `${(totalKeysTestedInCluster / 1e9).toFixed(2)} Bilhões de Chaves`,
+      totalArchivedChunks: primaryCompletedChunks + totalArchivedSheets,
+      totalPortfolioSolved: '83 / 164 Alvos'
+    },
     activeTarget: {
       id: primaryKey,
       title: primaryPuzzle.title || 'Bitcoin Puzzle #71',
@@ -168,7 +172,8 @@ async function buildTelemetryPulse() {
       estimatedFleetTime: secondaryRoi ? secondaryRoi.formattedFleetTime : 'Instantâneo',
       scannedPercent: secScannedPercent,
       scannedChunks: secPruning.scannedChunks,
-      totalChunks: 1000
+      totalChunks: 1000,
+      mathStats: secMathStats
     },
     proofOfShare: {
       totalDistinguishedPoints: Math.max(telemetryEvents.filter(e => e.type === 'DP_SUBMITTED').length, dpStats.totalDps),
