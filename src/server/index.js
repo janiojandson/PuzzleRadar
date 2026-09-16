@@ -85,6 +85,7 @@ app.use('/api/workers', workerRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/advisor', advisorRoutes);
 app.use('/api/nexus', nexusRoutes);
+app.use('/api/membro', nexusRoutes); // Alias para padrão de membros do Cérebro
 app.use('/api/discoveries', discoveriesRoutes);
 app.use('/api/fleet', fleetRoutes);
 app.use('/api/sandbox', sandboxRoutes);
