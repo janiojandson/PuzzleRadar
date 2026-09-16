@@ -765,15 +765,15 @@ async function fetchLiveRangesData() {
 
           return `
             <tr class="hover:bg-white/5 transition font-mono text-[11px]">
-              <td class="py-2.5 px-3 text-slate-400">${timeFormatted}</td>
-              <td class="py-2.5 px-3 text-amber-400 font-bold">${r.chain || 'BTC'}</td>
-              <td class="py-2.5 px-3 text-white font-semibold">${r.challengeId || 'BTC_1000_P71'}</td>
-              <td class="py-2.5 px-3 text-cyan-300 font-bold">#${r.chunkIndex !== undefined ? r.chunkIndex : 0}</td>
-              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]" title="${r.rangeStart}">0x${(r.rangeStart || '').substring(0, 14)}...</td>
-              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px]" title="${r.rangeEnd}">0x${(r.rangeEnd || '').substring(0, 14)}...</td>
-              <td class="py-2.5 px-3 text-slate-300">${r.workerName || 'Colab Farm Node'}</td>
-              <td class="py-2.5 px-3">${statusBadge}</td>
-              <td class="py-2.5 px-3 text-right font-bold text-emerald-400">${r.hashrate || '45.0 GH/s'}</td>
+              <td class="py-2.5 px-3 text-slate-400 whitespace-nowrap">${timeFormatted}</td>
+              <td class="py-2.5 px-3 text-amber-400 font-bold whitespace-nowrap">${r.chain || 'BTC'}</td>
+              <td class="py-2.5 px-3 text-white font-semibold whitespace-nowrap">${r.challengeId || 'BTC_1000_P71'}</td>
+              <td class="py-2.5 px-3 text-cyan-300 font-bold whitespace-nowrap">#${r.chunkIndex !== undefined ? r.chunkIndex : 0}</td>
+              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px] whitespace-nowrap" title="${r.rangeStart}">0x${(r.rangeStart || '').substring(0, 12)}...</td>
+              <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px] whitespace-nowrap" title="${r.rangeEnd}">0x${(r.rangeEnd || '').substring(0, 12)}...</td>
+              <td class="py-2.5 px-3 text-slate-300 max-w-[130px] truncate" title="${r.workerName || 'Colab Node'}">${r.workerName || 'Colab Node'}</td>
+              <td class="py-2.5 px-3 whitespace-nowrap">${statusBadge}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-emerald-400 whitespace-nowrap">${r.hashrate || '45.0 GH/s'}</td>
             </tr>
           `;
         }).join('');
@@ -1533,6 +1533,109 @@ function generateColabTargetCommand(num) {
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
   const cmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P${num}"`;
   copyTextToClipboard(cmd, `Comando Colab para o Puzzle #${num} copiado!`);
+}
+
+// ─── SIMULAÇÃO DE PULSO / DP / CHUNK (PROVA DE CONCEITO AO VIVO) ───
+async function triggerSimulatedWorkerStep() {
+  showToast('⚡ Disparando simulação de passo e DP ao vivo...');
+  try {
+    const res = await fetch('/api/pool/simulate-worker-step', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workerToken: currentUser?.workerToken || 'wrk_web_simulator',
+        workerName: currentUser?.username || 'Simulador Web GPU',
+        challengeId: currentActiveChallenge || 'BTC_1000_P71',
+        chain: currentActiveChain || 'BTC'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`💎 DP Simulado: ${data.dpHex.substring(0, 10)}... (+1 Share)`);
+      appendTerminalLog('DP_SUBMITTED', `💎 [SIMULAÇÃO DP] Ponto distinguido gerado com sucesso: ${data.dpHex} (Chunk #${data.chunkIndex})`);
+      
+      // Atualiza painéis imediatamente
+      fetchPoolStats();
+      fetchLiveRangesData();
+    } else {
+      appendTerminalLog('COLLISION_ALERT', `⚠️ Falha ao simular pulso: ${data.error || 'Erro desconhecido'}`);
+    }
+  } catch (err) {
+    appendTerminalLog('COLLISION_ALERT', `⚠️ Erro de conexão no simulador: ${err.message}`);
+  }
+}
+
+// ─── LEARNING LAB SANDBOX BENCHMARK ───
+async function runSandboxBenchmark() {
+  const select = document.getElementById('sandboxPuzzleSelect');
+  const puzzleNum = select ? select.value : '30';
+  const btn = document.getElementById('runBenchmarkBtn');
+  const statusEl = document.getElementById('sandboxStatus');
+  const offsetEl = document.getElementById('sandboxOffset');
+  const logsContainer = document.getElementById('sandboxLogs');
+
+  if (btn) btn.disabled = true;
+  if (statusEl) {
+    statusEl.innerText = 'Executando...';
+    statusEl.className = 'text-amber-400 animate-pulse';
+  }
+
+  if (logsContainer) {
+    logsContainer.innerHTML = `<div class="text-cyan-400">> [INICIANDO] Calibrando hardware contra o Puzzle #${puzzleNum}...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/sandbox/benchmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ puzzleNumber: puzzleNum, hardware: 'GPU NVIDIA (Benchmark Local)' })
+    });
+    const data = await res.json();
+
+    if (data.success && data.logs) {
+      if (logsContainer) {
+        logsContainer.innerHTML = '';
+        data.logs.forEach((log, idx) => {
+          setTimeout(() => {
+            const row = document.createElement('div');
+            row.className = log.includes('KEY_INTERSECTION') || log.includes('APROVADO')
+              ? 'text-emerald-400 font-bold'
+              : log.includes('RESULT')
+                ? 'text-amber-300 font-extrabold'
+                : 'text-slate-300';
+            row.innerText = `> ${log}`;
+            logsContainer.appendChild(row);
+            const terminal = document.getElementById('sandboxTerminal');
+            if (terminal) terminal.scrollTop = terminal.scrollHeight;
+          }, idx * 250);
+        });
+      }
+
+      setTimeout(() => {
+        if (statusEl) {
+          statusEl.innerText = '✅ Calibrado com Sucesso';
+          statusEl.className = 'text-emerald-400 font-bold';
+        }
+        if (offsetEl) offsetEl.innerText = `${data.benchmark?.keysCheckedFormatted || '5.000.000'} chaves`;
+        if (btn) btn.disabled = false;
+        showToast('🎯 Calibração Sandbox concluída com cruzamento de chave confirmado!');
+        appendTerminalLog('SYSTEM', `🎯 [SANDBOX BENCHMARK] Hardware validado com sucesso no Puzzle #${puzzleNum} (${data.benchmark?.hashrate || '18.00 GH/s'})`);
+      }, (data.logs.length + 1) * 250);
+    } else {
+      if (statusEl) {
+        statusEl.innerText = '⚠️ Erro';
+        statusEl.className = 'text-red-400';
+      }
+      if (btn) btn.disabled = false;
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.innerText = '⚠️ Erro de Conexão';
+      statusEl.className = 'text-red-400';
+    }
+    if (btn) btn.disabled = false;
+    appendTerminalLog('COLLISION_ALERT', `⚠️ Erro no Sandbox Benchmark: ${err.message}`);
+  }
 }
 
 // ─── HELPERS ───
