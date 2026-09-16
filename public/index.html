@@ -255,14 +255,33 @@
               </div>
             </div>
 
-            <!-- Progress Bar -->
-            <div class="space-y-1.5">
-              <div class="flex justify-between text-[11px] font-mono text-slate-400">
-                <span>Espaço de Busca Varrido:</span>
-                <span id="dashTargetScanned" class="text-white font-bold">18.4%</span>
+            <!-- Mathematical Forecasting & Real Discovery Progress -->
+            <div class="space-y-2 p-3 rounded-xl bg-cypher-950 border border-white/10 font-mono text-xs">
+              <div class="flex justify-between items-center text-[11px]">
+                <span class="text-slate-400">Varredura Física do Espaço:</span>
+                <span id="dashTargetScanned" class="text-white font-bold">0.00% (0/1000 fatias)</span>
               </div>
               <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
-                <div id="dashTargetProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 18.4%"></div>
+                <div id="dashTargetProgressBar" class="bg-gradient-to-r from-amber-500 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 pt-1.5 border-t border-white/5 text-[10px]">
+                <div>
+                  <span class="text-slate-400 block">Probabilidade Cumulativa:</span>
+                  <span id="dashTargetProb" class="text-emerald-400 font-extrabold text-[11px]">0.00%</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Meta Kangaroo DPs:</span>
+                  <span id="dashTargetDpsMeta" class="text-cyan-300 font-bold text-[11px]">0 / 4.096 DPs</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Previsão Realista (50% E[X]):</span>
+                  <span id="dashTargetEta50" class="text-amber-300 font-bold text-[11px]">Calculando...</span>
+                </div>
+                <div>
+                  <span class="text-slate-400 block">Exaustão Máxima (100%):</span>
+                  <span id="dashTargetEta100" class="text-slate-300 font-bold text-[11px]">Calculando...</span>
+                </div>
               </div>
             </div>
 
@@ -1061,7 +1080,7 @@
             
             <div class="flex items-center gap-3 text-xs font-mono">
               <div class="text-slate-400 text-[11px]">
-                Fatias Varridas: <strong id="pruningScannedCount" class="text-white">0</strong> / <span id="pruningTotalCount">10.000</span>
+                Fatias Varridas: <strong id="pruningScannedCount" class="text-white">0</strong> / <span id="pruningTotalCount">1.000</span>
               </div>
               <select id="pruningChallengeSelect" onchange="changePruningChallenge(this.value)" class="px-3 py-1.5 rounded-lg bg-cypher-900 border border-white/10 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-400">
                 <option value="BTC_1000_P71">BTC - Puzzle #71 (7.1 BTC)</option>
@@ -1074,7 +1093,31 @@
           </div>
 
           <div class="w-full bg-white/5 h-3 rounded-full overflow-hidden border border-white/10 p-0.5">
-            <div id="pruningProgressBar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 5%"></div>
+            <div id="pruningProgressBar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
+          </div>
+
+          <!-- Mathematical Discovery Probability & Realistic Midpoint ETA Bar -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 font-mono text-xs">
+            <div>
+              <div class="text-[10px] text-slate-400">Probabilidade Cumulativa</div>
+              <div id="pruningProbDisplay" class="text-base font-extrabold text-emerald-400">0.00%</div>
+              <div class="text-[9px] text-slate-500">P(Descoberta) ≤ Fatias</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">Meta Estatística 50%</div>
+              <div id="pruningMidpointDisplay" class="text-base font-bold text-amber-300">500 fatias</div>
+              <div class="text-[9px] text-slate-500">Ponto Médio E[X]</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">Previsão Realista (50%)</div>
+              <div id="pruningEta50Display" class="text-base font-bold text-cyan-300">Calculando...</div>
+              <div class="text-[9px] text-slate-500">Expectativa Média</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-slate-400">Exaustão Total (100%)</div>
+              <div id="pruningEta100Display" class="text-base font-bold text-slate-300">Calculando...</div>
+              <div class="text-[9px] text-slate-500">Pior Cenário Teórico</div>
+            </div>
           </div>
 
           <!-- Multi-Challenge Space Pruning Sub-Cards Grid -->

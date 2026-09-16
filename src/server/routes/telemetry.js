@@ -98,6 +98,16 @@ async function buildTelemetryPulse() {
   const primaryEffectiveChunks = primaryCompletedChunks + primaryInFlight;
   const primaryScannedPercent = Math.min(100, parseFloat(((primaryEffectiveChunks / 1000) * 100).toFixed(2)));
 
+  // Cálculo da Probabilidade Matemática Real e Previsão Realista (ETA 50% vs 100%)
+  const { calculateChallengeProbabilityAndETA } = require('../../lib/difficultyEngine');
+  const primaryMathStats = calculateChallengeProbabilityAndETA(
+    primaryPuzzle,
+    primaryEffectiveChunks,
+    1000,
+    Math.max(totalClusterKps, 42000000000),
+    dpStats.totalDps
+  );
+
   // Alvo Secundário: O #1 melhor posicionado do ranking Multi-Chain (Highest ROI / Quick Win)
   const secondaryPuzzle = ranked.find(p => p.challengeId !== primaryPuzzle.challengeId && (p.chain !== 'BTC' || p.challengeId === 'BTC_SATOSHI_NONCE_REUSE')) || ranked[0];
   const secKey = secondaryPuzzle.challengeId || 'BTC_SATOSHI_NONCE_REUSE';
@@ -143,7 +153,8 @@ async function buildTelemetryPulse() {
       estimatedFleetTime: primaryRoi.formattedFleetTime || '4.8 dias',
       scannedPercent: primaryScannedPercent,
       scannedChunks: primaryCompletedChunks,
-      totalChunks: 1000
+      totalChunks: 1000,
+      mathStats: primaryMathStats
     },
     secondaryTarget: {
       id: secKey,

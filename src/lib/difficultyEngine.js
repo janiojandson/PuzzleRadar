@@ -636,6 +636,86 @@ function getChallengeById(queryId) {
   return match || null;
 }
 
+/**
+ * Calcula a probabilidade matemática real de descoberta da chave e a previsão realista de tempo (ETA)
+ * - Busca Linear: P(encontro) = fatias_varridas / fatias_totais
+ * - Ponto Médio Estatístico: 50% de varredura (onde E[X] ocorre na média estatística)
+ * - Kangaroo Pollard O(√N): Meta de DPs = 4.096 pontos (bits m=24) para colisão tame/wild
+ */
+function calculateChallengeProbabilityAndETA(challenge = {}, scannedChunks = 0, totalChunks = 1000, clusterKps = 42000000000, totalDps = 0) {
+  const chal = challenge || {};
+  const safeTotalChunks = Math.max(1, Number(totalChunks) || 1000);
+  const safeScannedChunks = Math.min(safeTotalChunks, Math.max(0, Number(scannedChunks) || 0));
+  const safeKps = Math.max(1e5, Number(clusterKps) || 42e9);
+
+  const bits = Number(chal.effectiveBits || chal.bits || chal.bitRange || 66);
+  const algo = (chal.algorithm || chal.algorithmType || '').toUpperCase();
+  const isNonceReuse = chal.challengeId === 'BTC_SATOSHI_NONCE_REUSE' || algo.includes('NONCE_REUSE') || algo.includes('O1') || bits <= 1;
+  const isKangaroo = Boolean(chal.publicKeyExposed || chal.targetPublicKey || (chal.publicKey && String(chal.publicKey).length >= 64) || algo.includes('KANGAROO') || algo.includes('SQRT'));
+
+  // 1. Progresso Físico e Probabilidade Linear
+  const physicalProgressPercent = Math.min(100, Math.max(0, (safeScannedChunks / safeTotalChunks) * 100));
+  const midpointTargetChunks = Math.ceil(safeTotalChunks * 0.5);
+  const remainingChunksToMidpoint = Math.max(0, midpointTargetChunks - safeScannedChunks);
+  const remainingChunksToExhaustion = Math.max(0, safeTotalChunks - safeScannedChunks);
+
+  // Estimativa de Chaves por Fatia
+  let totalKeysInSpace = Math.pow(2, Math.min(bits, 62));
+  if (isKangaroo) {
+    totalKeysInSpace = Math.pow(2, Math.min((bits / 2) + 1, 62));
+  }
+  const keysPerChunk = totalKeysInSpace / safeTotalChunks;
+  const secondsPerChunk = Math.max(0.001, keysPerChunk / safeKps);
+
+  // 2. Cálculo do ETA Linear (Midpoint 50% vs Exhaustion 100%)
+  const secondsToRealistic50 = remainingChunksToMidpoint * secondsPerChunk;
+  const secondsToMaxExhaustion = remainingChunksToExhaustion * secondsPerChunk;
+
+  // 3. Kangaroo Pollard Distinguish Points Probability
+  const KANGAROO_TARGET_DPS = 4096; // Meta para m=24 bits em espaço de 2^66
+  const safeDps = Math.max(0, Number(totalDps) || 0);
+  const kangarooConvergencePercent = Math.min(100, Math.max(0, (safeDps / KANGAROO_TARGET_DPS) * 100));
+
+  // 4. Probabilidade Cumulativa Efetiva
+  let cumulativeDiscoveryProbability = physicalProgressPercent;
+  if (isNonceReuse) {
+    cumulativeDiscoveryProbability = 100;
+  } else if (isKangaroo) {
+    // No Kangaroo, probabilidade cresce com as colisões de DP (Paradoxo do Aniversário)
+    // P ≈ 1 - exp(- (dps_tame * dps_wild) / (2 * N_dp))
+    const pDps = 1 - Math.exp(-Math.pow(safeDps / 2, 2) / (2 * KANGAROO_TARGET_DPS));
+    cumulativeDiscoveryProbability = Math.min(100, Math.max(physicalProgressPercent, pDps * 100));
+  }
+
+  function formatDuration(sec) {
+    if (sec <= 0) return 'Concluído';
+    if (sec < 60) return `${Math.ceil(sec)} seg`;
+    const hours = sec / 3600;
+    if (hours < 24) return `${hours.toFixed(1)}h`;
+    const days = hours / 24;
+    if (days < 365) return `${days.toFixed(1)}d`;
+    return `${(days / 365).toFixed(1)} anos`;
+  }
+
+  return {
+    scannedChunks: safeScannedChunks,
+    totalChunks: safeTotalChunks,
+    physicalProgressPercent: parseFloat(physicalProgressPercent.toFixed(4)),
+    midpointTargetChunks,
+    isMidpointReached: safeScannedChunks >= midpointTargetChunks,
+    cumulativeDiscoveryProbability: parseFloat(cumulativeDiscoveryProbability.toFixed(4)),
+    isKangaroo,
+    isNonceReuse,
+    kangarooDps: safeDps,
+    kangarooTargetDps: KANGAROO_TARGET_DPS,
+    kangarooConvergencePercent: parseFloat(kangarooConvergencePercent.toFixed(2)),
+    realisticEta50Formatted: formatDuration(secondsToRealistic50),
+    maxEta100Formatted: formatDuration(secondsToMaxExhaustion),
+    secondsToRealistic50: parseFloat(secondsToRealistic50.toFixed(2)),
+    secondsToMaxExhaustion: parseFloat(secondsToMaxExhaustion.toFixed(2))
+  };
+}
+
 module.exports = {
   calculateDifficultyScore,
   calculateEntropyReduction,
@@ -646,6 +726,7 @@ module.exports = {
   getMultiChainPuzzleData,
   getChallengeById,
   calculateTargetROI,
+  calculateChallengeProbabilityAndETA,
   fetchCryptoPrices,
   getCachedPrices,
   DIFFICULTY_THRESHOLDS,

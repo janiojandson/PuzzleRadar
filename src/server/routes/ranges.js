@@ -232,6 +232,15 @@ router.get('/space-pruning-live', async (req, res) => {
       });
     }
 
+    const { calculateChallengeProbabilityAndETA } = require('../../lib/difficultyEngine');
+    const mathStats = calculateChallengeProbabilityAndETA(
+      challenge || { bits: 71, publicKeyExposed: true },
+      effectiveScanned,
+      total,
+      42000000000,
+      stats.scannedChunks
+    );
+
     res.json({
       ...stats,
       scannedChunks: stats.scannedChunks,
@@ -245,6 +254,7 @@ router.get('/space-pruning-live', async (req, res) => {
       totalSpaceBits: (challenge && challenge.bits) || 71,
       keysPerChunk: '1.000.000.000.000 (1 Trilhão)',
       activeAlgorithm: (challenge && challenge.algorithmType) || 'Pollard Kangaroo O(√N)',
+      mathStats,
       multiStats
     });
   } catch (err) {

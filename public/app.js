@@ -725,6 +725,14 @@ async function fetchLiveRangesData() {
       const bar = document.getElementById('pruningProgressBar');
       if (bar) bar.style.width = `${Math.max(2, Math.min(100, percent))}%`;
 
+      if (pruningData.mathStats) {
+        const ms = pruningData.mathStats;
+        setInner('pruningProbDisplay', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
+        setInner('pruningMidpointDisplay', `${Number(ms.midpointTargetChunks || 500).toLocaleString()} fatias`);
+        setInner('pruningEta50Display', ms.realisticEta50Formatted || 'Calculando...');
+        setInner('pruningEta100Display', ms.maxEta100Formatted || 'Calculando...');
+      }
+
       // 1.1 Renderiza sub-cards de Space Pruning para cada desafio ativo
       const multiGrid = document.getElementById('multiChallengePruningGrid');
       if (multiGrid && pruningData.multiStats) {
@@ -1384,6 +1392,14 @@ function handleTelemetryPulse(pulse) {
 
     const bar = document.getElementById('dashTargetProgressBar');
     if (bar) bar.style.width = `${Math.max(2, Math.min(100, parseFloat(pVal)))}%`;
+
+    if (pulse.activeTarget.mathStats) {
+      const ms = pulse.activeTarget.mathStats;
+      setInner('dashTargetProb', `${Number(ms.cumulativeDiscoveryProbability || 0).toFixed(2)}%`);
+      setInner('dashTargetDpsMeta', `${Number(ms.kangarooDps || 0).toLocaleString()} / ${Number(ms.kangarooTargetDps || 4096).toLocaleString()} DPs`);
+      setInner('dashTargetEta50', ms.realisticEta50Formatted || 'Calculando...');
+      setInner('dashTargetEta100', ms.maxEta100Formatted || 'Calculando...');
+    }
   }
 
   // Alvo Secundário (Sincronizado 100% com Multi-Chain)

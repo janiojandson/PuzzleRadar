@@ -106,30 +106,49 @@ async function bulkImportHistory(puzzleId, chunksOrRanges = [], totalChunksInSpa
 }
 
 /**
- * Retorna estatísticas do Space Pruning para um puzzle
+ * Retorna estatísticas do Space Pruning para um puzzle com limites matemáticos estritos
  */
-async function getPruningStats(puzzleId, totalChunksInSpace = 10000) {
+async function getPruningStats(puzzleId, totalChunksInSpace = 100000) {
   const key = `puzzleradar:bitmap:${puzzleId}`;
-  let scannedCount = 0;
+  let rawScannedCount = 0;
 
   if (redisClient && redisClient.status === 'ready') {
-    scannedCount = await redisClient.bitcount(key);
+    rawScannedCount = await redisClient.bitcount(key);
   } else {
     const set = memoryBitmapStore.get(key);
-    scannedCount = set ? set.size : 0;
+    rawScannedCount = set ? set.size : 0;
   }
 
-  const total = Math.max(scannedCount, totalChunksInSpace);
-  const prunedPercent = total > 0 ? (scannedCount / total) * 100 : 0;
+  const total = Number(totalChunksInSpace) || 100000;
+  // Limita estritamente ao total soberano do espaço de busca
+  const validScanned = Math.min(total, rawScannedCount);
+  const remaining = Math.max(0, total - validScanned);
+  const prunedPercent = total > 0 ? (validScanned / total) * 100 : 0;
 
   return {
     puzzleId,
     totalChunks: total,
-    scannedChunks: scannedCount,
-    remainingChunks: total - scannedCount,
+    scannedChunks: validScanned,
+    rawBitcount: rawScannedCount,
+    remainingChunks: remaining,
     prunedPercent: parseFloat(prunedPercent.toFixed(4)),
     status: prunedPercent >= 100 ? 'FULLY_SCANNED' : 'PRUNED_ACTIVE'
   };
+}
+
+/**
+ * Sanitiza o bitmap de um desafio removendo registros de teste que excederam o espaço
+ */
+async function sanitizeBitmap(puzzleId, maxChunks = 100000) {
+  const key = `puzzleradar:bitmap:${puzzleId}`;
+  if (memoryBitmapStore.has(key)) {
+    const set = memoryBitmapStore.get(key);
+    for (const idx of Array.from(set)) {
+      if (idx >= maxChunks) {
+        set.delete(idx);
+      }
+    }
+  }
 }
 
 const memoryDpStore = new Map(); // Fallback in-memory para Distinguished Points (dp:<puzzleId> -> Map(xHex -> payload))
@@ -240,6 +259,7 @@ module.exports = {
   isChunkScanned,
   bulkImportHistory,
   getPruningStats,
+  sanitizeBitmap,
   storeDistinguishedPoint,
   publishRevocation,
   getDpStats
