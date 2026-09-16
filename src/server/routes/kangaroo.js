@@ -99,6 +99,25 @@ router.post('/submit-dp', async (req, res) => {
       });
     } catch (_) {}
 
+    // Enfileira no buffer de lotes para a Planilha Google
+    try {
+      const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+      if (sheetsBuffer) {
+        sheetsBuffer.enqueueChunkLog({
+          timestamp: new Date().toISOString(),
+          chain: 'BTC',
+          challenge_id: puzzle_id || 'BTC_1000_P71',
+          chunkIndex: `KANGAROO_${walk_type.toUpperCase()}`,
+          startHex: start_key,
+          endHex: point_x,
+          workerName: worker_id,
+          status: 'DP_SUBMITTED',
+          hashrate: `${((steps_taken || 1000) / 1e6).toFixed(2)} MSteps/s`,
+          keyFound: false
+        });
+      }
+    } catch (_) {}
+
     const result = await kangarooManager.submitDP(puzzle_id, worker_id, {
       pointX:          point_x,
       pointY:          point_y || '',

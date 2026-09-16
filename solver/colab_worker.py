@@ -236,10 +236,10 @@ class ColabFarmWorker:
         self.kangaroo_round += 1
         params = self.get_kangaroo_parameters()
 
-        range_start_hex = (params and params.get("rangeStart")) or task.get("rangeStart", "400000000000000000")
-        range_end_hex = (params and params.get("rangeEnd")) or task.get("rangeEnd", "7fffffffffffffffff")
-        target_pub = (params and params.get("targetPubKey")) or task.get("hints", [{}])[0].get("pubKey") or "03a20216fe8276f57ee138b6d8b6cebf81c5d988ab23612d26fcefd0fc8b5a0349"
-        mask_bits = (params and params.get("maskBits")) or 26
+        range_start_hex = str((params and params.get("rangeStart")) or task.get("rangeStart", "400000000000000000")).replace("0x", "")
+        range_end_hex = str((params and params.get("rangeEnd")) or task.get("rangeEnd", "7fffffffffffffffff")).replace("0x", "")
+        target_pub = (params and params.get("targetPubKey")) or task.get("hints", [{}])[0].get("pubKey") or "03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895"
+        mask_bits = (params and params.get("maskBits")) or 24
 
         # Avança dinamicamente a semente dos rebanhos Tame/Wild a cada lote
         seed_offset = hex((int(hashlib.sha256(f"{self.worker_id}_{self.kangaroo_round}".encode()).hexdigest()[:16], 16)) % 0xFFFFFFFF)
