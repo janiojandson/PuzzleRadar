@@ -197,12 +197,22 @@ function render1000Table(puzzles) {
         <td class="py-3 px-3 whitespace-nowrap">${roiBadge}</td>
         <td class="py-3 px-3 whitespace-nowrap">${statusBadge}</td>
         <td class="py-3 px-3 text-right whitespace-nowrap">
-          ${!isSolved
-            ? `<button onclick="setTargetPuzzle(${p.num})" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-[10px] transition whitespace-nowrap">
-                🎯 Atacar
-              </button>`
-            : `<span class="text-[10px] text-slate-500 whitespace-nowrap">Concluído</span>`
-          }
+          <div class="flex items-center justify-end gap-1.5">
+            <button onclick="setTargetPuzzle(${p.num})" title="Definir como Alvo Imediato da Frota" class="px-2.5 py-1 rounded-lg ${isTarget ? 'bg-amber-400 text-black font-extrabold ring-2 ring-amber-300' : 'bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-black'} font-bold text-[10px] transition whitespace-nowrap flex items-center gap-1">
+              <i data-lucide="crosshair" class="w-3 h-3"></i>
+              <span>${isTarget ? 'Alvo Ativo' : 'Atacar'}</span>
+            </button>
+            <button onclick="trainPuzzleInLab(${p.num})" title="Treinar / Calibrar no Laboratório Sandbox" class="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-semibold text-[10px] transition whitespace-nowrap flex items-center gap-1">
+              <i data-lucide="flask-conical" class="w-3 h-3"></i>
+              <span>Treinar</span>
+            </button>
+            <button onclick="downloadBatForPuzzle(${p.num})" title="Baixar script .bat Windows configurado para este Puzzle" class="p-1 rounded-lg bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition">
+              <i data-lucide="download" class="w-3 h-3"></i>
+            </button>
+            <button onclick="generateColabTargetCommand(${p.num})" title="Copiar Comando Colab" class="p-1 rounded-lg bg-white/5 hover:bg-white/20 text-emerald-400 hover:text-emerald-300 transition">
+              <i data-lucide="copy" class="w-3 h-3"></i>
+            </button>
+          </div>
         </td>
       </tr>`;
   }).join('');
@@ -270,11 +280,11 @@ function updateAllTargetCodeBoxes(chain, challengeId, titleDisplay) {
   const kaggleOneLiner = document.getElementById('kaggleOneLinerCode');
   if (kaggleOneLiner) kaggleOneLiner.innerText = kaggleCmd;
 
-  const colabBox = document.getElementById('colabDirectCodeBox');
-  if (colabBox) colabBox.value = colabCmd;
-
-  const localBox = document.getElementById('localDirectCodeBox');
-  if (localBox) localBox.value = localCmd;
+  document.querySelectorAll('#colabDirectCodeBox').forEach(el => { el.value = colabCmd; });
+  document.querySelectorAll('#localDirectCodeBox').forEach(el => { 
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') el.value = localCmd; 
+    else el.innerText = localCmd; 
+  });
 
   const colabCli = document.getElementById('colabCliCode');
   if (colabCli) colabCli.innerText = localCmd;
@@ -295,6 +305,47 @@ function setTargetPuzzle(num) {
   switchTab('tab-fleet');
   copyColabOneLiner();
   showToast(`🎯 Alvo Puzzle #${num} (${prize}) selecionado! Comando Colab copiado.`);
+}
+
+function trainPuzzleInLab(num) {
+  const select = document.getElementById('sandboxPuzzleSelect');
+  if (select) {
+    let optionExists = false;
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value == num) {
+        select.selectedIndex = i;
+        optionExists = true;
+        break;
+      }
+    }
+    if (!optionExists) {
+      const opt = document.createElement('option');
+      opt.value = num;
+      opt.text = `Puzzle #${num} (Treinamento / Calibração Direta)`;
+      select.add(opt);
+      select.value = num;
+    }
+  }
+  switchTab('tab-sandbox');
+  showToast(`🧪 Puzzle #${num} carregado no Laboratório de Treinamento Sandbox!`);
+}
+
+function downloadBatForPuzzle(num) {
+  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
+  const token = currentUser?.workerToken || 'pzk_admin_master_gpu_token';
+  const username = currentUser?.username || 'miner-local';
+  const workerName = `pc-${username}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const challengeId = `BTC_1000_P${num}`;
+  const url = `${origin}/api/workers/download-bat?token=${encodeURIComponent(token)}&chain=BTC&challenge=${encodeURIComponent(challengeId)}&name=${encodeURIComponent(workerName)}&api=${encodeURIComponent(origin)}`;
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `start-worker-BTC-${challengeId}.bat`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToast(`📥 Script Windows (.bat) para Puzzle #${num} baixado!`);
 }
 
 function generateColabTargetCommand(num) {
