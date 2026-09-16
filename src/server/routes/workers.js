@@ -17,6 +17,7 @@ const router = express.Router();
 
 // Armazenamento em memória de workers ativos (para dashboard em tempo real)
 const activeWorkersMap = new Map();
+router.activeWorkersMap = activeWorkersMap;
 
 /**
  * GET /api/workers/download-bat — Gera e baixa o script Windows .bat com token, identificador e desafio

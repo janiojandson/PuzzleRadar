@@ -89,6 +89,7 @@ router.get('/job', async (req, res) => {
 });
 
 const recentDpsList = []; // Últimos DPs recebidos em tempo real
+router.recentDpsList = recentDpsList;
 
 // ─── POST /api/pool/submit-point ───
 // Recebe Distinguished Points (DPs) calculados pelas GPUs/Workers

@@ -45,6 +45,60 @@ router.post('/submit-dp', async (req, res) => {
       data:  { lastSeenAt: new Date() },
     }).catch(() => {});
 
+    // Registra no mapa de workers ativos para o painel de nós e hashrate
+    try {
+      const workersRouter = require('./workers');
+      if (workersRouter.activeWorkersMap) {
+        const existing = workersRouter.activeWorkersMap.get(worker_id) || {
+          id: worker_id,
+          userToken: worker_id.startsWith('pzk_') ? worker_id : null,
+          name: worker_id.startsWith('wrk_') ? `miner-${worker_id.slice(-6)}` : worker_id,
+          hardware: 'Kangaroo Pool Node (CPU/GPU/Browser)',
+          gpuModel: 'CUDA / WebAssembly / Thread',
+          chain: 'BTC',
+          challengeId: puzzle_id || 'BTC_1000_P71',
+          totalKeysChecked: 0,
+          shares: 0
+        };
+        existing.keysPerSecond = Math.max(existing.keysPerSecond || 0, (steps_taken || 1000) * 10);
+        existing.totalKeysChecked = (existing.totalKeysChecked || 0) + (steps_taken || 1000);
+        existing.shares = (existing.shares || 0) + 1;
+        existing.status = 'MINING_KANGAROO';
+        existing.lastSeen = Date.now();
+        workersRouter.activeWorkersMap.set(worker_id, existing);
+      }
+    } catch (_) {}
+
+    // Registra no Mural de Transparência PoS de DPs
+    try {
+      const poolsRouter = require('./pools');
+      if (poolsRouter.recentDpsList) {
+        poolsRouter.recentDpsList.unshift({
+          timestamp: new Date().toISOString(),
+          challengeId: puzzle_id || 'BTC_1000_P71',
+          chain: 'BTC',
+          workerToken: worker_id,
+          workerName: worker_id,
+          xCoordHex: point_x,
+          yCoordHex: point_y || '',
+          stepDistanceHex: step_distance_hex,
+          isTame: walk_type === 'tame',
+          validDp: true
+        });
+        if (poolsRouter.recentDpsList.length > 50) poolsRouter.recentDpsList.pop();
+      }
+    } catch (_) {}
+
+    // Notifica stream SSE do terminal
+    try {
+      const { broadcastTelemetryEvent } = require('./telemetry');
+      broadcastTelemetryEvent('DP_SUBMITTED', `🦘 [${walk_type.toUpperCase()}] DP recebido do nó ${worker_id}: ${point_x.slice(0, 14)}... (d=${step_distance_hex})`, {
+        worker_id,
+        point_x,
+        walk_type
+      });
+    } catch (_) {}
+
     const result = await kangarooManager.submitDP(puzzle_id, worker_id, {
       pointX:          point_x,
       pointY:          point_y || '',
