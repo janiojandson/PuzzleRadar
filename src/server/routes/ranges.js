@@ -201,7 +201,8 @@ router.get('/space-pruning-live', async (req, res) => {
       .filter(w => (w.challengeId === targetKey || w.currentTask?.puzzleId === targetKey) && w.status === 'COMPUTING')
       .reduce((acc, w) => acc + (Math.max(0, Math.min(100, Number(w.progress) || 0)) / 100), 0);
 
-    const effectiveScanned = stats.scannedChunks + targetInFlight;
+    const rawEffective = stats.scannedChunks + targetInFlight;
+    const effectiveScanned = Math.min(total, rawEffective);
     const dynamicPrunedPercent = Math.min(100, parseFloat(((effectiveScanned / total) * 100).toFixed(2)));
 
     const sheetsStats = await getSheetsStats();
@@ -216,8 +217,10 @@ router.get('/space-pruning-live', async (req, res) => {
       const chalInFlight = liveWorkers
         .filter(w => (w.challengeId === cKey || w.currentTask?.puzzleId === cKey) && w.status === 'COMPUTING')
         .reduce((acc, w) => acc + (Math.max(0, Math.min(100, Number(w.progress) || 0)) / 100), 0);
-      const chalEffective = pStats.scannedChunks + chalInFlight;
-      const chalPercent = (chal.bits && chal.bits <= 1) || chal.challengeId === 'BTC_SATOSHI_NONCE_REUSE'
+      const chalRaw = pStats.scannedChunks + chalInFlight;
+      const chalEffective = Math.min(1000, chalRaw);
+      const isInstant = (chal.bits && chal.bits <= 1) || chal.challengeId === 'BTC_SATOSHI_NONCE_REUSE';
+      const chalPercent = isInstant
         ? 100.00
         : Math.min(100, parseFloat(((chalEffective / 1000) * 100).toFixed(2)));
 
@@ -226,7 +229,7 @@ router.get('/space-pruning-live', async (req, res) => {
         chain: chal.chain || 'BTC',
         title: chal.title || cKey,
         prize: chal.prize ? `${chal.prize} ${chal.prizeCurrency || chal.chain}` : '',
-        scannedChunks: pStats.scannedChunks,
+        scannedChunks: isInstant ? 1000 : pStats.scannedChunks,
         totalChunks: 1000,
         prunedPercent: chalPercent
       });
@@ -243,10 +246,10 @@ router.get('/space-pruning-live', async (req, res) => {
 
     res.json({
       ...stats,
-      scannedChunks: stats.scannedChunks,
+      scannedChunks: (challenge && challenge.challengeId === 'BTC_SATOSHI_NONCE_REUSE') ? total : stats.scannedChunks,
       totalChunks: total,
       prunedPercent: dynamicPrunedPercent,
-      effectiveScannedChunks: parseFloat(effectiveScanned.toFixed(2)),
+      effectiveScannedChunks: (challenge && challenge.challengeId === 'BTC_SATOSHI_NONCE_REUSE') ? total : parseFloat(effectiveScanned.toFixed(2)),
       sheetsStats,
       targetPuzzle: targetKey,
       chain: (challenge && challenge.chain) || 'BTC',

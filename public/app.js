@@ -711,15 +711,15 @@ async function fetchLiveRangesData() {
 
     // 1. Atualiza métricas de Space Pruning
     if (pruningData) {
-      const percent = pruningData.prunedPercent || 0;
-      const scanned = pruningData.scannedChunks || 0;
-      const effectiveScanned = pruningData.effectiveScannedChunks || scanned;
-      const total = pruningData.totalChunks || 1000;
+      const total = Number(pruningData.totalChunks || 1000);
+      const percent = Math.min(100, Number(pruningData.prunedPercent || 0));
+      const scanned = Math.min(total, Number(pruningData.scannedChunks || 0));
+      const effectiveScanned = Math.min(total, Math.round(Number(pruningData.effectiveScannedChunks || scanned)));
       const chalTitle = pruningData.title || targetChallenge;
 
       setInner('pruningChallengeTitleDisplay', `Space Pruning [${pruningData.chain || 'BTC'}] ${chalTitle}:`);
       setInner('pruningPercentDisplay', `${percent.toFixed(2)}% do espaço podado (${effectiveScanned} de ${total} fatias)`);
-      setInner('pruningScannedCount', Number(scanned).toLocaleString());
+      setInner('pruningScannedCount', Number(effectiveScanned).toLocaleString());
       setInner('pruningTotalCount', Number(total).toLocaleString() + ' fatias');
 
       const bar = document.getElementById('pruningProgressBar');
