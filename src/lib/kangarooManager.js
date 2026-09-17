@@ -243,25 +243,47 @@ class KangarooManager {
   // POOL STATS — Estatísticas do pool Kangaroo
   // ═══════════════════════════════════════════════════════════════════════════
   async getPoolStats(puzzleId) {
-    const [tameCount, wildCount, totalDPs, recentWorkers] = await Promise.all([
-      prisma.distinguishedPoint.count({
-        where: { puzzleId, isTameKangaroo: true },
-      }),
-      prisma.distinguishedPoint.count({
-        where: { puzzleId, isTameKangaroo: false },
-      }),
-      prisma.distinguishedPoint.count({
-        where: { puzzleId },
-      }),
-      prisma.distinguishedPoint.groupBy({
-        by:    ['userId'],
-        where: {
-          puzzleId,
-          createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }, // últimos 5min
-        },
-        _count: { userId: true },
-      }),
-    ]);
+    let tameCount = 0;
+    let wildCount = 0;
+    let totalDPs = 0;
+    let activeWorkersCount = 0;
+
+    try {
+      const [tame, wild, total, recentWorkers] = await Promise.all([
+        prisma.distinguishedPoint.count({
+          where: { puzzleId, isTameKangaroo: true },
+        }),
+        prisma.distinguishedPoint.count({
+          where: { puzzleId, isTameKangaroo: false },
+        }),
+        prisma.distinguishedPoint.count({
+          where: { puzzleId },
+        }),
+        prisma.distinguishedPoint.groupBy({
+          by:    ['userId'],
+          where: {
+            puzzleId,
+            createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) }, // últimos 5min
+          },
+          _count: { userId: true },
+        }),
+      ]);
+      tameCount = tame;
+      wildCount = wild;
+      totalDPs = total;
+      activeWorkersCount = recentWorkers.length;
+    } catch (_) {
+      // Fallback gracioso para Memory Store/Redis quando a tabela do Prisma não estiver migrada
+      try {
+        const { getDpStats } = require('./redis');
+        const redisStats = await getDpStats(puzzleId);
+        tameCount = redisStats.tameCount || 0;
+        wildCount = redisStats.wildCount || 0;
+        totalDPs = redisStats.totalDps || 0;
+        const { fleetState } = require('./fleetState');
+        activeWorkersCount = fleetState.getActiveNodes().length;
+      } catch (__) {}
+    }
 
     // Probabilidade de colisão ≈ m² / (2 × n)
     // Onde m = total DPs e n é proporcional ao range
@@ -275,7 +297,7 @@ class KangarooManager {
       tame_dps:           tameCount,
       wild_dps:           wildCount,
       total_dps:          totalDPs,
-      active_workers:     recentWorkers.length,
+      active_workers:     activeWorkersCount,
       collision_probability_pct: (collisionProb * 100).toFixed(4),
       dp_bits:            DP_BITS,
       jump_table_size:    STEP_SIZES_HEX.length,

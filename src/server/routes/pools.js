@@ -25,10 +25,12 @@ const {
   verifyProofOfShareBinomial 
 } = require('../../lib/cryptoVerifier');
 const { broadcastTelemetryEvent } = require('./telemetry');
+const { fleetState } = require('../../lib/fleetState');
 
 const router = express.Router();
 
-const activePoolWorkers = new Map(); // workerToken => { workerName, shares, hashrate, lastSeen }
+const activePoolWorkers = fleetState.nodes; // workerToken => { workerName, shares, hashrate, lastSeen }
+router.activePoolWorkers = activePoolWorkers;
 
 // ─── GET /api/pool/job ───
 // Entrega fatias de busca vinculadas ao workerToken do assinante

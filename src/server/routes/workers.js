@@ -12,11 +12,12 @@ const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { verifyDiscoveryProof } = require('../../lib/cryptoVerifier');
 const { antiMevRescue } = require('../../services/antiMevRescue');
 const { broadcastTelemetryEvent } = require('./telemetry');
+const { fleetState } = require('../../lib/fleetState');
 
 const router = express.Router();
 
-// Armazenamento em memória de workers ativos (para dashboard em tempo real)
-const activeWorkersMap = new Map();
+// Armazenamento em memória unificado de workers ativos
+const activeWorkersMap = fleetState.nodes;
 router.activeWorkersMap = activeWorkersMap;
 
 /**
@@ -438,7 +439,9 @@ router.post('/:id/result', async (req, res) => {
 
     try {
       if (isRealKeyFound) {
-        broadcastTelemetryEvent('SENTINEL', `🚨🎉 [CHAVE AUTÊNTICA ENCONTRADA!] Worker ${id} desvendou [${puzzleId}]! Chave: ${foundPrivateKey.substring(0, 10)}... (Resgate acionado)`);
+        const maskedWorker = id.length > 8 ? `${id.substring(0, 4)}...${id.substring(id.length - 4)}` : id;
+        const proofHash = crypto.createHash('sha256').update(foundPrivateKey).digest('hex').substring(0, 8);
+        broadcastTelemetryEvent('SENTINEL', `🚨🎉 [CHAVE AUTÊNTICA ENCONTRADA!] Nó [${maskedWorker}] desvendou [${puzzleId}]! Prova Criptográfica: 0x${proofHash} (Resgate confidencial Anti-MEV acionado).`);
       } else {
         const formattedKeys = Number(keysChecked || 0).toLocaleString();
         broadcastTelemetryEvent('DP_SUBMITTED', `💎 [FATIA VARRIDA] Nó ${worker ? worker.name : id} concluiu fatia #${chunkIndex} (${formattedKeys} chaves) em [${puzzleId}]. +${sharesEarned.toFixed(1)} Shares PoS`);

@@ -178,13 +178,10 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
     });
   }
 
-  // Gravar no CSV local (sempre — sem limite de frequência)
+  // Gravar no CSV local de forma assíncrona (não-bloqueante)
   if (csvLines.length > 0) {
-    try {
-      fs.appendFileSync(ARCHIVE_FILE, csvLines.join('\n') + '\n', 'utf-8');
-    } catch (err) {
-      console.warn('[GoogleSheets] Aviso CSV:', err.message);
-    }
+    fs.promises.appendFile(ARCHIVE_FILE, csvLines.join('\n') + '\n', 'utf-8')
+      .catch(err => console.warn('[GoogleSheets CSV Fallback]', err.message));
   }
 
   // Flush somente quando acumular muitos rows (anti-flood)

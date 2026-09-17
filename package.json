@@ -18,7 +18,10 @@
     "db:seed": "node prisma/seed.js",
     "db:studio": "npx prisma studio",
     "db:validate": "npx prisma validate",
-    "kangaroo:cleanup": "node -e \"require('./src/lib/kangarooManager').cleanupOrphanDPs().then(r => console.log('Cleaned:', r))\""
+    "kangaroo:cleanup": "node -e \"require('./src/lib/kangarooManager').cleanupOrphanDPs().then(r => console.log('Cleaned:', r))\"",
+    "ops:railway:status": "node src/services/checkRailwayStatus.js",
+    "ops:railway:vars": "node src/services/checkRailwayVars.js",
+    "ops:railway:sync": "node src/services/applyPuzzleRadarRailway.js"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
