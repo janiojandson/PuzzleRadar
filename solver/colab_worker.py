@@ -352,7 +352,7 @@ class HybridFarmWorker:
 
     def report_result(self, task, result):
         try:
-            requests.post(
+            res = requests.post(
                 f"{self.api_url}/api/workers/{self.worker_id}/result",
                 json={
                     "taskId": task.get("taskId") or f"task_{int(time.time())}_{self.kangaroo_round}",
@@ -373,8 +373,10 @@ class HybridFarmWorker:
                 },
                 timeout=8
             )
-        except Exception:
-            pass
+            if res.status_code == 200:
+                print(f"      📊 Fatia #{task.get('chunkIndex', self.kangaroo_round)} sincronizada com a Planilha Google!")
+        except Exception as e:
+            print(f"      ⚠️ Erro ao sincronizar fatia com a central: {e}")
 
     def run(self, max_loops=100000):
         self.running = True
