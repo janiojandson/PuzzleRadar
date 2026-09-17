@@ -7,12 +7,14 @@ let miningInterval = null;
 let totalSteps = 0;
 let totalDps = 0;
 let workerToken = 'wrk_chrome_extension';
-let apiUrl = 'http://localhost:3010';
+let apiUrl = 'https://puzzleradar-production.up.railway.app';
+let nodeInstanceId = 'ext_' + Math.random().toString(16).substring(2, 8);
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'START_MINING') {
     workerToken = msg.workerToken || 'wrk_chrome_extension';
-    apiUrl = msg.apiUrl || 'http://localhost:3010';
+    apiUrl = msg.apiUrl || 'https://puzzleradar-production.up.railway.app';
+    nodeInstanceId = `${workerToken}_ext_${Math.random().toString(16).substring(2, 8)}`;
     startMining();
     sendResponse({ success: true });
   } else if (msg.action === 'STOP_MINING') {
@@ -38,15 +40,15 @@ function startMining() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             token: workerToken || 'wrk_chrome_extension',
-            instanceId: workerToken || 'wrk_chrome_extension',
-            name: workerToken || 'Chrome Plugin Node',
+            instanceId: nodeInstanceId,
+            name: `Chrome-${(workerToken || 'plugin').slice(-6)}`,
             hardware: 'Browser Extension (Web Worker)',
             gpuModel: 'Chrome V8 / JS Engine',
             chain: 'BTC',
             challenge_id: 'BTC_1000_P71'
           })
         });
-        await fetch(`${apiUrl}/api/workers/${workerToken || 'wrk_chrome_extension'}/heartbeat`, {
+        await fetch(`${apiUrl}/api/workers/${encodeURIComponent(nodeInstanceId)}/heartbeat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

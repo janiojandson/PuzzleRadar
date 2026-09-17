@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   chrome.storage.local.get(['workerToken', 'apiUrl', 'isMining', 'steps', 'dps'], (res) => {
     if (res.workerToken) tokenInput.value = res.workerToken;
     if (res.apiUrl) apiUrlInput.value = res.apiUrl;
+    else apiUrlInput.value = 'https://puzzleradar-production.up.railway.app';
     updateUI(Boolean(res.isMining), res.steps || 0, res.dps || 0);
   });
 
@@ -28,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.storage.local.get(['isMining'], (res) => {
       const newState = !res.isMining;
       const workerToken = tokenInput.value.trim();
-      const apiUrl = apiUrlInput.value.trim() || 'http://localhost:3010';
+      const apiUrl = apiUrlInput.value.trim() || 'https://puzzleradar-production.up.railway.app';
 
       chrome.storage.local.set({ isMining: newState, workerToken, apiUrl }, () => {
         chrome.runtime.sendMessage({ action: newState ? 'START_MINING' : 'STOP_MINING', workerToken, apiUrl });
