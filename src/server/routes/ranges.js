@@ -136,7 +136,7 @@ router.get('/recent', async (req, res) => {
           rangeEnd: item.endHex,
           workerName: item.workerName || 'Colab Cluster',
           status: 'BUFFER_PENDING_BATCH',
-          hashrate: item.hashrate || '45.0 GH/s'
+          hashrate: item.hashrate || '0 H/s'
         });
       }
     }
@@ -159,7 +159,7 @@ router.get('/recent', async (req, res) => {
             rangeEnd: parts[5] || '',
             workerName: parts[6] || 'Colab Farm Node',
             status: parts[7] || 'PRUNED_SCANNED',
-            hashrate: '45.0 GH/s'
+            hashrate: parts[8] || '0 H/s'
           });
         }
       }
@@ -406,7 +406,7 @@ router.post('/:id/result', async (req, res) => {
       rangeEnd: req.body.rangeEnd || ''
     }], workerName || 'Colab Worker Node', {
       status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
-      hashrate: hashrate || '45.0 GH/s',
+      hashrate: hashrate || '0 H/s',
       keyFound: isRealKeyFound
     }).catch(() => {});
 

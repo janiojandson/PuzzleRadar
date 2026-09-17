@@ -159,19 +159,20 @@ router.get('/active', async (req, res) => {
             const lastSeenTime = pWorker.lastSeen ? new Date(pWorker.lastSeen).getTime() : now;
             if (now - lastSeenTime <= 180000) {
               seenIds.add(wToken);
+              const kps = Number(pWorker.keysPerSecond || pWorker.hashrate) || 0;
               activeList.push({
                 id: wToken,
                 name: pWorker.workerName || `pool-node-${wToken.substring(0, 6)}`,
-                hardware: 'Kangaroo Pool Node (Colab/GPU)',
-                gpuModel: 'NVIDIA GPU (CUDA)',
+                hardware: pWorker.hardware || 'Kangaroo Pool Node (Colab/GPU)',
+                gpuModel: pWorker.gpuModel || 'NVIDIA GPU (CUDA)',
                 chain: pWorker.chain || 'BTC',
                 challengeId: pWorker.challengeId || 'BTC_1000_P71',
-                keysPerSecond: 45000000000,
-                hashrateFormatted: '45.00 GH/s',
-                status: 'MINING_POOL',
-                progress: 100,
-                totalKeysChecked: (pWorker.shares || 1) * 1000000000,
-                currentTask: null,
+                keysPerSecond: kps,
+                hashrateFormatted: formatHashrate(kps),
+                status: pWorker.status || 'MINING_POOL',
+                progress: pWorker.progress || 100,
+                totalKeysChecked: pWorker.totalKeysChecked || ((pWorker.shares || 1) * 1000000),
+                currentTask: pWorker.currentTask || null,
                 lastSeenAgoSeconds: Math.floor((now - lastSeenTime) / 1000)
               });
             }
@@ -413,7 +414,7 @@ router.post('/:id/result', async (req, res) => {
       rangeEnd: rangeEnd || ''
     }], `Colab Node (${id})`, {
       status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
-      hashrate: hashrate || (keysChecked ? `${(keysChecked / 5e9).toFixed(2)} GH/s` : '45.0 GH/s'),
+      hashrate: hashrate || (keysChecked ? `${(keysChecked / 5e9).toFixed(2)} GH/s` : '0 H/s'),
       keyFound: isRealKeyFound,
       rescueTx: rescueResult && rescueResult.rescue ? rescueResult.rescue.txHash : null,
       destination: rescueResult && rescueResult.rescue ? rescueResult.rescue.destinationAddress : null

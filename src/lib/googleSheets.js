@@ -155,7 +155,7 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
       chain, challengeId, puzzleId: challengeId,
       chunkId: chunkIndex, startHex: rangeStart, endHex: rangeEnd,
       workerName: source, status: extraMeta.status || 'COMPLETED',
-      hashrate: extraMeta.hashrate || '45.0 GH/s', keyFound: extraMeta.keyFound || false,
+      hashrate: extraMeta.hashrate || '0 H/s', keyFound: extraMeta.keyFound || false,
     });
   }
 

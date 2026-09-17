@@ -245,7 +245,7 @@ router.post('/simulate-worker-step', async (req, res) => {
       endHex: '0x4000000000000' + (randomChunkIdx + 1),
       workerName,
       status: 'COMPLETED',
-      hashrate: '45.0 GH/s',
+      hashrate: hashrate || '0 H/s',
       keyFound: false
     });
 
@@ -274,7 +274,7 @@ router.post('/submit-chunk', async (req, res) => {
       chunkIndex,
       startHex,
       endHex,
-      hashrate = '45.0 GH/s',
+      hashrate = '0 H/s',
       pointsSubmitted = 0,
       keysChecked = 1000000000000
     } = req.body;

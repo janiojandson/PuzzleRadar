@@ -25,6 +25,18 @@ let currentSecondaryTarget = {
   scanned: 100
 };
 
+// ─── DOM HELPER ───
+function setInner(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const valStr = value !== undefined && value !== null ? String(value) : '';
+  if (valStr.includes('<') && valStr.includes('>')) {
+    el.innerHTML = valStr;
+  } else {
+    el.innerText = valStr;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) window.lucide.createIcons();
 
@@ -860,7 +872,7 @@ async function fetchLiveRangesData() {
               <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px] whitespace-nowrap" title="${r.rangeEnd}">0x${(r.rangeEnd || '').substring(0, 12)}...</td>
               <td class="py-2.5 px-3 text-slate-300 max-w-[130px] truncate" title="${r.workerName || 'Colab Node'}">${r.workerName || 'Colab Node'}</td>
               <td class="py-2.5 px-3 whitespace-nowrap">${statusBadge}</td>
-              <td class="py-2.5 px-3 text-right font-bold text-emerald-400 whitespace-nowrap">${r.hashrate || '45.0 GH/s'}</td>
+              <td class="py-2.5 px-3 text-right font-bold text-emerald-400 whitespace-nowrap">${r.hashrate || '0 H/s'}</td>
             </tr>
           `;
         }).join('');
@@ -945,7 +957,7 @@ async function fetchPoolStats() {
               <td class="py-3 px-3">${subBadge}</td>
               <td class="py-3 px-3 font-bold text-cyan-300">${op.activeNodesCount} ${op.activeNodesCount === 1 ? 'nó ativo' : 'nós ativos'}</td>
               <td class="py-3 px-3 text-slate-300">${Number(op.completedChunks || 0).toLocaleString()} fatias</td>
-              <td class="py-3 px-3 text-emerald-400 font-bold">${op.totalHashrateFormatted || '45.0 GH/s'}</td>
+              <td class="py-3 px-3 text-emerald-400 font-bold">${op.totalHashrateFormatted || '0 H/s'}</td>
               <td class="py-3 px-3 font-bold text-amber-300">${Number(op.shares || 0).toLocaleString()} Shares</td>
               <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-400' : 'text-slate-500'}">${isSub ? op.sharePercent : '0.00%'}</td>
               <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-300' : 'text-slate-500'} font-mono">

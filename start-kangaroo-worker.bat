@@ -12,8 +12,8 @@ echo  ╚═══════════════════════�
 echo.
 
 :: ─── CONFIGURAÇÃO ────────────────────────────────────────────────────────────
-set API_BASE=https://puzzleradar-production.up.railway.app
-set PUZZLE_ID=
+if "%API_BASE%"=="" set API_BASE=http://localhost:3010
+if "%PUZZLE_ID%"=="" set PUZZLE_ID=BTC_1000_P71
 set WORKER_ID=WIN-%COMPUTERNAME%-%USERNAME%
 set WALK_TYPE=
 

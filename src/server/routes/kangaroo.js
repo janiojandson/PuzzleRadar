@@ -149,9 +149,34 @@ router.get('/seed/:puzzle_id/:walk_type', async (req, res) => {
   try {
     const { puzzle_id, walk_type } = req.params;
     const workerIndex = req.query.index !== undefined ? parseInt(req.query.index) : null;
+    const workerId = req.query.worker_id || req.query.workerId || req.headers['x-worker-id'] || null;
 
     if (!['tame', 'wild'].includes(walk_type)) {
       return res.status(400).json({ error: 'walk_type deve ser "tame" ou "wild"' });
+    }
+
+    // Registra worker ativo imediatamente
+    if (workerId) {
+      try {
+        const workersRouter = require('./workers');
+        if (workersRouter.activeWorkersMap) {
+          const existing = workersRouter.activeWorkersMap.get(workerId) || {
+            id: workerId,
+            userToken: workerId.startsWith('pzk_') ? workerId : null,
+            name: workerId.startsWith('wrk_') ? `miner-${workerId.slice(-6)}` : workerId,
+            hardware: 'Kangaroo Pool Node (CPU/GPU/Browser)',
+            gpuModel: 'CUDA / WebAssembly / Thread',
+            chain: 'BTC',
+            challengeId: puzzle_id || 'BTC_1000_P71',
+            totalKeysChecked: 0,
+            shares: 0,
+            keysPerSecond: 0
+          };
+          existing.status = `MINING_KANGAROO_${walk_type.toUpperCase()}`;
+          existing.lastSeen = Date.now();
+          workersRouter.activeWorkersMap.set(workerId, existing);
+        }
+      } catch (_) {}
     }
 
     const seed = await kangarooManager.getSeed(puzzle_id, walk_type, workerIndex);

@@ -40,13 +40,13 @@ const JUMP_TABLE = [
 
 // ─── CONFIGURAÇÃO ─────────────────────────────────────────────────────────────
 const CONFIG = {
-  apiBase:   process.env.API_BASE   || 'https://puzzleradar-production.up.railway.app',
+  apiBase:   process.env.API_BASE   || 'http://localhost:3010',
   workerId:  process.env.WORKER_ID  || `KANG-NODE-${Date.now()}`,
   walkType:  process.env.WALK_TYPE  || (Math.random() < 0.5 ? 'tame' : 'wild'),
   maxSteps:  parseInt(process.env.MAX_STEPS  || '0'),  // 0 = ilimitado
-  puzzleId:  process.env.PUZZLE_ID  || null,
+  puzzleId:  process.env.PUZZLE_ID  || 'BTC_1000_P71',
   dpBits:    parseInt(process.env.DP_BITS    || '26'), // ~1 DP a cada 67M passos
-  heartbeatIntervalMs: 60_000,       // heartbeat a cada 60s
+  heartbeatIntervalMs: 10_000,       // heartbeat a cada 10s para telemetria em tempo real
   reconnectDelayMs:    5_000,        // aguardar 5s em caso de erro
 };
 
@@ -137,7 +137,7 @@ async function fetchSeed() {
   }
 
   console.log(`[Worker] Buscando seed para puzzle ${CONFIG.puzzleId}, walk type: ${CONFIG.walkType}`);
-  const seed = await apiRequest('GET', `/api/kangaroo/seed/${CONFIG.puzzleId}/${CONFIG.walkType}`);
+  const seed = await apiRequest('GET', `/api/kangaroo/seed/${CONFIG.puzzleId}/${CONFIG.walkType}?worker_id=${encodeURIComponent(CONFIG.workerId)}`);
 
   if (seed.error) {
     console.error('[Worker] Erro ao buscar seed:', seed.error);
@@ -181,7 +181,7 @@ async function submitDP(xHex, stepDistanceHex) {
   }
 }
 
-function printStats() {
+async function printStats() {
   const elapsed = (Date.now() - state.startTime) / 1000;
   const rate    = elapsed > 0 ? (state.stepsTaken / elapsed) : 0;
   const rateStr = rate > 1_000_000
@@ -194,6 +194,17 @@ function printStats() {
     `Taxa: ${rateStr} | ` +
     `Tipo: ${CONFIG.walkType.toUpperCase()}`
   );
+
+  // Envia heartbeat em tempo real para a API central registrar o nó e o hashrate
+  try {
+    await apiRequest('POST', `/api/workers/${encodeURIComponent(CONFIG.workerId)}/heartbeat`, {
+      keysPerSecond: Math.round(rate),
+      progress: Math.min(100, Math.round((state.stepsTaken % 100000) / 1000)),
+      chain: 'BTC',
+      challenge_id: CONFIG.puzzleId,
+      status: `MINING_KANGAROO_${CONFIG.walkType.toUpperCase()}`
+    });
+  } catch (_) {}
 }
 
 async function run() {
