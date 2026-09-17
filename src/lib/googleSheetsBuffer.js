@@ -69,40 +69,16 @@ class SheetsBufferManager {
     });
 
     try {
-      const parsedUrl = new URL(webhookUrl);
-      const req = https.request(parsedUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-webhook-token': secretToken,
-          'Content-Length': Buffer.byteLength(payload)
-        },
-        timeout: 15000
-      }, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          this.lastFlushTime = new Date().toISOString();
-          this.totalBatchesSent++;
-          this.totalRowsSent += itemsToSend.length;
-          console.log(`📡 [SheetsBuffer] Lote de ${itemsToSend.length} chunks enviado com sucesso (HTTP ${res.statusCode}).`);
-        });
+      const { postToGoogleWebhook } = require('./googleSheets');
+      const result = await postToGoogleWebhook(webhookUrl, {
+        secretToken,
+        action: 'batch_ranges',
+        batchMode: true,
+        rows: itemsToSend
       });
-
-      req.on('error', (err) => {
-        console.warn('⚠️ [SheetsBuffer] Erro de rede ao despachar lote para Google Sheets:', err.message);
-        // Em caso de erro de rede temporário, mantemos o sistema vivo sem travar o core
-      });
-
-      req.on('timeout', () => {
-        req.destroy();
-        console.warn('⚠️ [SheetsBuffer] Timeout ao despachar lote para Google Sheets.');
-      });
-
-      req.write(payload);
-      req.end();
-
-      return { flushed: true, count: itemsToSend.length };
+      this.lastFlushTime = new Date().toISOString();
+      console.log(`📡 [SheetsBuffer] Lote de ${itemsToSend.length} chunks enviado ao Google Sheets:`, result?.status || 'OK');
+      return { flushed: true, count: itemsToSend.length, result };
     } catch (err) {
       console.warn('⚠️ [SheetsBuffer] Falha ao despachar lote:', err.message);
       return { flushed: false, error: err.message };
