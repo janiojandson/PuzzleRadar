@@ -399,9 +399,13 @@ router.post('/:id/result', async (req, res) => {
     const sharesCalculated = (Number(keysChecked) || 0) * 0.0001;
 
     // Sincroniza com Google Sheets e Webhook
+    const targetChain = req.body.chain || (puzzleId && puzzleId.includes('ETH') ? 'ETH' : puzzleId && puzzleId.includes('SOL') ? 'SOL' : 'BTC');
+    const targetChallengeId = puzzleId || 'BTC_1000_P71';
     appendRangesToSheet(undefined, [{
-      puzzleId: puzzleId || 'puzzle_btc_71',
-      chunkIndex: chunkIndex || 0,
+      chain: targetChain,
+      challengeId: targetChallengeId,
+      puzzleId: targetChallengeId,
+      chunkIndex: chunkIndex !== undefined ? chunkIndex : 0,
       rangeStart: req.body.rangeStart || '',
       rangeEnd: req.body.rangeEnd || ''
     }], workerName || 'Colab Worker Node', {

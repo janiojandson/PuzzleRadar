@@ -407,12 +407,16 @@ router.post('/:id/result', async (req, res) => {
     }
 
     // Grava no Google Sheets & Webhook em tempo real
+    const targetChain = req.body.chain || (puzzleId && puzzleId.startsWith('ETH') ? 'ETH' : puzzleId && puzzleId.startsWith('SOL') ? 'SOL' : 'BTC');
+    const targetChallengeId = puzzleId || 'BTC_1000_P71';
     appendRangesToSheet(undefined, [{
-      puzzleId: puzzleId || 'puzzle_btc_71',
-      chunkIndex: chunkIndex || 0,
+      chain: targetChain,
+      challengeId: targetChallengeId,
+      puzzleId: targetChallengeId,
+      chunkIndex: chunkIndex !== undefined ? chunkIndex : 0,
       rangeStart: rangeStart || '',
       rangeEnd: rangeEnd || ''
-    }], `Colab Node (${id})`, {
+    }], req.body.workerName || `Colab Node (${id})`, {
       status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
       hashrate: hashrate || (keysChecked ? `${(keysChecked / 5e9).toFixed(2)} GH/s` : '0 H/s'),
       keyFound: isRealKeyFound,

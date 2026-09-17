@@ -35,7 +35,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.523Z"
+    "2026-09-17T01:57:15.888Z"
   ],
   [
     "#2",
@@ -48,7 +48,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#3",
@@ -61,7 +61,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#4",
@@ -74,7 +74,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#5",
@@ -87,7 +87,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#6",
@@ -100,7 +100,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#7",
@@ -113,7 +113,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#8",
@@ -126,7 +126,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#9",
@@ -139,7 +139,7 @@ function popularPlanilhaPuzzles1000BTC() {
     0.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#10",
@@ -152,7 +152,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#11",
@@ -165,7 +165,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#12",
@@ -178,7 +178,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#13",
@@ -191,7 +191,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#14",
@@ -204,7 +204,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#15",
@@ -217,7 +217,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#16",
@@ -230,7 +230,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#17",
@@ -243,7 +243,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#18",
@@ -256,7 +256,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#19",
@@ -269,7 +269,7 @@ function popularPlanilhaPuzzles1000BTC() {
     1.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#20",
@@ -282,7 +282,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#21",
@@ -295,7 +295,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#22",
@@ -308,7 +308,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#23",
@@ -321,7 +321,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#24",
@@ -334,7 +334,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#25",
@@ -347,7 +347,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#26",
@@ -360,7 +360,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#27",
@@ -373,7 +373,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#28",
@@ -386,7 +386,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#29",
@@ -399,7 +399,7 @@ function popularPlanilhaPuzzles1000BTC() {
     2.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#30",
@@ -412,7 +412,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#31",
@@ -425,7 +425,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#32",
@@ -438,7 +438,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#33",
@@ -451,7 +451,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#34",
@@ -464,7 +464,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#35",
@@ -477,7 +477,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#36",
@@ -490,7 +490,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#37",
@@ -503,7 +503,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#38",
@@ -516,7 +516,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#39",
@@ -529,7 +529,7 @@ function popularPlanilhaPuzzles1000BTC() {
     3.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#40",
@@ -542,7 +542,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#41",
@@ -555,7 +555,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#42",
@@ -568,7 +568,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#43",
@@ -581,7 +581,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#44",
@@ -594,7 +594,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#45",
@@ -607,7 +607,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#46",
@@ -620,7 +620,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#47",
@@ -633,7 +633,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#48",
@@ -646,7 +646,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#49",
@@ -659,7 +659,7 @@ function popularPlanilhaPuzzles1000BTC() {
     4.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#50",
@@ -672,7 +672,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#51",
@@ -685,7 +685,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#52",
@@ -698,7 +698,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#53",
@@ -711,7 +711,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#54",
@@ -724,7 +724,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#55",
@@ -737,7 +737,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#56",
@@ -750,7 +750,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#57",
@@ -763,7 +763,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#58",
@@ -776,7 +776,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#59",
@@ -789,7 +789,7 @@ function popularPlanilhaPuzzles1000BTC() {
     5.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#60",
@@ -802,7 +802,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#61",
@@ -815,7 +815,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.1,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#62",
@@ -828,7 +828,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.2,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#63",
@@ -841,7 +841,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.3,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#64",
@@ -854,7 +854,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.4,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#65",
@@ -867,7 +867,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#66",
@@ -880,7 +880,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.6,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#67",
@@ -893,7 +893,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#68",
@@ -906,7 +906,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#69",
@@ -919,7 +919,7 @@ function popularPlanilhaPuzzles1000BTC() {
     6.9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#70",
@@ -932,7 +932,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#71",
@@ -945,7 +945,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.1,
     "UNSOLVED",
     "🎯 ALVO IMEDIATO (Kangaroo GPU)",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#72",
@@ -958,7 +958,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.2,
     "UNSOLVED",
     "🎯 ALVO IMEDIATO (Kangaroo GPU)",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#73",
@@ -971,7 +971,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.3,
     "UNSOLVED",
     "🎯 ALVO IMEDIATO (Kangaroo GPU)",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#74",
@@ -984,7 +984,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.4,
     "UNSOLVED",
     "🎯 ALVO IMEDIATO (Kangaroo GPU)",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#75",
@@ -997,7 +997,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#76",
@@ -1010,7 +1010,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.6,
     "UNSOLVED",
     "🟡 Viável em Pool Colaborativo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#77",
@@ -1023,7 +1023,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.7,
     "UNSOLVED",
     "🟡 Viável em Pool Colaborativo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#78",
@@ -1036,7 +1036,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.8,
     "UNSOLVED",
     "🟡 Viável em Pool Colaborativo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#79",
@@ -1049,7 +1049,7 @@ function popularPlanilhaPuzzles1000BTC() {
     7.9,
     "UNSOLVED",
     "🟡 Viável em Pool Colaborativo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#80",
@@ -1062,7 +1062,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#81",
@@ -1075,7 +1075,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.1,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#82",
@@ -1088,7 +1088,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.2,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#83",
@@ -1101,7 +1101,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.3,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#84",
@@ -1114,7 +1114,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.4,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#85",
@@ -1127,7 +1127,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#86",
@@ -1140,7 +1140,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.6,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.526Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#87",
@@ -1153,7 +1153,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.7,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#88",
@@ -1166,7 +1166,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.8,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#89",
@@ -1179,7 +1179,7 @@ function popularPlanilhaPuzzles1000BTC() {
     8.9,
     "UNSOLVED",
     "🔴 Desafio de Longo Prazo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#90",
@@ -1192,7 +1192,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#91",
@@ -1205,7 +1205,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#92",
@@ -1218,7 +1218,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#93",
@@ -1231,7 +1231,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#94",
@@ -1244,7 +1244,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#95",
@@ -1257,7 +1257,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#96",
@@ -1270,7 +1270,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#97",
@@ -1283,7 +1283,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#98",
@@ -1296,7 +1296,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#99",
@@ -1309,7 +1309,7 @@ function popularPlanilhaPuzzles1000BTC() {
     9.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#100",
@@ -1322,7 +1322,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#101",
@@ -1335,7 +1335,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#102",
@@ -1348,7 +1348,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#103",
@@ -1361,7 +1361,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#104",
@@ -1374,7 +1374,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#105",
@@ -1387,7 +1387,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#106",
@@ -1400,7 +1400,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#107",
@@ -1413,7 +1413,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#108",
@@ -1426,7 +1426,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#109",
@@ -1439,7 +1439,7 @@ function popularPlanilhaPuzzles1000BTC() {
     10.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#110",
@@ -1452,7 +1452,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#111",
@@ -1465,7 +1465,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#112",
@@ -1478,7 +1478,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#113",
@@ -1491,7 +1491,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#114",
@@ -1504,7 +1504,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#115",
@@ -1517,7 +1517,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#116",
@@ -1530,7 +1530,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#117",
@@ -1543,7 +1543,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#118",
@@ -1556,7 +1556,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#119",
@@ -1569,7 +1569,7 @@ function popularPlanilhaPuzzles1000BTC() {
     11.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#120",
@@ -1582,7 +1582,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#121",
@@ -1595,7 +1595,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#122",
@@ -1608,7 +1608,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#123",
@@ -1621,7 +1621,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#124",
@@ -1634,7 +1634,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#125",
@@ -1647,7 +1647,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#126",
@@ -1660,7 +1660,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#127",
@@ -1673,7 +1673,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#128",
@@ -1686,7 +1686,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#129",
@@ -1699,7 +1699,7 @@ function popularPlanilhaPuzzles1000BTC() {
     12.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#130",
@@ -1712,7 +1712,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#131",
@@ -1725,7 +1725,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#132",
@@ -1738,7 +1738,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#133",
@@ -1751,7 +1751,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#134",
@@ -1764,7 +1764,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#135",
@@ -1777,7 +1777,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.5,
     "SOLVED",
     "✅ Resolvido",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#136",
@@ -1790,7 +1790,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#137",
@@ -1803,7 +1803,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#138",
@@ -1816,7 +1816,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#139",
@@ -1829,7 +1829,7 @@ function popularPlanilhaPuzzles1000BTC() {
     13.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#140",
@@ -1842,7 +1842,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#141",
@@ -1855,7 +1855,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#142",
@@ -1868,7 +1868,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#143",
@@ -1881,7 +1881,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#144",
@@ -1894,7 +1894,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#145",
@@ -1907,7 +1907,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.5,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#146",
@@ -1920,7 +1920,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#147",
@@ -1933,7 +1933,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#148",
@@ -1946,7 +1946,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#149",
@@ -1959,7 +1959,7 @@ function popularPlanilhaPuzzles1000BTC() {
     14.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#150",
@@ -1972,7 +1972,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#151",
@@ -1985,7 +1985,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.1,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#152",
@@ -1998,7 +1998,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.2,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#153",
@@ -2011,7 +2011,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.3,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#154",
@@ -2024,7 +2024,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.4,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#155",
@@ -2037,7 +2037,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.5,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#156",
@@ -2050,7 +2050,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.6,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#157",
@@ -2063,7 +2063,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.7,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#158",
@@ -2076,7 +2076,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.8,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#159",
@@ -2089,7 +2089,7 @@ function popularPlanilhaPuzzles1000BTC() {
     15.9,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "#160",
@@ -2102,7 +2102,7 @@ function popularPlanilhaPuzzles1000BTC() {
     16,
     "UNSOLVED",
     "⚫ Desafio Extremo",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ]
 ];
 
@@ -2146,7 +2146,7 @@ function popularPlanilhaPuzzles1000BTC() {
     "0.50 ETH",
     "OPEN (Disponível)",
     "🟢 Imediato (GPU - Minutos)",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "ETH_SMART_BOUNTY_48",
@@ -2158,7 +2158,7 @@ function popularPlanilhaPuzzles1000BTC() {
     "2.00 ETH",
     "OPEN (Disponível)",
     "🟡 Médio (GPU Cluster - Dias)",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "ETH_BIP39_SEED_RECOVERY",
@@ -2170,7 +2170,7 @@ function popularPlanilhaPuzzles1000BTC() {
     "5.00 ETH",
     "OPEN (Disponível)",
     "🟢 Altamente Viável (BIP39 Filter)",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "SOL_VANITY_PREFIX_36",
@@ -2182,7 +2182,7 @@ function popularPlanilhaPuzzles1000BTC() {
     "15.00 SOL",
     "OPEN (Disponível)",
     "🟢 Imediato (CPU/GPU - Horas)",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ],
   [
     "BTC_SATOSHI_NONCE_REUSE",
@@ -2194,7 +2194,7 @@ function popularPlanilhaPuzzles1000BTC() {
     "1.20 BTC",
     "OPEN (Disponível)",
     "🟢 Instantâneo (Script Algébrico)",
-    "2026-09-17T01:28:14.527Z"
+    "2026-09-17T01:57:15.890Z"
   ]
 ];
 
