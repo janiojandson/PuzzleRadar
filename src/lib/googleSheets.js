@@ -25,8 +25,8 @@ const DEFAULT_SPREADSHEET_ID        = process.env.GOOGLE_SPREADSHEET_ID || '1-rm
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec';
 
 // ─── ANTI-FLOOD: controle de chamadas ao Apps Script ─────────────────────────
-const WEBHOOK_MIN_INTERVAL_MS = 60_000; // no máximo 1 chamada por 60 segundos
-const BATCH_FLUSH_SIZE        = 100;    // flush quando acumular 100+ ranges
+const WEBHOOK_MIN_INTERVAL_MS = 15_000; // flush ágil a cada 15 segundos
+const BATCH_FLUSH_SIZE        = 5;      // flush rápido com pequenos lotes
 let   _lastWebhookCallMs      = 0;
 let   _pendingBatchRows       = [];     // buffer de rows aguardando envio
 let   _flushTimer             = null;

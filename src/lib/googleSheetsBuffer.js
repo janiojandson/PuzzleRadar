@@ -10,8 +10,8 @@ const https = require('https');
 class SheetsBufferManager {
   constructor(options = {}) {
     this.buffer = [];
-    this.flushIntervalMs = options.flushIntervalMs || 180000; // 3 minutos
-    this.maxBatchSize = options.maxBatchSize || 100;
+    this.flushIntervalMs = options.flushIntervalMs || 15000; // 15 segundos
+    this.maxBatchSize = options.maxBatchSize || 5;
     this.timer = setInterval(() => this.flush(), this.flushIntervalMs);
     this.lastFlushTime = null;
     this.totalBatchesSent = 0;
