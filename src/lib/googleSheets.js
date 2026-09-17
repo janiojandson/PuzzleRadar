@@ -22,7 +22,7 @@ const https = require('https');
 const http  = require('http');
 
 const DEFAULT_SPREADSHEET_ID        = process.env.GOOGLE_SPREADSHEET_ID || '1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg';
-const GOOGLE_APPS_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbxx1VUWthDRiWJuLTFoD30dxK7-BeDDHhoqJ9hDWdCbjEurDf19-nttaQGvZIL4g0Q/exec';
+const GOOGLE_APPS_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec';
 
 // ─── ANTI-FLOOD: controle de chamadas ao Apps Script ─────────────────────────
 const WEBHOOK_MIN_INTERVAL_MS = 60_000; // no máximo 1 chamada por 60 segundos

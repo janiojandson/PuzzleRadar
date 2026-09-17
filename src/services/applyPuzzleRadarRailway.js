@@ -45,7 +45,7 @@ async function run() {
 
   const varsToSet = [
     { name: 'GOOGLE_SPREADSHEET_ID', value: '1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg' },
-    { name: 'GOOGLE_APPS_SCRIPT_WEBHOOK_URL', value: 'https://script.google.com/macros/s/AKfycbxx1VUWthDRiWJuLTFoD30dxK7-BeDDHhoqJ9hDWdCbjEurDf19-nttaQGvZIL4g0Q/exec' },
+    { name: 'GOOGLE_APPS_SCRIPT_WEBHOOK_URL', value: 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec' },
     { name: 'PORT', value: '3010' },
     { name: 'NODE_ENV', value: 'production' }
   ];
