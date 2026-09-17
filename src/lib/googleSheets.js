@@ -25,12 +25,15 @@ const DEFAULT_SPREADSHEET_ID        = process.env.GOOGLE_SPREADSHEET_ID || '1-rm
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec';
 const SHEETS_WEBHOOK_SECRET          = process.env.SHEETS_WEBHOOK_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
 
-// ─── ANTI-FLOOD: controle de chamadas ao Apps Script ─────────────────────────
-const WEBHOOK_MIN_INTERVAL_MS = 2_000;  // Flush ágil a cada 2 segundos
-const BATCH_FLUSH_SIZE        = 1;      // Flush imediato por fatia concluída
+// ─── ANTI-FLOOD & QUOTA SHIELD: Single-Flight Lock ───────────────────────────
+// Garante MÁXIMO de 1 execução simultânea no Apps Script em qualquer momento.
+// Todos os dados de N workers são agrupados em lotes atômicos na memória.
+const WEBHOOK_MIN_INTERVAL_MS = 10_000; // Flush agrupado a cada 10 segundos
+const BATCH_FLUSH_SIZE        = 10;     // Despacha quando atingir 10 fatias
 let   _lastWebhookCallMs      = 0;
-let   _pendingBatchRows       = [];     // buffer de rows aguardando envio
+let   _pendingBatchRows       = [];     // Buffer seguro em memória
 let   _flushTimer             = null;
+let   _isFlushing             = false;  // Lock estrito: impede concorrência simultânea
 
 // Arquivo de persistência local para fallback
 const ARCHIVE_DIR  = path.join(__dirname, '../../persistent_data');
@@ -67,7 +70,6 @@ function postToGoogleWebhook(url, payload) {
       const lib = urlObj.protocol === 'https:' ? https : http;
       const req = lib.request(options, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          // Trata redirect 302 padrão do Apps Script com GET
           const redirLib = res.headers.location.startsWith('https') ? https : http;
           redirLib.get(res.headers.location, (r2) => {
             let body = '';
@@ -96,26 +98,30 @@ function postToGoogleWebhook(url, payload) {
   });
 }
 
-// ─── FLUSH DO BATCH (1 chamada ao Apps Script por batch acumulado) ────────────
+// ─── FLUSH DO BATCH COM SINGLE-FLIGHT LOCK ──────────────────────────────────
 async function _flushBatch(force = false) {
   if (_pendingBatchRows.length === 0) return;
+  if (_isFlushing) return; // BLOQUEIO: Já existe 1 requisição em andamento no Google
 
-  const now          = Date.now();
+  const now           = Date.now();
   const timeSinceLast = now - _lastWebhookCallMs;
 
   // Anti-flood: respeitar intervalo mínimo (exceto se forçado por keyFound)
   if (!force && timeSinceLast < WEBHOOK_MIN_INTERVAL_MS) {
     if (!_flushTimer) {
-      const delay = Math.max(100, WEBHOOK_MIN_INTERVAL_MS - timeSinceLast);
+      const delay = Math.max(500, WEBHOOK_MIN_INTERVAL_MS - timeSinceLast);
       _flushTimer = setTimeout(() => { _flushTimer = null; _flushBatch(); }, delay);
     }
     return;
   }
 
-  const rowsToSend    = _pendingBatchRows.splice(0, _pendingBatchRows.length);
-  _lastWebhookCallMs  = now;
+  _isFlushing = true;
+  if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
 
-  console.log(`[GoogleSheets v4.0] Enviando batch de ${rowsToSend.length} ranges ao Apps Script...`);
+  const rowsToSend    = _pendingBatchRows.splice(0, _pendingBatchRows.length);
+  _lastWebhookCallMs  = Date.now();
+
+  console.log(`[GoogleSheets v4.0] 🚀 Despachando lote atômico de ${rowsToSend.length} ranges para a Planilha...`);
 
   if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
     try {
@@ -127,13 +133,21 @@ async function _flushBatch(force = false) {
         timestamp:   new Date().toISOString(),
       });
       if (res && res.status === 'success') {
-        console.log(`[GoogleSheets v4.0] ✅ Batch de ${rowsToSend.length} ranges gravado com sucesso na Planilha!`);
+        console.log(`[GoogleSheets v4.0] ✅ Lote de ${rowsToSend.length} ranges gravado com sucesso no Google Sheets.`);
       } else {
         console.warn(`[GoogleSheets v4.0] ⚠️ Resposta do Apps Script:`, JSON.stringify(res));
       }
     } catch (e) {
-      console.error('[GoogleSheets v4.0] ❌ Erro ao enviar lote:', e.message);
+      console.error('[GoogleSheets v4.0] ❌ Erro no envio:', e.message);
+    } finally {
+      _isFlushing = false;
+      // Se novas linhas acumularam durante o envio, agenda próximo flush
+      if (_pendingBatchRows.length > 0 && !_flushTimer) {
+        _flushTimer = setTimeout(() => { _flushTimer = null; _flushBatch(); }, WEBHOOK_MIN_INTERVAL_MS);
+      }
     }
+  } else {
+    _isFlushing = false;
   }
 }
 
