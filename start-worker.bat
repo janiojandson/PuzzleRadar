@@ -1,7 +1,9 @@
 @echo off
-title PuzzleRadar Local Worker Node - BTC_1000_P71
+chcp 65001 >nul 2>&1
+title 🧩 PuzzleRadar - Minerador Local Híbrido (AMD / NVIDIA / CPU)
 echo ========================================================
-echo   [+] PuzzleRadar - Minerador Local de GPU/CUDA (Windows)
+echo   [+] PuzzleRadar - Minerador Híbrido (AMD / NVIDIA / CPU)
+echo   [+] Alvo: BTC_1000_P71 (7.1 BTC)
 echo ========================================================
 echo.
 

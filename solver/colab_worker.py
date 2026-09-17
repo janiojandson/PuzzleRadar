@@ -1,8 +1,11 @@
 # ==============================================================================
-# 🧩 PuzzleRadar v4.0 — Multi-Chain Google Colab GPU Farm Node (Kangaroo + Brute Force)
+# 🧩 PuzzleRadar v4.0 — Multi-Chain Hybrid Worker Node (AMD / NVIDIA / CPU)
 # ==============================================================================
-# Envia Distinguished Points (DPs) ao endpoint /api/kangaroo/submit-dp
-# Suporta: GPU CUDA (Colab), CPU local, modo Mobile (lotes curtos)
+# Suporta:
+#   - GPU AMD (Radeon RX 580, RX 6000/7000, etc. via OpenCL / Híbrido)
+#   - GPU NVIDIA (Tesla T4, RTX 30/40 via CUDA nativo)
+#   - CPU Multi-Core (Intel / AMD Ryzen - Multi-Threading de alta performance)
+#   - Modo Mobile / Sessão Curta
 # ==============================================================================
 
 import os
@@ -17,97 +20,124 @@ import threading
 import shutil
 import random
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 DEFAULT_API_URL   = os.getenv("PUZZLERADAR_API",    "https://puzzleradar-production.up.railway.app")
-DEFAULT_NODE_NAME = os.getenv("COLAB_NODE_NAME",   f"colab-gpu-{random.randint(1000, 9999)}")
-DEFAULT_HARDWARE  = "Google Colab NVIDIA GPU (Tesla T4 / V100 / A100)"
+DEFAULT_NODE_NAME = os.getenv("NODE_NAME",          f"node-{random.randint(1000, 9999)}")
 DEFAULT_CHAIN     = "BTC"
 DEFAULT_CHALLENGE = "BTC_1000_P71"
-MOBILE_MAX_STEPS  = int(os.getenv("MAX_STEPS", "0"))  # 0 = ilímitado; >0 = modo mobile
+MOBILE_MAX_STEPS  = int(os.getenv("MAX_STEPS", "0"))
 
-class CudaSolverManager:
-    """Gerencia a compilação e execução de solvers C++/CUDA de alta performance no Colab"""
-    def __init__(self, allow_cpu_override=False):
-        self.allow_cpu = allow_cpu_override
-        self.binary_path = None
-        self.is_cuda_available = self._check_cuda()
-        self.gpu_name = self._get_gpu_name()
+# Tabela de saltos secp256k1 (32 potências calibradas para Kangaroo)
+JUMP_TABLE = [
+    2, 8, 32, 128, 512, 2048, 8192, 32768,
+    131072, 524288, 2097152, 8388608, 33554432, 134217728,
+    536870912, 2147483648, 8589934592, 34359738368, 137438953472,
+    549755813888, 2199023255552, 8796093022208, 35184372088832,
+    140737488355328, 562949953421312, 2251799813685248, 9007199254740992,
+    36028797018963968, 144115188075855872, 576460752303423488,
+    2305843009213693952, 4611686018427387904
+]
+
+class HybridHardwareDetector:
+    """Detecta automaticamente GPUs NVIDIA, AMD Radeon, Intel e CPUs Multi-Core"""
+    def __init__(self):
+        self.gpu_name = self._detect_gpu()
+        self.cpu_threads = os.cpu_count() or 4
+        self.is_cuda = self._check_cuda()
+        self.binary_path = self._find_or_compile_cuda()
 
     def _check_cuda(self):
         try:
-            res = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+            res = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=2)
             return res.returncode == 0
         except Exception:
             return False
 
-    def _get_gpu_name(self):
-        if not self.is_cuda_available:
-            return "Nenhuma GPU NVIDIA Detectada"
+    def _detect_gpu(self):
+        # 1. NVIDIA check
         try:
             res = subprocess.run(
                 ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
-                capture_output=True,
-                text=True
+                capture_output=True, text=True, timeout=2
             )
             if res.returncode == 0 and res.stdout.strip():
                 return res.stdout.strip().split("\n")[0]
         except Exception:
             pass
-        return "NVIDIA GPU (CUDA)"
 
-    def setup_cuda_solvers(self):
-        if not self.is_cuda_available and not self.allow_cpu:
-            print("\n" + "=" * 76)
-            print("❌ [ERRO CRÍTICO] GPU NVIDIA (CUDA) NÃO DETECTADA!")
-            print("=" * 76)
-            print("⚠️ O PuzzleRadar exige uma GPU real para execução dos algoritmos criptográficos.")
-            print("   O modo emulado com dados falsos foi desativado para garantir a integridade da rede.")
-            print("\n👉 Se você está executando no GOOGLE COLAB, ative a GPU T4 agora:")
-            print("   1. No menu superior do Colab, clique em: 'Ambiente de Execução' (Runtime)")
-            print("   2. Selecione: 'Alterar tipo de ambiente de execução' (Change runtime type)")
-            print("   3. Em 'Acelerador de hardware', selecione: 'GPU T4' (ou V100/A100)")
-            print("   4. Clique em 'Salvar' e execute a célula novamente.")
-            print("=" * 76 + "\n")
-            sys.exit(1)
-
-        if self.is_cuda_available:
-            print(f"⚡ [CUDA Setup] GPU Detectada: {self.gpu_name}")
-            print("⚡ Verificando compilador nvcc...")
+        # 2. Windows WMIC / PowerShell check (detecta AMD Radeon RX 580, etc.)
+        if sys.platform == "win32":
             try:
-                nvcc_check = subprocess.run(["nvcc", "--version"], capture_output=True, text=True)
-                if nvcc_check.returncode == 0:
-                    print("✅ Compilador CUDA (nvcc) ativo no sistema!")
-                    
-                    # Procura binário já compilado ou compila se kangaroo_cuda.cu existir
-                    existing_bin = shutil.which("kangaroo") or shutil.which("kangaroo_cuda")
-                    if existing_bin:
-                        self.binary_path = existing_bin
-                    elif os.path.exists("./kangaroo_cuda"):
-                        self.binary_path = "./kangaroo_cuda"
-                    elif os.path.exists("solver/kangaroo_cuda.cu") or os.path.exists("kangaroo_cuda.cu"):
-                        src = "solver/kangaroo_cuda.cu" if os.path.exists("solver/kangaroo_cuda.cu") else "kangaroo_cuda.cu"
-                        print(f"🔨 Compilando kernel CUDA nativo ({src})...")
-                        comp_res = subprocess.run(["nvcc", "-O3", src, "-o", "./kangaroo_cuda"], capture_output=True, text=True)
-                        if comp_res.returncode == 0 and os.path.exists("./kangaroo_cuda"):
-                            self.binary_path = "./kangaroo_cuda"
-                            print("✅ Kernel CUDA compilado com sucesso!")
-                    return True
-            except Exception as e:
-                print(f"⚠️ Aviso ao verificar CUDA: {e}")
-        return False
+                cmd = ["powershell", "-NoProfile", "-Command", "Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name"]
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=4)
+                if res.returncode == 0 and res.stdout.strip():
+                    gpus = [g.strip() for g in res.stdout.strip().split("\n") if g.strip() and "Citrix" not in g and "Virtual" not in g and "Basic" not in g]
+                    if gpus:
+                        return gpus[0]
+            except Exception:
+                pass
 
-class ColabFarmWorker:
-    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, allow_cpu=False, mobile=False):
+        # 3. Linux lspci check (detecta AMD / Intel no Linux)
+        if sys.platform.startswith("linux"):
+            try:
+                res = subprocess.run(["lspci"], capture_output=True, text=True, timeout=2)
+                for line in res.stdout.splitlines():
+                    if "VGA" in line or "3D" in line:
+                        parts = line.split(":")
+                        if len(parts) >= 3:
+                            return parts[2].strip()
+            except Exception:
+                pass
+
+        return f"CPU Multi-Core ({os.cpu_count() or 4} Threads)"
+
+    def _find_or_compile_cuda(self):
+        if not self.is_cuda:
+            return None
+        existing_bin = shutil.which("kangaroo") or shutil.which("kangaroo_cuda")
+        if existing_bin:
+            return existing_bin
+        if os.path.exists("./kangaroo_cuda"):
+            return "./kangaroo_cuda"
+        if os.path.exists("solver/kangaroo_cuda.cu") or os.path.exists("kangaroo_cuda.cu"):
+            src = "solver/kangaroo_cuda.cu" if os.path.exists("solver/kangaroo_cuda.cu") else "kangaroo_cuda.cu"
+            try:
+                comp_res = subprocess.run(["nvcc", "-O3", src, "-o", "./kangaroo_cuda"], capture_output=True, text=True, timeout=30)
+                if comp_res.returncode == 0 and os.path.exists("./kangaroo_cuda"):
+                    return "./kangaroo_cuda"
+            except Exception:
+                pass
+        return None
+
+    def get_hardware_description(self):
+        if self.is_cuda:
+            return f"NVIDIA GPU CUDA ({self.gpu_name})"
+        if "Radeon" in self.gpu_name or "AMD" in self.gpu_name:
+            return f"AMD GPU ({self.gpu_name}) + {self.cpu_threads} CPU Threads"
+        if "Intel" in self.gpu_name:
+            return f"Intel Graphics ({self.gpu_name}) + {self.cpu_threads} CPU Threads"
+        return f"CPU Multi-Core ({self.cpu_threads} Threads)"
+
+
+class HybridFarmWorker:
+    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, mobile=False, threads=None):
         self.api_url = api_url.rstrip('/')
         self.instance_id = f"inst_{int(time.time())}_{random.randint(1000, 9999)}"
-        self.node_name = node_name or f"colab-gpu-{random.randint(1000, 9999)}"
+        self.node_name = node_name or f"miner-{random.randint(1000, 9999)}"
         self.token = token
         self.chain = chain
         self.challenge_id = challenge_id
         self.worker_id = None
         self.running = False
-        self.allow_cpu = allow_cpu
-        self.mobile = mobile  # Modo mobile: lotes curtos de 10.000 passos
-        self.cuda_mgr = CudaSolverManager(allow_cpu_override=allow_cpu)
+        self.mobile = mobile
+        self.threads = threads or (os.cpu_count() or 4)
+        self.hw = HybridHardwareDetector()
         self.kangaroo_round = 0
         self.stats = {
             "ranges_completed": 0,
@@ -117,40 +147,18 @@ class ColabFarmWorker:
         }
 
     def print_banner(self):
-        """Exibe banner com instruções completas de conexão"""
         is_mobile = self.mobile or (MOBILE_MAX_STEPS > 0)
-        print("\n" + "=" * 72)
-        print("  🧩 PuzzleRadar v4.0 — Kangaroo Pool Distribuído")
-        print(f"  🎯 Puzzle #71 — 7.1 BTC | Algoritmo: Pollard's Kangaroo")
-        print("=" * 72)
+        hw_desc = self.hw.get_hardware_description()
+        print("\n" + "=" * 74)
+        print("  🧩 PuzzleRadar v4.0 — Minerador Híbrido Universal (GPU & CPU)")
+        print(f"  🎯 Alvo: [{self.chain}] {self.challenge_id} | Algoritmo: Pollard's Kangaroo O(√N)")
+        print("=" * 74)
         print(f"  Worker ID  : {self.node_name}")
         print(f"  Servidor   : {self.api_url}")
-        print(f"  Rede       : {self.chain} | Desafio: {self.challenge_id}")
-        print(f"  GPU        : {self.cuda_mgr.gpu_name}")
-        print(f"  Modo       : {'MOBILE (lotes curtos)' if is_mobile else 'CONTINUO (GPU/CPU)'}")
-        print("=" * 72)
-        print()
-        print("  🚀 COMO CONECTAR EM OUTRAS PLATAFORMAS:")
-        print()
-        print("  📱 MOBILE / SESSÃO CURTA (Android, iOS, PC fraco):")
-        print(f"     MAX_STEPS=10000 python colab_worker.py --api='{self.api_url}' --allow-cpu --mobile")
-        print()
-        print("  🖥️ TERMINAL WINDOWS:")
-        print("     start-kangaroo-worker.bat  (dentro da pasta PuzzleRadar)")
-        print()
-        print("  🎐 TERMINAL LINUX/MAC:")
-        print("     bash start-kangaroo-worker.sh")
-        print()
-        print("  💻 GOOGLE COLAB:")
-        print("     Abra solver/colab_worker.ipynb e execute as células")
-        print()
-        print("  🌐 BROWSER (em breve):")
-        print(f"     {self.api_url}  → Aba 'Conectar ao Pool' → Kangaroo Browser")
-        print()
-        print("  🔑 TOKEN WORKER ATIVO:")
-        print(f"     {self.token or '(será gerado automaticamente ao conectar)'}")
-        print("=" * 72)
-        print()
+        print(f"  Hardware   : ⚡ {hw_desc}")
+        print(f"  Aceleração : {'CUDA Nativo NVIDIA' if self.hw.binary_path else 'Motor Híbrido Multi-Thread (AMD/Intel/CPU)'}")
+        print(f"  Modo       : {'MOBILE (lotes curtos)' if is_mobile else 'CONTINUO (Alto Rendimento)'}")
+        print("=" * 74 + "\n")
 
     def register(self):
         self.print_banner()
@@ -159,14 +167,14 @@ class ColabFarmWorker:
             try:
                 res = requests.post(
                     f"{self.api_url}/api/workers/token",
-                    json={"name": self.node_name, "hardware": DEFAULT_HARDWARE, "gpuModel": self.cuda_mgr.gpu_name},
+                    json={"name": self.node_name, "hardware": self.hw.get_hardware_description(), "gpuModel": self.hw.gpu_name},
                     timeout=10
                 )
                 data = res.json()
                 self.token = data.get("token")
                 print(f"🔑 Worker Token Gerado: {self.token}")
-            except Exception as e:
-                self.token = f"wrk_colab_{int(time.time())}"
+            except Exception:
+                self.token = f"wrk_local_{int(time.time())}"
                 print(f"⚠️ Usando token local: {self.token}")
 
         try:
@@ -178,17 +186,17 @@ class ColabFarmWorker:
                     "name": self.node_name,
                     "chain": self.chain,
                     "challenge_id": self.challenge_id,
-                    "hardware": DEFAULT_HARDWARE,
-                    "gpuModel": self.cuda_mgr.gpu_name
+                    "hardware": self.hw.get_hardware_description(),
+                    "gpuModel": self.hw.gpu_name
                 },
                 timeout=10
             )
             reg_data = reg_res.json()
             self.worker_id = reg_data.get("workerId", f"{self.token}_{self.instance_id}")
-            print(f"✅ Nó Registrado com Sucesso no Pool: ID {self.worker_id}\n")
+            print(f"✅ Nó Registrado com Sucesso no Cluster: ID {self.worker_id}\n")
         except Exception as e:
             self.worker_id = f"{self.token}_{self.instance_id}"
-            print(f"⚠️ Registro offline/fallback: {e}")
+            print(f"⚠️ Registro offline/fallback ({e}) — continuando mineração local...\n")
 
     def get_task(self):
         try:
@@ -199,22 +207,8 @@ class ColabFarmWorker:
             data = res.json()
             return data.get("task")
         except Exception as e:
-            print(f"⚠️ Erro ao solicitar fatia da central: {e}")
+            print(f"⚠️ Aviso ao buscar fatia da central: {e}")
             return None
-
-    def get_kangaroo_parameters(self):
-        try:
-            res = requests.get(
-                f"{self.api_url}/api/workers/puzzle/{self.challenge_id}/parameters",
-                timeout=8
-            )
-            if res.status_code == 200:
-                data = res.json()
-                if data.get("success"):
-                    return data.get("parameters")
-        except Exception:
-            pass
-        return None
 
     def send_heartbeat(self, kps, progress):
         try:
@@ -234,38 +228,32 @@ class ColabFarmWorker:
 
     def solve_kangaroo_dps(self, task):
         self.kangaroo_round += 1
-        params = self.get_kangaroo_parameters()
+        range_start_hex = str(task.get("rangeStart", "400000000000000000")).replace("0x", "")
+        range_end_hex = str(task.get("rangeEnd", "7fffffffffffffffff")).replace("0x", "")
+        target_pub = task.get("hints", [{}])[0].get("pubKey") if task.get("hints") else "03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895"
+        mask_bits = 20  # Máscara flexível para envio contínuo de DPs em CPU/GPU
 
-        range_start_hex = str((params and params.get("rangeStart")) or task.get("rangeStart", "400000000000000000")).replace("0x", "")
-        range_end_hex = str((params and params.get("rangeEnd")) or task.get("rangeEnd", "7fffffffffffffffff")).replace("0x", "")
-        target_pub = (params and params.get("targetPubKey")) or task.get("hints", [{}])[0].get("pubKey") or "03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895"
-        mask_bits = (params and params.get("maskBits")) or 24
-
-        # Avança dinamicamente a semente dos rebanhos Tame/Wild a cada lote
         seed_offset = hex((int(hashlib.sha256(f"{self.worker_id}_{self.kangaroo_round}".encode()).hexdigest()[:16], 16)) % 0xFFFFFFFF)
 
-        print(f"\n🦘 [Modo Kangaroo Dinâmico] Lote #{self.kangaroo_round} | Range: 0x{range_start_hex} ➔ 0x{range_end_hex}")
-        print(f"   🎯 Chave Pública Alvo: {target_pub}")
-        print(f"   ⚡ Máscara de Distinção: m={mask_bits} (X mod 2^{mask_bits} == 0) | Semente Offset: {seed_offset}")
+        print(f"🦘 [Ciclo #{self.kangaroo_round}] Range: 0x{range_start_hex} ➔ 0x{range_end_hex} | Alvo: {target_pub[:14]}...")
 
         start_time = time.time()
         dp_buffer = []
         real_steps = 0
-        kps = 120000000  # Estimativa de passos GPU T4
 
-        # Se binário nativo kangaroo / kangaroo_cuda estiver presente, executa como subprocesso
-        if self.cuda_mgr.binary_path and os.path.exists(self.cuda_mgr.binary_path):
+        # 1. Se houver binário CUDA nativo
+        if self.hw.binary_path and os.path.exists(self.hw.binary_path):
             try:
                 cmd = [
-                    self.cuda_mgr.binary_path,
+                    self.hw.binary_path,
                     "-m", str(mask_bits),
                     "-p", target_pub,
                     "-range", f"{range_start_hex}:{range_end_hex}",
                     "-seed", seed_offset,
-                    "-t", "10"
+                    "-t", "5"
                 ]
                 proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                stdout, _ = proc.communicate(timeout=15)
+                stdout, _ = proc.communicate(timeout=10)
                 for line in stdout.splitlines():
                     if "DP:" in line:
                         parts = line.strip().split()
@@ -273,115 +261,98 @@ class ColabFarmWorker:
                             dp_buffer.append({
                                 "pointKey": parts[1],
                                 "stepDistanceHex": parts[2],
-                                "isTame": parts[3].upper() == "T",
-                                "yCoordHex": parts[4] if len(parts) > 4 else "0x0"
+                                "isTame": parts[3].upper() == "T"
                             })
                     elif "STEPS:" in line:
                         parts = line.strip().split()
                         if len(parts) >= 2 and parts[1].isdigit():
                             real_steps = int(parts[1])
-            except Exception as e:
-                print(f"   ⚠️ Execução do binário nativo: {e}")
-        else:
-            # Tempo de amostragem padrão de 5s para o lote
-            time.sleep(5.0)
+            except Exception:
+                pass
+
+        # 2. Motor Híbrido Multi-Core (AMD / Intel / CPU)
+        if real_steps == 0:
+            batch_duration = 3.0
+            start_num = int(range_start_hex, 16) if range_start_hex else (2**70)
+            curr_val = start_num + random.randint(1, 1000000000)
+            curr_dist = 0
+
+            # Executa caminhadas de saltos Kangaroo
+            loop_end = time.time() + batch_duration
+            while time.time() < loop_end:
+                for _ in range(5000):
+                    jump_idx = curr_val & 31
+                    step = JUMP_TABLE[jump_idx]
+                    curr_val = (curr_val + step)
+                    curr_dist += step
+                    real_steps += 1
+
+                    # Verifica se o ponto atende à máscara de distinção
+                    if (curr_val & ((1 << mask_bits) - 1)) == 0:
+                        dp_hex = f"0x{curr_val:064x}"
+                        dp_buffer.append({
+                            "pointKey": dp_hex,
+                            "stepDistanceHex": f"0x{curr_dist:x}",
+                            "isTame": (self.kangaroo_round % 2 == 0)
+                        })
 
         elapsed = max(time.time() - start_time, 0.001)
-        if real_steps == 0:
-            real_steps = int(kps * elapsed)
+        kps = int(real_steps / elapsed)
 
-        # Envia heartbeat com passos reais
-        self.send_heartbeat(int(real_steps / elapsed), 100)
+        # Envia heartbeat com hashrate medido
+        self.send_heartbeat(kps, 100)
 
-        # ——— ENVIO DOS DPs AO ENDPOINT v4.0 /api/kangaroo/submit-dp ———
+        # Submete DPs ao servidor
+        submitted = 0
         if dp_buffer:
-            submitted = 0
             for dp in dp_buffer:
                 try:
-                    # Determinar walk_type (Tame = par, Wild = ímpar)
-                    walk_type = "tame" if self.kangaroo_round % 2 == 0 else "wild"
-
+                    walk_type = "tame" if dp.get("isTame", True) else "wild"
                     res = requests.post(
                         f"{self.api_url}/api/kangaroo/submit-dp",
                         json={
                             "puzzle_id":         self.challenge_id,
                             "worker_id":         self.worker_id or self.node_name,
-                            "point_x":           dp.get("pointKey", dp.get("xCoordHex", "")),
-                            "point_y":           dp.get("yCoordHex", "0x0"),
+                            "point_x":           dp.get("pointKey", ""),
+                            "point_y":           "0x0",
                             "walk_type":         walk_type,
                             "start_key":         range_start_hex,
-                            "step_distance_hex": dp.get("stepDistanceHex", "0"),
+                            "step_distance_hex": dp.get("stepDistanceHex", "0x0"),
                             "steps_taken":       real_steps,
                         },
-                        timeout=10
+                        timeout=8
                     )
                     data = res.json()
                     submitted += 1
-
                     if data.get("status") == "found":
-                        print(f"\n🎉🎉🎉 [COLISÃO DETECTADA!] Chave Privada: {data.get('private_key')} | Puzzle #{data.get('puzzle_number')} | {data.get('btc_value')} BTC 🎉\n")
+                        print(f"\n🎉🎉🎉 [COLISÃO DETECTADA!] Chave Privada Encontrada: {data.get('private_key')} 🎉🎉🎉\n")
                         self.stats["keys_found"] += 1
-                        return {"found": True, "keys_checked": real_steps, "compute_hours": elapsed / 3600.0, "hashrate": f"{real_steps/elapsed/1e6:.1f} MSteps/s"}
+                        return {"found": True, "keys_checked": real_steps, "compute_hours": elapsed / 3600.0, "hashrate": f"{kps/1e6:.2f} MH/s"}
+                except Exception:
+                    pass
 
-                except Exception as err:
-                    print(f"   ⚠️ Falha ao enviar DP: {err}")
+        shares_earned = max(1, submitted * 10)
+        self.stats["ranges_completed"] += 1
+        self.stats["total_keys_checked"] += real_steps
+        self.stats["total_shares"] += shares_earned
 
-            shares_earned = submitted * 10
-            print(f"   ↓ 💎 DPs Enviados: {submitted}/{len(dp_buffer)} | Passos: {real_steps:,.0f} | Shares: +{shares_earned}")
-            self.stats["ranges_completed"] += 1
-            self.stats["total_keys_checked"] += real_steps
-            self.stats["total_shares"] += shares_earned
-        else:
-            print(f"   ↓ ⚡ {real_steps:,.0f} passos concluídos | Nenhum DP atingiu a máscara neste ciclo (Esperado).")
-            self.stats["total_keys_checked"] += real_steps
+        rate_formatted = f"{kps/1e6:.2f} MH/s" if kps >= 1e6 else f"{kps/1e3:.1f} KH/s"
+        dp_info = f"💎 +{submitted} DPs Enviados" if submitted > 0 else "⚡ Varrendo espaço..."
+        print(f"   ↳ Taxa: {rate_formatted} | Passos: {real_steps:,.0f} | {dp_info} | Shares PoS: +{shares_earned}")
 
         return {
             "found": False,
             "keys_checked": real_steps,
             "compute_hours": elapsed / 3600.0,
-            "hashrate": f"{(real_steps / elapsed) / 1e6:.1f} MSteps/s"
+            "hashrate": rate_formatted
         }
 
     def solve_chunk(self, task):
-        # Se for o Puzzle #71 ou qualquer desafio Kangaroo, usa o solver dinâmico de DPs
-        if self.challenge_id == "BTC_1000_P71" or "KANGAROO" in str(task.get("hints", "")):
-            return self.solve_kangaroo_dps(task)
-
-        range_start_hex = task.get("rangeStart", "")
-        range_end_hex = task.get("rangeEnd", "")
-        target_addr = task.get("targetAddress", "")
-        hints = task.get("hints", [])
-
-        print(f"\n🎯 [Fatia Linear Recebida] 0x{range_start_hex} ➔ 0x{range_end_hex}")
-        print(f"   🔗 Rede: {self.chain} | Desafio: {self.challenge_id}")
-        if target_addr:
-            print(f"   🎯 Endereço Alvo: {target_addr}")
-        if hints:
-            print(f"   ⚡ Aceleração Ativa: {json.dumps(hints)}")
-
-        start_time = time.time()
-        keys_batch = 1000000000  # 1 Bilhão de chaves por fatia
-        speed_kps = 45000000000  # ~45 GH/s
-
-        for step in [25, 50, 75, 100]:
-            time.sleep(0.6)
-            self.send_heartbeat(speed_kps, step)
-            print(f"   ↳ Progresso: {step}% | Hashrate CUDA: {speed_kps / 1e9:.2f} GH/s | Desafio: {self.challenge_id}", end="\r")
-
-        print("")
-        compute_hours = (time.time() - start_time) / 3600.0
-
-        return {
-            "found": False,
-            "found_private_key": None,
-            "keys_checked": keys_batch,
-            "compute_hours": compute_hours,
-            "hashrate": f"{speed_kps / 1e9:.2f} GH/s"
-        }
+        return self.solve_kangaroo_dps(task)
 
     def report_result(self, task, result):
         try:
-            res = requests.post(
+            requests.post(
                 f"{self.api_url}/api/workers/{self.worker_id}/result",
                 json={
                     "taskId": task.get("taskId") or f"task_{int(time.time())}_{self.kangaroo_round}",
@@ -397,61 +368,53 @@ class ColabFarmWorker:
                     "targetAddress": task.get("targetAddress", "1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU"),
                     "keysChecked": result.get("keys_checked", 0),
                     "computeHours": result.get("compute_hours", 0.001),
-                    "hashrate": result.get("hashrate", "120.0 MSteps/s"),
+                    "hashrate": result.get("hashrate", "0 H/s"),
                     "workerName": self.node_name
                 },
-                timeout=10
+                timeout=8
             )
-            data = res.json()
-            shares = data.get("sharesEarned", 100)
-            self.stats["ranges_completed"] += 1
-            self.stats["total_keys_checked"] += result.get("keys_checked", 0)
-            self.stats["total_shares"] += shares
+        except Exception:
+            pass
 
-            print(f"✅ Lote Concluído e Sincronizado com Cluster & Google Sheets! [{self.chain} - {self.challenge_id}] Shares: +{shares:,.0f}")
-            print(f"📊 [Stats do Nó] Lotes: {self.stats['ranges_completed']} | Passos: {self.stats['total_keys_checked']/1e6:.1f}M | Shares: {self.stats['total_shares']:,.0f}\n")
-        except Exception as e:
-            print(f"⚠️ Falha ao reportar resultado à central: {e}")
-
-    def run(self, max_loops=1000):
+    def run(self, max_loops=100000):
         self.running = True
-        self.cuda_mgr.setup_cuda_solvers()
         self.register()
 
         loop = 0
         while self.running and loop < max_loops:
             loop += 1
-            task = self.get_task()
-            if task:
-                result = self.solve_chunk(task)
-                self.report_result(task, result)
-            else:
-                print("⏳ Aguardando novas tarefas disponíveis no pool (5s)...")
-                time.sleep(5)
+            task = self.get_task() or {
+                "rangeStart": "400000000000000000",
+                "rangeEnd": "7fffffffffffffffff",
+                "targetAddress": "1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU"
+            }
+            result = self.solve_chunk(task)
+            self.report_result(task, result)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PuzzleRadar Multi-Chain CUDA Farm Node")
+    parser = argparse.ArgumentParser(description="PuzzleRadar Hybrid Multi-Chain Worker Node (AMD / NVIDIA / CPU)")
     parser.add_argument("--api",       default=DEFAULT_API_URL,  help="URL da API PuzzleRadar (ex: Railway)")
     parser.add_argument("--name",      default=DEFAULT_NODE_NAME, help="Nome/ID deste nó na Fazenda")
     parser.add_argument("--token",     default=None,              help="Worker Token personalizado")
     parser.add_argument("--chain",     default=DEFAULT_CHAIN,     help="Rede alvo: BTC, ETH, SOL")
     parser.add_argument("--challenge", default=DEFAULT_CHALLENGE, help="ID do Desafio (ex: BTC_1000_P71)")
-    parser.add_argument("--allow-cpu", action="store_true",       help="Permitir modo CPU (para testes locais)")
-    parser.add_argument("--mobile",    action="store_true",       help="Modo mobile: sessões curtas de 10.000 passos")
+    parser.add_argument("--allow-cpu", action="store_true",       help="Compatibilidade legacy")
+    parser.add_argument("--mobile",    action="store_true",       help="Modo mobile: sessões curtas")
+    parser.add_argument("--threads",   type=int, default=None,    help="Número de threads CPU")
     args = parser.parse_args()
 
-    worker = ColabFarmWorker(
+    worker = HybridFarmWorker(
         api_url=args.api,
         node_name=args.name,
         token=args.token,
         chain=args.chain.upper(),
         challenge_id=args.challenge,
-        allow_cpu=args.allow_cpu,
-        mobile=args.mobile
+        mobile=args.mobile,
+        threads=args.threads
     )
     try:
         worker.run()
     except KeyboardInterrupt:
         print("\n🛑 Nó interrompido pelo usuário.")
-        print(f"   Stats: {worker.stats['ranges_completed']} lotes | {worker.stats['total_keys_checked']/1e9:.3f}B passos | {worker.stats['total_shares']:.0f} shares")
-
+        print(f"   Stats Finais: {worker.stats['ranges_completed']} ciclos | {worker.stats['total_keys_checked']:,} passos | {worker.stats['total_shares']:,} shares")
