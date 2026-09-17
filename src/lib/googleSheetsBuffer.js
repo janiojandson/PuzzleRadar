@@ -48,8 +48,8 @@ class SheetsBufferManager {
   async flush() {
     if (this.buffer.length === 0) return { flushed: false, count: 0 };
 
-    const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
-    const secretToken = process.env.SHEETS_WEBHOOK_SECRET || process.env.JWT_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
+    const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || process.env.GOOGLE_SHEETS_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec';
+    const secretToken = process.env.SHEETS_WEBHOOK_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
 
     const itemsToSend = [...this.buffer];
     this.buffer = []; // Limpa o buffer imediatamente

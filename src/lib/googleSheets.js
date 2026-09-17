@@ -23,10 +23,11 @@ const http  = require('http');
 
 const DEFAULT_SPREADSHEET_ID        = process.env.GOOGLE_SPREADSHEET_ID || '1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg';
 const GOOGLE_APPS_SCRIPT_WEBHOOK_URL = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL || 'https://script.google.com/macros/s/AKfycbyfNREBhwE3_OxCWBYPix1U6hyJUDAIBCmRwiqt7i-1DJgUT7pjhe6TIxKq18nuGyjO/exec';
+const SHEETS_WEBHOOK_SECRET          = process.env.SHEETS_WEBHOOK_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
 
 // ─── ANTI-FLOOD: controle de chamadas ao Apps Script ─────────────────────────
-const WEBHOOK_MIN_INTERVAL_MS = 15_000; // flush ágil a cada 15 segundos
-const BATCH_FLUSH_SIZE        = 5;      // flush rápido com pequenos lotes
+const WEBHOOK_MIN_INTERVAL_MS = 2_000;  // Flush ágil a cada 2 segundos
+const BATCH_FLUSH_SIZE        = 1;      // Flush imediato por fatia concluída
 let   _lastWebhookCallMs      = 0;
 let   _pendingBatchRows       = [];     // buffer de rows aguardando envio
 let   _flushTimer             = null;
@@ -48,7 +49,7 @@ function postToGoogleWebhook(url, payload) {
     try {
       const dataString = JSON.stringify(payload);
       const urlObj     = new URL(url);
-      const secret     = process.env.SHEETS_WEBHOOK_SECRET || process.env.JWT_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
+      const secret     = payload.secretToken || SHEETS_WEBHOOK_SECRET;
 
       const options = {
         hostname: urlObj.hostname,
@@ -104,9 +105,8 @@ async function _flushBatch(force = false) {
 
   // Anti-flood: respeitar intervalo mínimo (exceto se forçado por keyFound)
   if (!force && timeSinceLast < WEBHOOK_MIN_INTERVAL_MS) {
-    // Agendar próximo flush para quando o intervalo expirar
     if (!_flushTimer) {
-      const delay = WEBHOOK_MIN_INTERVAL_MS - timeSinceLast + 100;
+      const delay = Math.max(100, WEBHOOK_MIN_INTERVAL_MS - timeSinceLast);
       _flushTimer = setTimeout(() => { _flushTimer = null; _flushBatch(); }, delay);
     }
     return;
@@ -115,20 +115,25 @@ async function _flushBatch(force = false) {
   const rowsToSend    = _pendingBatchRows.splice(0, _pendingBatchRows.length);
   _lastWebhookCallMs  = now;
 
-  console.log(`[GoogleSheets v4.0] Enviando batch de ${rowsToSend.length} ranges ao Apps Script (1 chamada)`);
+  console.log(`[GoogleSheets v4.0] Enviando batch de ${rowsToSend.length} ranges ao Apps Script...`);
 
   if (GOOGLE_APPS_SCRIPT_WEBHOOK_URL) {
-    await postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
-      secretToken: process.env.SHEETS_WEBHOOK_SECRET || process.env.JWT_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production',
-      action:      'batch_ranges',
-      rows:        rowsToSend,
-      batchSize:   rowsToSend.length,
-      timestamp:   new Date().toISOString(),
-    }).then(res => {
+    try {
+      const res = await postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
+        secretToken: SHEETS_WEBHOOK_SECRET,
+        action:      'batch_ranges',
+        rows:        rowsToSend,
+        batchSize:   rowsToSend.length,
+        timestamp:   new Date().toISOString(),
+      });
       if (res && res.status === 'success') {
-        console.log(`[GoogleSheets v4.0] ✅ Batch de ${rowsToSend.length} ranges sincronizados.`);
+        console.log(`[GoogleSheets v4.0] ✅ Batch de ${rowsToSend.length} ranges gravado com sucesso na Planilha!`);
+      } else {
+        console.warn(`[GoogleSheets v4.0] ⚠️ Resposta do Apps Script:`, JSON.stringify(res));
       }
-    }).catch(() => {});
+    } catch (e) {
+      console.error('[GoogleSheets v4.0] ❌ Erro ao enviar lote:', e.message);
+    }
   }
 }
 

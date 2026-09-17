@@ -2236,10 +2236,11 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var SECRET = "puzzleradar_super_secret_jwt_key_2026_production";
     var FALLBACK_SECRET = "PR_SECURE_WEBHOOK_2026";
+    var ALT_SECRET = "puzzleradar-cypherpunk-secret-key-2026";
     
     // Verificação de Token de Segurança (Corpo da Requisição ou Query Param)
     var clientSecret = data.secretToken || data.secret_token || (e.parameter && e.parameter.secretToken);
-    if (!clientSecret || (clientSecret !== SECRET && clientSecret !== FALLBACK_SECRET)) {
+    if (!clientSecret || (clientSecret !== SECRET && clientSecret !== FALLBACK_SECRET && clientSecret !== ALT_SECRET)) {
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "error", 
         code: 401, 
