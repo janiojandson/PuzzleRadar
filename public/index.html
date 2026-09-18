@@ -178,17 +178,116 @@
       <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
       <span>Learning Lab</span>
     </button>
+    <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+      <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+      <span>Leaderboard</span>
+    </button>
     <button onclick="switchTab('tab-connect')" id="btn-tab-connect" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30 animate-pulse">
       <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
-      <span>Conectar ao Pool</span>
+      <span>1-Click Mineração</span>
     </button>
   </nav>
 
   <!-- Main Container -->
   <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
-    <!-- ==================== TAB CONECTAR AO POOL v4.0 ==================== -->
+    <!-- ==================== TAB CONECTAR AO POOL / 1-CLICK MINING v5.1 ==================== -->
     <section id="tab-connect" class="tab-content hidden space-y-6">
+
+      <!-- 1-Click Web Mining Card no Navegador -->
+      <div class="glass-panel-glow rounded-2xl p-6 border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-slate-900 to-cyan-950/40">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 flex items-center justify-center text-3xl shadow-xl shadow-emerald-500/30">
+              ⚡
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-2xl font-extrabold text-white">1-Click Web Mining no Navegador</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">v5.1 Zero-Setup</span>
+              </div>
+              <p class="text-sm text-slate-300 mt-1">Doe poder computacional com 1 clique direto no seu navegador e pontue no Leaderboard Comunitário.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 w-full lg:w-auto">
+            <div class="flex flex-col">
+              <label class="text-[11px] text-slate-400 font-medium">Seu Apelido no Leaderboard:</label>
+              <input id="webMinerNickname" type="text" placeholder="Ex: SatoshiHunter" onchange="if(window.browserMiner) window.browserMiner.setNickname(this.value)" class="px-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-emerald-300 focus:outline-none focus:border-emerald-500" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Tacômetro & Métricas do Web Miner -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Hashrate Atual</div>
+            <div class="text-xl font-extrabold font-mono text-emerald-400 mt-1" id="webMinerHashrate">0.0 kH/s</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Chaves Verificadas</div>
+            <div class="text-xl font-extrabold font-mono text-white mt-1" id="webMinerTotalKeys">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Fatias Concluídas</div>
+            <div class="text-xl font-extrabold font-mono text-cyan-400 mt-1" id="webMinerLotes">0</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Fatia Ativa (Micro-Lote 2^32)</div>
+            <div class="text-xs font-bold font-mono text-amber-300 mt-2 truncate" id="webMinerCurrentRange">Aguardando início...</div>
+          </div>
+        </div>
+
+        <!-- Barra de Progresso do Micro-Lote -->
+        <div class="w-full bg-black/60 rounded-full h-2 mb-5 overflow-hidden border border-white/5">
+          <div id="webMinerProgressBar" class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Botão de Ação -->
+        <button id="btnToggleWebMining" onclick="if(window.browserMiner) { if(window.browserMiner.isMining) window.browserMiner.pause(); else window.browserMiner.start(); }" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-extrabold shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 text-sm">
+          <i data-lucide="play" class="w-4 h-4"></i> ▶ Iniciar 1-Click Mining no Navegador
+        </button>
+      </div>
+
+      <!-- Scripts 1-Clique para Terminal & Nuvem -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Windows 1-Click -->
+        <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl">💻</div>
+            <div>
+              <div class="font-bold text-white text-sm">Windows (PowerShell 1-Clique)</div>
+              <div class="text-[11px] text-slate-400">Zero downloads manuais • Sem dependências</div>
+            </div>
+            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">1-Click</span>
+          </div>
+          <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-cyan-300 mb-3 space-y-1">
+            <div class="text-slate-500"># Cole no PowerShell (Terminal do Windows):</div>
+            <div class="text-emerald-400 font-bold">irm https://puzzleradar-production.up.railway.app/start.ps1 | iex</div>
+          </div>
+          <button onclick="copyToClipboard('irm https://puzzleradar-production.up.railway.app/start.ps1 | iex', this)" class="w-full py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando PowerShell
+          </button>
+        </div>
+
+        <!-- Linux / macOS 1-Click -->
+        <div class="glass-panel rounded-2xl p-5 border border-purple-500/30">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl">🐧</div>
+            <div>
+              <div class="font-bold text-white text-sm">Linux / macOS / WSL (Bash 1-Clique)</div>
+              <div class="text-[11px] text-slate-400">Execução instantânea via terminal</div>
+            </div>
+            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300">1-Click</span>
+          </div>
+          <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-purple-300 mb-3 space-y-1">
+            <div class="text-slate-500"># Cole no Terminal Linux/Mac:</div>
+            <div class="text-emerald-400 font-bold">curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash</div>
+          </div>
+          <button onclick="copyToClipboard('curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash', this)" class="w-full py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Bash
+          </button>
+        </div>
+      </div>
 
       <!-- Header -->
       <div class="glass-panel-glow rounded-2xl p-6 border border-emerald-500/30">
@@ -197,21 +296,11 @@
             🦘
           </div>
           <div>
-            <h1 class="text-2xl font-extrabold text-white">Conectar ao Pool Kangaroo</h1>
+            <h1 class="text-2xl font-extrabold text-white">Conectar ao Pool Kangaroo & btcpuzzle</h1>
             <p class="text-sm text-slate-400">Escolha sua plataforma e comece a contribuir para o Puzzle #71 — 7.1 BTC</p>
           </div>
           <div class="ml-auto hidden md:flex flex-col items-end gap-1">
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">v4.0 Kangaroo</span>
-            <span class="text-[11px] text-slate-500 font-mono">10 Tame + 10 Wild starting points</span>
-          </div>
-        </div>
-
-        <!-- Alerta de impacto -->
-        <div class="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-          <span class="text-amber-400 text-lg mt-0.5">⚡</span>
-          <div>
-            <p class="text-xs font-bold text-amber-300">Como cada DP contribui para a colisão?</p>
-            <p class="text-xs text-slate-400 mt-0.5">Kangaroo é quadrático: 2× workers = 4× chance de colisão. <strong class="text-white">Celular + GPU juntos detectam colisão mais rápido.</strong> Cada device envia Distinguished Points (DPs) independentes — o servidor detecta quando dois DPs coincidem.</p>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">v5.1 Multi-Plataforma</span>
           </div>
         </div>
       </div>
@@ -444,6 +533,70 @@
         </div>
       </div>
 
+    </section>
+
+    <!-- ==================== TAB LEADERBOARD COMUNITÁRIO v5.1 ==================== -->
+    <section id="tab-leaderboard" class="tab-content hidden space-y-6">
+      <div class="glass-panel-glow rounded-2xl p-6 border border-amber-500/30">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/20">
+              🏆
+            </div>
+            <div>
+              <h1 class="text-2xl font-extrabold text-white">Leaderboard da Comunidade</h1>
+              <p class="text-sm text-slate-400">Classificação dos maiores contribuidores de hash e fatias para o Bitcoin Puzzle #71</p>
+            </div>
+          </div>
+          <button onclick="loadLeaderboardData()" class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center gap-2 self-start md:self-auto">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar Ranking
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-xs text-slate-400">Total de Contribuidores</div>
+            <div class="text-2xl font-bold font-mono text-white mt-1" id="lbTotalContributors">—</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-xs text-slate-400">Poder Computacional Total</div>
+            <div class="text-2xl font-bold font-mono text-emerald-400 mt-1" id="lbTotalKeys">—</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 col-span-2 md:col-span-1">
+            <div class="text-xs text-slate-400">Prêmio Alvo</div>
+            <div class="text-2xl font-bold font-mono text-amber-400 mt-1">7.1000 BTC</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela do Ranking -->
+      <div class="glass-panel rounded-2xl border border-white/10 overflow-hidden">
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+          <h2 class="font-bold text-white text-base flex items-center gap-2">
+            <i data-lucide="medal" class="w-4 h-4 text-amber-400"></i> Top 20 Contribuidores
+          </h2>
+          <span class="text-xs text-slate-400 font-mono">Atualização em tempo real</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-white/5 text-slate-400 text-xs uppercase font-mono">
+              <tr>
+                <th class="px-6 py-3">Posição</th>
+                <th class="px-6 py-3">Contribuidor / Worker</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Hashrate</th>
+                <th class="px-6 py-3">Fatias Concluídas</th>
+                <th class="px-6 py-3 text-right">Chaves Doadas</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardTableBody" class="divide-y divide-white/5 font-mono text-xs">
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-slate-500">Carregando classificação da comunidade...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== TAB 0: DASHBOARD CENTRAL DE COMANDO (3 COLUNAS) ==================== -->
@@ -1618,9 +1771,59 @@
   </button>
 
   <footer class="glass-panel border-t border-white/5 px-4 lg:px-8 py-4 text-center text-xs text-slate-500">
-    🧩 PuzzleRadar v4.0 — Kangaroo Pool Distribuído | Puzzle #71 — 7.1 BTC
+    🧩 PuzzleRadar v5.1 — Coordenador Autônomo & 1-Click Mining | Puzzle #71 — 7.1 BTC
   </footer>
 
   <script src="/app.js"></script>
+  <script src="/js/browserMiner.js"></script>
+  <script>
+    async function loadLeaderboardData() {
+      try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+        
+        const lbCount = document.getElementById('lbTotalContributors');
+        const lbKeys = document.getElementById('lbTotalKeys');
+        const tbody = document.getElementById('leaderboardTableBody');
+        
+        if (lbCount) lbCount.innerText = data.totalContributors || 0;
+        if (lbKeys) lbKeys.innerText = data.totalCommunityKeysFormatted || '0 TKeys';
+        
+        if (tbody && Array.isArray(data.leaderboard)) {
+          if (data.leaderboard.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-6 text-center text-slate-500">Nenhum contribuidor registrado ainda. Seja o primeiro minerando no navegador!</td></tr>';
+            return;
+          }
+          
+          tbody.innerHTML = data.leaderboard.map(c => `
+            <tr class="hover:bg-white/5 transition">
+              <td class="px-6 py-3 font-bold ${c.rank === 1 ? 'text-amber-400' : c.rank === 2 ? 'text-slate-300' : c.rank === 3 ? 'text-amber-600' : 'text-slate-500'}">
+                #${c.rank}
+              </td>
+              <td class="px-6 py-3 font-semibold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full ${c.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}"></span>
+                ${c.workerName}
+              </td>
+              <td class="px-6 py-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-500'}">
+                  ${c.status}
+                </span>
+              </td>
+              <td class="px-6 py-3 text-slate-300">${c.hashrate || '—'}</td>
+              <td class="px-6 py-3 text-cyan-400 font-bold">${c.lotesCompleted || 0}</td>
+              <td class="px-6 py-3 text-right text-emerald-400 font-bold">${(c.keysChecked || 0).toLocaleString('pt-BR')}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.warn('Erro ao carregar leaderboard:', e);
+      }
+    }
+
+    // Auto-carregar leaderboard se estiver na aba
+    document.addEventListener('DOMContentLoaded', () => {
+      loadLeaderboardData();
+    });
+  </script>
 </body>
 </html>

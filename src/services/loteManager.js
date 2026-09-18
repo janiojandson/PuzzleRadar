@@ -18,6 +18,7 @@ const P71_TOTAL_SPAN = P71_END - P71_START;
 const STEP_DEFAULT = 1n << 48n; // ~281 Trilhões de chaves (RTX 4090 / Rig High-End)
 const STEP_MEDIUM = 1n << 44n;  // ~17.5 Trilhões de chaves (GPU Intermediária)
 const STEP_SMALL = 1n << 40n;   // ~1.1 Trilhão de chaves (GPU Colab Free / Worker Leve)
+const STEP_MICRO = 1n << 32n;   // ~4.29 Bilhões de chaves (Web Browser / CPU / 1-Click Mining)
 
 const RECLAIM_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutos sem ping devolve para pending
 
@@ -74,21 +75,29 @@ class LoteManager {
     }
 
     this.isInitialized = true;
-    console.log(`🧩 [LoteManager v5.0] Inicializado com ${this.lotes.size} fatias semente para o Puzzle 71.`);
+    console.log(`🧩 [LoteManager v5.1] Inicializado com ${this.lotes.size} fatias semente para o Puzzle 71.`);
   }
 
   /**
-   * Determina o tamanho de passo adequado ao hashrate reportado
+   * Determina o tamanho de passo adequado ao hashrate reportado e tipo de cliente
    * @param {number|string} hashrateStr - Ex: "1200 MH/s", "5 GH/s", "120 GH/s"
+   * @param {boolean} isBrowserClient
    */
-  _resolveStepByHashrate(hashrateStr) {
+  _resolveStepByHashrate(hashrateStr, isBrowserClient = false) {
+    if (isBrowserClient) return STEP_MICRO; // 2^32 para navegador web
     if (!hashrateStr) return STEP_DEFAULT;
     const str = String(hashrateStr).toUpperCase();
     if (str.includes('GH/S') || str.includes('GKEYS/S') || str.includes('TH/S')) {
       return STEP_DEFAULT; // 2^48
     }
-    if (str.includes('MH/S') && parseFloat(str) > 500) {
-      return STEP_MEDIUM; // 2^44
+    if (str.includes('MH/S')) {
+      const val = parseFloat(str);
+      if (val > 500) return STEP_MEDIUM; // 2^44
+      if (val >= 50) return STEP_SMALL;  // 2^40
+      return STEP_MICRO; // 2^32
+    }
+    if (str.includes('KH/S') || str.includes('H/S')) {
+      return STEP_MICRO; // 2^32
     }
     return STEP_SMALL; // 2^40
   }
@@ -119,8 +128,9 @@ class LoteManager {
    * Requisita o próximo lote de maior prioridade para um worker
    * @param {string} workerId 
    * @param {string} [reportedHashrate] 
+   * @param {boolean} [isBrowserClient]
    */
-  async getNextOptimalRange(workerId = 'anon_worker', reportedHashrate = null) {
+  async getNextOptimalRange(workerId = 'anon_worker', reportedHashrate = null, isBrowserClient = false) {
     this.reclaimExpiredLotes();
 
     // 1. Verifica se o worker já possui um lote ativo
@@ -133,7 +143,19 @@ class LoteManager {
       }
     }
 
-    // 2. Procura fatias pendentes ordenadas por maior priority_score
+    // 2. Se for cliente browser, aloca dinamicamente um micro-lote (STEP_MICRO)
+    if (isBrowserClient) {
+      const microLote = this._generateNextDynamicLote(reportedHashrate, true);
+      microLote.status = 'assigned';
+      microLote.assignedWorker = workerId;
+      microLote.assignedAt = Date.now();
+      microLote.lastHeartbeat = Date.now();
+      this.lotes.set(microLote.id, microLote);
+      this.workerAssignments.set(workerId, microLote.id);
+      return this._formatRangeResponse(microLote);
+    }
+
+    // 3. Procura fatias pendentes ordenadas por maior priority_score
     const candidates = Array.from(this.lotes.values())
       .filter(l => l.status === 'pending')
       .sort((a, b) => b.priority_score - a.priority_score);
@@ -156,8 +178,8 @@ class LoteManager {
       return this._formatRangeResponse(lote);
     }
 
-    // 3. Se todas as sementes foram alocadas, gera dinamicamente uma nova fatia
-    const dynamicLote = this._generateNextDynamicLote(reportedHashrate);
+    // 4. Se todas as sementes foram alocadas, gera dinamicamente uma nova fatia
+    const dynamicLote = this._generateNextDynamicLote(reportedHashrate, isBrowserClient);
     dynamicLote.status = 'assigned';
     dynamicLote.assignedWorker = workerId;
     dynamicLote.assignedAt = Date.now();
@@ -171,15 +193,15 @@ class LoteManager {
   /**
    * Gera uma nova fatia além das sementes
    */
-  _generateNextDynamicLote(reportedHashrate) {
-    const step = this._resolveStepByHashrate(reportedHashrate);
+  _generateNextDynamicLote(reportedHashrate, isBrowserClient = false) {
+    const step = this._resolveStepByHashrate(reportedHashrate, isBrowserClient);
     const count = this.lotes.size;
     const currStart = P71_START + (BigInt(count) * step);
     const currEnd = currStart + step <= P71_END ? currStart + step : P71_END;
 
     const startHex = currStart.toString(16).padStart(18, '0');
     const endHex = currEnd.toString(16).padStart(18, '0');
-    const id = `lote_p71_dyn_${startHex.slice(0, 8)}_${count}`;
+    const id = `lote_p71_${isBrowserClient ? 'micro' : 'dyn'}_${startHex.slice(0, 8)}_${count}`;
 
     const scoreData = filterEngine.computePriorityScore({
       startHex,
@@ -311,5 +333,6 @@ module.exports = {
   P71_END,
   STEP_DEFAULT,
   STEP_MEDIUM,
-  STEP_SMALL
+  STEP_SMALL,
+  STEP_MICRO
 };

@@ -1,7 +1,7 @@
 {
   "name": "puzzleradar",
-  "version": "5.0.0",
-  "description": "SaaS Colaborativo e Coordenador Autônomo para Resolução de Bitcoin Puzzles e Redução de Entropia",
+  "version": "5.1.0",
+  "description": "SaaS Colaborativo, Coordenador Autônomo e 1-Click Mining para Bitcoin Puzzles e Redução de Entropia",
   "private": true,
   "main": "src/server/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "dev:kangaroo:mobile": "MAX_STEPS=10000 node src/workers/kangarooWorker.js",
     "build": "npx prisma generate",
     "start": "node src/server/index.js",
-    "test": "node tests/filterEngine.test.js && node tests/btcpuzzleWebhook.test.js && node tests/rangeDistribution.test.js && node tests/rateLimit.test.js && node tests/masterValidation.test.js",
+    "test": "node tests/filterEngine.test.js && node tests/btcpuzzleWebhook.test.js && node tests/rangeDistribution.test.js && node tests/rateLimit.test.js && node tests/browserMining.test.js && node tests/scriptsDelivery.test.js && node tests/leaderboard.test.js && node tests/masterValidation.test.js",
     "db:migrate": "npx prisma migrate deploy",
     "db:push": "npx prisma db push",
     "db:seed": "node prisma/seed.js",

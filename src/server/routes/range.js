@@ -19,8 +19,9 @@ router.get('/next/:worker_id', async (req, res) => {
   try {
     const { worker_id } = req.params;
     const hashrate = req.query.hashrate || req.headers['x-hashrate'] || null;
+    const isBrowser = req.query.client === 'browser' || req.headers['x-client'] === 'browser';
 
-    const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate);
+    const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate, isBrowser);
     res.json(rangeAssignment);
   } catch (err) {
     console.error('❌ [Range Route Error]', err.message);

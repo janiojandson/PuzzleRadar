@@ -25,6 +25,8 @@ const sandboxRoutes = require('./routes/sandbox');
 const kangarooRoutes = require('./routes/kangaroo');
 const rangeRoutesV5 = require('./routes/range');
 const webhookRoutes = require('./routes/webhook');
+const leaderboardRoutes = require('./routes/leaderboard');
+const scriptsRoutes = require('./routes/scripts');
 const { router: telemetryRoutes } = require('./routes/telemetry');
 
 const app = express();
@@ -40,6 +42,9 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Servir scripts de 1-clique /start.ps1 e /start.sh na raiz
+app.use('/', scriptsRoutes);
+
 // Servir arquivos estáticos do frontend
 const frontendPublicPath = path.join(__dirname, '../../public');
 const solverPath = path.join(__dirname, '../../solver');
@@ -53,8 +58,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'PuzzleRadar',
-    version: '5.0.0',
-    mode: 'AUTONOMOUS_COORDINATOR_V5',
+    version: '5.1.0',
+    mode: 'AUTONOMOUS_COORDINATOR_V5_1_WHITE_LABEL',
     features: [
       'crowdsourcing_workers',
       'google_colab_farm',
@@ -72,7 +77,10 @@ app.get('/health', (req, res) => {
       'btcpuzzle_coordinator_v5',
       'hamming_weight_engine_v5',
       'low_range_bias_filter_v5',
-      'external_data_aggregator_v5'
+      'external_data_aggregator_v5',
+      'web_browser_mining_v5_1',
+      'one_click_scripts_v5_1',
+      'community_leaderboard_v5_1'
     ],
     timestamp: new Date().toISOString()
   });
@@ -93,6 +101,7 @@ app.use('/api/pool', poolRoutes); // Alias para /api/pool/job, /api/pool/submit-
 app.use('/api/ranges', rangeRoutes);
 app.use('/api/range', rangeRoutesV5); // Coordenador v5.0 (/api/range/next/:worker_id)
 app.use('/api/webhook', webhookRoutes); // Webhook btcpuzzle (/api/webhook/btcpuzzle)
+app.use('/api/leaderboard', leaderboardRoutes); // Leaderboard Comunitário (/api/leaderboard)
 app.use('/api/status', rangeRoutesV5); // Alias direto para status do coordenador
 app.use('/api/progress', rangeRoutesV5); // Alias direto para progresso do coordenador
 app.use('/api/contributions', contributionRoutes);

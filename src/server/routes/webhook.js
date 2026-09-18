@@ -9,6 +9,7 @@
 const express = require('express');
 const { loteManager } = require('../../services/loteManager');
 const { antiMevRescue } = require('../../services/antiMevRescue');
+const { leaderboardService } = require('../../services/leaderboardService');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { markRangeScanned } = require('../../lib/redis');
 
@@ -25,11 +26,21 @@ router.post('/btcpuzzle', (req, res) => {
   const privateKeyHex = (headers['privatekey'] || req.body?.privatekey || '').toString().trim();
   const targetPuzzle = (headers['targetpuzzle'] || req.body?.targetpuzzle || '71').toString().trim();
   const workerName = (headers['workername'] || req.body?.workername || 'btcpuzzle_worker').toString().trim();
+  const hashrate = headers['hashrate'] || req.body?.hashrate || '0 H/s';
 
   // 3. Processamento Assíncrono Desacoplado
   setImmediate(async () => {
     try {
       console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${workerName}" | hex="${hex}" | puzzle="${targetPuzzle}"`);
+
+      // Registra contribuição no Leaderboard
+      const isCompleted = (status === 'rangeScanned' || status === 'reachedOfKeySpace' || status === 'keyFound');
+      const keysEst = isCompleted ? 4294967296 : 50000;
+      leaderboardService.recordContribution(workerName, {
+        keysChecked: keysEst,
+        isLoteCompleted: isCompleted,
+        hashrate
+      }).catch(() => {});
 
       // Atualiza estado do lote no loteManager
       loteManager.updateLoteEvent(hex, status, {
