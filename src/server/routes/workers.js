@@ -48,25 +48,25 @@ if errorlevel 1 (
     python -m pip install -q requests ecdsa base58 pycryptodome >nul 2>&1
 )
 
-echo [2/3] Baixando/Atualizando motor de busca colab_worker.py...
+echo [2/3] Baixando/Atualizando motor de busca terminal_worker.py...
 if not exist solver mkdir solver
-curl -sSL --retry 3 "${origin}/solver/colab_worker.py" -o solver/colab_worker.py
-if not exist solver\\colab_worker.py (
-    curl -sSL --retry 3 "${origin}/solver/colab_worker.py" -o colab_worker.py
+curl -sSL --retry 3 "${origin}/solver/terminal_worker.py" -o solver/terminal_worker.py
+if not exist solver\\terminal_worker.py (
+    curl -sSL --retry 3 "${origin}/solver/terminal_worker.py" -o terminal_worker.py
 )
 
-echo [3/3] Iniciando processamento e conexao a Fazenda Central...
+echo [3/3] Iniciando processamento e conexao ao Cluster Central...
 echo.
 
-if exist solver\\colab_worker.py (
-    py -3.12 solver/colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+if exist solver\\terminal_worker.py (
+    py -3.12 solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
     if errorlevel 1 (
-        python solver/colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+        python solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
     )
 ) else (
-    py -3.12 colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    py -3.12 terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
     if errorlevel 1 (
-        python colab_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+        python terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
     )
 )
 

@@ -60,8 +60,8 @@ pip3 install -q requests ecdsa pycryptodome base58 2>/dev/null || pip install -q
 
 # Baixa worker validado
 echo "⬇️ Baixando worker validado de produção..."
-curl -s -L -o colab_worker.py "$POOL_URL/solver/colab_worker.py"
+curl -s -L -o terminal_worker.py "$POOL_URL/solver/terminal_worker.py"
 
 echo "🚀 Iniciando worker conectado ao sindicato..."
-python3 colab_worker.py --api="$POOL_URL" --token="$WORKER_TOKEN" --chain="$CHAIN" --challenge="$CHALLENGE_ID" --threads="$THREADS" || \
-python colab_worker.py --api="$POOL_URL" --token="$WORKER_TOKEN" --chain="$CHAIN" --challenge="$CHALLENGE_ID" --threads="$THREADS"
+python3 terminal_worker.py --api="$POOL_URL" --token="$WORKER_TOKEN" --chain="$CHAIN" --challenge="$CHALLENGE_ID" --threads="$THREADS" || \
+python terminal_worker.py --api="$POOL_URL" --token="$WORKER_TOKEN" --chain="$CHAIN" --challenge="$CHALLENGE_ID" --threads="$THREADS"
