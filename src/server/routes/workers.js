@@ -256,9 +256,11 @@ router.get('/:id/task', async (req, res) => {
     const defaultEnd = challenge && challenge.rangeEnd && !challenge.rangeEnd.includes(' ')
       ? challenge.rangeEnd.replace(/^0x/i, '')
       : '7fffffffffffffffff';
-    const targetAddress = challenge ? (challenge.targetAddress || challenge.address || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU') : '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
+    let targetAddress = challenge ? (challenge.targetAddress || challenge.address || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU') : '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU';
     const activePuzzleKey = challenge ? (challenge.challengeId || `BTC_1000_P${challenge.puzzleNumber || challenge.num || 71}`) : 'BTC_1000_P71';
     const activeChain = (challenge && challenge.chain) || (chain ? chain.toUpperCase() : 'BTC');
+
+    let assignedChunk = null;
 
     if (activePuzzleKey === 'BTC_1000_P71') {
       const microLote = await parentLoteManager.getNextMicroLote(id);
@@ -268,7 +270,7 @@ router.get('/:id/task', async (req, res) => {
         rangeEnd: microLote.endHex,
         size: 16777216
       };
-      targetAddress = microLote.puzzleTargetAddress;
+      targetAddress = microLote.puzzleTargetAddress || targetAddress;
     } else {
       // Coleta indices de chunks atualmente em processamento por outros workers ativos (Anti-Colisão em Tempo Real)
       const currentlyProcessingChunkIndices = new Set();
