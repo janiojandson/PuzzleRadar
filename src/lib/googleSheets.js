@@ -160,22 +160,35 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
   const csvLines  = [];
 
   for (const item of ranges) {
-    const chunkIndex  = typeof item === 'object' ? (item.chunkIndex || item.chunkId || item.index || 0) : parseInt(item, 10) || 0;
+    let chunkIndex  = typeof item === 'object' ? (item.chunkIndex || item.chunkId || item.index || 0) : parseInt(item, 10) || 0;
     const rangeStart  = typeof item === 'object' ? (item.rangeStart || item.startHex || '') : '';
     const rangeEnd    = typeof item === 'object' ? (item.rangeEnd   || item.endHex   || '') : '';
     const challengeId = typeof item === 'object' ? (item.challengeId || item.puzzleId || 'Puzzle 71') : 'Puzzle 71';
     const chain       = typeof item === 'object'
       ? (item.chain || (String(challengeId).toLowerCase().includes('eth') ? 'ETH' : String(challengeId).toLowerCase().includes('sol') ? 'SOL' : 'BTC'))
       : 'BTC';
-    const workerName  = source || (typeof item === 'object' ? (item.workerName || item.worker) : 'Anonimo') || 'Anonimo';
+    let workerName  = source || (typeof item === 'object' ? (item.workerName || item.worker) : 'Anonimo') || 'Anonimo';
     const status      = extraMeta.status || (typeof item === 'object' ? item.status : 'COMPLETED') || 'COMPLETED';
     const hashrate    = extraMeta.hashrate || (typeof item === 'object' ? item.hashrate : '0 GH/s') || '0 GH/s';
     const discovery   = extraMeta.keyFound ? '🚨 CHAVE ENCONTRADA!' : 'NENHUMA';
 
+    // Calcula ordinal numérico real do Chunk # a partir do rangeStart
+    try {
+      if (rangeStart) {
+        const cleanStart = String(rangeStart).replace(/^0x/i, '');
+        const BASE_START = 0x400000000000000000n;
+        const STEP_CPU = 1n << 24n; // 16,777,216 chaves por micro-lote
+        const startBig = BigInt('0x' + cleanStart);
+        if (startBig >= BASE_START) {
+          chunkIndex = Number((startBig - BASE_START) / STEP_CPU) + 1;
+        }
+      }
+    } catch (_) {}
+
     const row = [timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, workerName, status, hashrate, discovery];
     csvLines.push(row.join(','));
 
-    // Acumular no buffer com schema de 10 colunas
+    // Acumular no buffer com schema estrito de 10 colunas
     _pendingBatchRows.push({
       timestamp,
       chain,
