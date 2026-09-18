@@ -35,33 +35,36 @@ if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
 }
 
 $BaseUrl = "${baseUrl}"
-$ApiUrl = $BaseUrl
+$WorkerDir = "solver"
+$WorkerScript = "$WorkerDir\\terminal_worker.py"
 
-if [ ! -f "solver/terminal_worker.py" ]; then
-    echo "Baixando terminal_worker.py..."
-    curl -sSL "$ApiUrl/raw/terminal_worker.py" -o solver/terminal_worker.py
-fi
+if (-not (Test-Path $WorkerDir)) {
+    New-Item -ItemType Directory -Path $WorkerDir -Force | Out-Null
+}
 
-echo "Iniciando terminal_worker.py..."
-python3 solver/terminal_worker.py --api="$ApiUrl" --name="$WorkerName" --token="$Token" --chain="$Chain" --challenge="$Challenge"
-Write-Host "[!] DICA PARA GPU NVIDIA: Para minerar em GPU, execute: btcpuzzle.exe -c pool.conf" -ForegroundColor DarkYellow
-
-# Se Node.js estiver presente, executa o motor criptográfico real em Node.js (cpuMiner.js)
-$HasNode = Get-Command node -ErrorAction SilentlyContinue
-if ($HasNode) {
-    Write-Host "[+] Node.js detectado! Iniciando motor criptografico real de CPU (Adicao P+G secp256k1)..." -ForegroundColor Green
-    $InstallDir = "."
-    $WorkerScript = "$InstallDir\\solver\\terminal_worker.py"
-
-    if (-not (Test-Path $WorkerScript)) {
-        Write-Host "Baixando terminal_worker.py..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri "$ApiUrl/raw/terminal_worker.py" -OutFile $WorkerScript
+if (-not (Test-Path $WorkerScript)) {
+    Write-Host "Baixando motor de busca terminal_worker.py..." -ForegroundColor Cyan
+    try {
+        Invoke-WebRequest -Uri "$BaseUrl/solver/terminal_worker.py" -OutFile $WorkerScript
+    } catch {
+        Invoke-WebRequest -Uri "$BaseUrl/solver/terminal_worker.py" -OutFile "terminal_worker.py"
+        $WorkerScript = "terminal_worker.py"
     }
+}
 
-    Write-Host "Iniciando terminal_worker.py..." -ForegroundColor Green
-    python $WorkerScript --api="$ApiUrl" --name="$WorkerName" --token="$Token" --chain="$Chain" --challenge="$Challenge"
+$PyCmd = Get-Command py -ErrorAction SilentlyContinue
+$PythonCmd = Get-Command python -ErrorAction SilentlyContinue
+
+if ($PyCmd) {
+    Write-Host "Iniciando minerador via py -3.12..." -ForegroundColor Green
+    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71"
+    exit
+} elseif ($PythonCmd) {
+    Write-Host "Iniciando minerador via python..." -ForegroundColor Green
+    & python $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71"
     exit
 }
+
 
 # Fallback: Loop continuo via PowerShell
 while ($true) {

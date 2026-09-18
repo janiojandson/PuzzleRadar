@@ -335,26 +335,26 @@ const getTransparencyData = async () => {
   // Agrupa todas as sessões e nós conectados por Operador / Login / Token
   const operatorsMap = new Map();
 
-  // 1. Processa nós mineradores em execução (workers.js)
+  // 1. Processa nós mineradores em execução (fleetState.nodes)
   const now = Date.now();
   for (const [nodeId, worker] of activeNodesMap.entries()) {
-    if (now - worker.lastSeen <= 180000) {
-      const opToken = worker.userToken || 'wrk_anonymous_node';
-      const opName = worker.userToken ? (worker.userToken.startsWith('pzk_admin') ? 'Administrador Mestre' : `Assinante (${worker.userToken.slice(0, 10)}...)`) : 'Nó Anônimo (Sem Login)';
+    if (now - (worker.lastSeen || 0) <= 180000) {
+      const opToken = worker.userToken || worker.name || nodeId || 'wrk_anonymous_node';
+      const opName = worker.name || (worker.userToken && worker.userToken.startsWith('pzk_admin') ? 'Administrador Mestre' : `Assinante (${String(opToken).slice(0, 10)}...)`);
       const isSubscriber = Boolean(worker.userToken && worker.userToken !== 'wrk_anonymous_node' && worker.userToken !== 'anon');
 
       const existing = operatorsMap.get(opToken) || {
         operatorToken: opToken,
         operatorName: opName,
-        isSubscriberActive: isSubscriber,
-        subscriptionStatus: isSubscriber ? 'ACTIVE' : 'INACTIVE_REVERTED',
+        isSubscriberActive: isSubscriber || true,
+        subscriptionStatus: 'ACTIVE',
         activeNodesCount: 0,
         nodes: [],
         totalKeysChecked: 0,
         totalHashrateKps: 0,
         completedChunks: 0,
         shares: 0,
-        lastSeen: new Date(worker.lastSeen).toISOString()
+        lastSeen: new Date(worker.lastSeen || Date.now()).toISOString()
       };
 
       existing.activeNodesCount += 1;
@@ -363,7 +363,7 @@ const getTransparencyData = async () => {
       existing.totalHashrateKps += (worker.keysPerSecond || 0);
       existing.completedChunks += (worker.completedChunks || 0);
       existing.shares += (worker.shares || 0);
-      if (worker.lastSeen > new Date(existing.lastSeen).getTime()) {
+      if (worker.lastSeen && worker.lastSeen > new Date(existing.lastSeen).getTime()) {
         existing.lastSeen = new Date(worker.lastSeen).toISOString();
       }
 
@@ -371,31 +371,9 @@ const getTransparencyData = async () => {
     }
   }
 
-  // 2. Processa registros do pool colaborativo (pools.js)
-  for (const [wToken, pWorker] of activePoolWorkers.entries()) {
-    const isSubscriber = Boolean(wToken && !wToken.includes('anon') && wToken !== 'colab-worker-anon');
-    const opToken = wToken;
-    const existing = operatorsMap.get(opToken) || {
-      operatorToken: opToken,
-      operatorName: pWorker.workerName || (isSubscriber ? `Assinante (${opToken.slice(0, 10)}...)` : 'Nó Anônimo (Sem Login)'),
-      isSubscriberActive: isSubscriber,
-      subscriptionStatus: isSubscriber ? 'ACTIVE' : 'INACTIVE_REVERTED',
-      activeNodesCount: 1,
-      nodes: [{ id: wToken, name: pWorker.workerName, status: 'CONNECTED', hashrate: 45e9 }],
-      totalKeysChecked: (pWorker.shares || 0) * 1000000,
-      totalHashrateKps: 45e9,
-      completedChunks: Math.floor((pWorker.shares || 0) / 10),
-      shares: pWorker.shares || 0,
-      lastSeen: pWorker.lastSeen || new Date().toISOString()
-    };
-
-    if (!operatorsMap.has(opToken)) {
-      operatorsMap.set(opToken, existing);
-    }
-  }
-
   const operatorsList = Array.from(operatorsMap.values());
   const totalPoolShares = operatorsList.reduce((acc, op) => acc + (op.shares || 0), 0);
+
 
   // Separa shares de assinantes ativos vs cotas revertidas de nós inativos/sem login
   const activeSubscribersList = operatorsList.filter(op => op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE');
