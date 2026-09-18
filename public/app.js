@@ -65,6 +65,12 @@ async function fetchPoolStatus() {
         const pct = ((data.puzzle71.scannedRanges / 1000) * 100).toFixed(4);
         setInner('headerProgress', `${pct}% Concluído`);
       }
+      if (data && data.parentLote) {
+        const pl = data.parentLote;
+        setInner('officialParentHex', `0x${pl.parentHex || '4000000'}...`);
+        setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} Chaves (${pl.powProgressPercent}%)`);
+        setInner('officialParentStatus', pl.statusLabel || 'VARRENDO');
+      }
     }
   } catch (e) {}
 }
@@ -1554,6 +1560,29 @@ function handleTelemetryPulse(pulse) {
           </div>
         </div>
       `).join('');
+    }
+  }
+
+  // Fatia Pai Oficial & PoW
+  if (pulse.parentLote) {
+    const pl = pulse.parentLote;
+    setInner('officialParentHex', `0x${pl.parentHex || '4000000'}...`);
+    setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} Chaves (${pl.powProgressPercent}%)`);
+    setInner('officialParentStatus', pl.statusLabel || 'VARRENDO');
+
+    const powGrid = document.getElementById('officialPowBadgesGrid');
+    if (powGrid && pl.totalPowKeysRequired) {
+      const keysHtml = [];
+      for (let i = 0; i < pl.totalPowKeysRequired; i++) {
+        const isFound = i < pl.powKeysFound;
+        keysHtml.push(`
+          <div class="p-1.5 rounded border text-center text-[9px] font-mono transition ${isFound ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-300 font-bold' : 'border-white/10 bg-white/5 text-slate-400'}">
+            <div>PoW #${i + 1}</div>
+            <div class="text-[8px] mt-0.5">${isFound ? '✅ ACHADA' : '⏳ Varrendo'}</div>
+          </div>
+        `);
+      }
+      powGrid.innerHTML = keysHtml.join('');
     }
   }
 }

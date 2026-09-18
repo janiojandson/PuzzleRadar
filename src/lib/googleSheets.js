@@ -168,7 +168,7 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
       ? (item.chain || (String(challengeId).toLowerCase().includes('eth') ? 'ETH' : String(challengeId).toLowerCase().includes('sol') ? 'SOL' : 'BTC'))
       : 'BTC';
     let workerName  = source || (typeof item === 'object' ? (item.workerName || item.worker) : 'Anonimo') || 'Anonimo';
-    const status      = extraMeta.status || (typeof item === 'object' ? item.status : 'COMPLETED') || 'COMPLETED';
+    let status = extraMeta.status || (typeof item === 'object' ? item.status : 'COMPLETED') || 'COMPLETED';
     const hashrate    = extraMeta.hashrate || (typeof item === 'object' ? item.hashrate : '0 GH/s') || '0 GH/s';
     const discovery   = extraMeta.keyFound ? '🚨 CHAVE ENCONTRADA!' : 'NENHUMA';
 
@@ -182,6 +182,15 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
         if (startBig >= BASE_START) {
           chunkIndex = Number((startBig - BASE_START) / STEP_CPU) + 1;
         }
+      }
+    } catch (_) {}
+
+    // Enriquece o status com a Fatia Pai Oficial e o progresso das chaves PoW
+    try {
+      const { parentLoteManager } = require('../services/parentLoteManager');
+      const pStatus = parentLoteManager.getStatus();
+      if (pStatus && pStatus.parentHex && !status.includes('Pai:')) {
+        status = `${status} | Pai: 0x${pStatus.parentHex} (PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired})`;
       }
     } catch (_) {}
 

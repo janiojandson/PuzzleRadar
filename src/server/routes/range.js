@@ -71,12 +71,14 @@ router.get('/status', (req, res) => {
   try {
     const stats71 = loteManager.getStats(71);
     const rateLimits = dataAggregator.getRateLimitStats();
+    const { parentLoteManager } = require('../../services/parentLoteManager');
 
     res.json({
       service: 'PuzzleRadar Coordinator v5.0',
       status: 'ONLINE',
       mode: 'AUTONOMOUS_COORDINATOR_SCENARIO_B',
       puzzle71: stats71,
+      parentLote: parentLoteManager.getStatus(),
       rateLimits,
       timestamp: new Date().toISOString()
     });

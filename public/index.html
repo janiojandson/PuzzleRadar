@@ -737,6 +737,40 @@ custom_range=400000000000000000:400000010000000000</pre>
             </button>
           </div>
 
+          <!-- Painel Oficial: Fatia Pai & Agregação PoW (btcpuzzle.info) -->
+          <div class="glass-panel p-4 rounded-xl border border-cyan-500/30 bg-cypher-950 space-y-2.5 font-mono text-xs">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span class="font-bold text-white text-[11px] uppercase tracking-wider">Fatia Pai Oficial & PoW (btcpuzzle.info)</span>
+              </div>
+              <span id="officialParentStatus" class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">VARRENDO (0/6 PoW)</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-[10px]">
+              <div class="p-2 rounded bg-white/5">
+                <span class="text-slate-400 block">Prefixo Fatia Pai:</span>
+                <span id="officialParentHex" class="text-amber-300 font-bold">0x4000000...</span>
+              </div>
+              <div class="p-2 rounded bg-white/5">
+                <span class="text-slate-400 block">Chaves PoW Desafio:</span>
+                <span id="officialPowCount" class="text-emerald-400 font-bold">0 / 6 Chaves (0%)</span>
+              </div>
+            </div>
+
+            <!-- 6 Badges de Prova de Trabalho (PoW) -->
+            <div class="space-y-1">
+              <span class="text-[10px] text-slate-400">Progresso das 6 Chaves de Prova de Trabalho:</span>
+              <div id="officialPowBadgesGrid" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #1: ⏳</div>
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #2: ⏳</div>
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #3: ⏳</div>
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #4: ⏳</div>
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #5: ⏳</div>
+                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #6: ⏳</div>
+              </div>
+            </div>
+            <p class="text-[9px] text-slate-500 leading-tight">Ao reunir as 6 chaves PoW, o servidor calcula SHA256(k1+...+k6) e dispara o PUT oficial validando os 2^45 de chaves na pool global.</p>
           </div>
         </div>
 

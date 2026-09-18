@@ -196,6 +196,7 @@ async function buildTelemetryPulse() {
       estimatedRewardPoolUsd: primaryRoi.prizeUSD || 461500,
       topWorkers: topWorkersFormatted
     },
+    parentLote: require('../../services/parentLoteManager').parentLoteManager.getStatus(),
     bufferStats: sheetsBuffer.getStats(),
     recentEvents: telemetryEvents.slice(0, 20)
   };

@@ -264,9 +264,32 @@ class ParentLoteManager {
         resolve({ error: e.message });
       });
 
-      req.write(reqData);
-      req.end();
-    });
+  /**
+   * Retorna o status em tempo real da Fatia Pai oficial e da coleta das 6 chaves PoW
+   */
+  getStatus() {
+    const parent = this.currentParent || {};
+    const powCount = this.collectedPowKeys.size;
+    const totalPow = (parent.powAddresses && parent.powAddresses.length) ? parent.powAddresses.length : 6;
+    const progressPercent = totalPow > 0 ? ((powCount / totalPow) * 100).toFixed(1) : '0.0';
+    const currentAllocated = parent.allocatedOffset ? Number(parent.allocatedOffset / STEP_CPU) : 0;
+
+    return {
+      connectedToOfficialApi: Boolean(this.currentParent),
+      parentHex: parent.hex || '4000000',
+      targetAddress: parent.targetAddress || PUZZLE_71_TARGET_ADDRESS,
+      powAddresses: parent.powAddresses || [],
+      powKeysFound: powCount,
+      totalPowKeysRequired: totalPow,
+      powProgressPercent: progressPercent,
+      collectedPowKeys: Array.from(this.collectedPowKeys.entries()).map(([addr, key]) => ({
+        address: addr,
+        keyHex: key ? `${key.substring(0, 10)}...${key.slice(-6)}` : null,
+        found: true
+      })),
+      microLotesAllocated: currentAllocated,
+      statusLabel: powCount >= totalPow ? '🎯 6 CHAVES COLETADAS (SUBMETIDO PUT OFICIAL)' : `VARRENDO (${powCount}/${totalPow} CHAVES POW)`
+    };
   }
 }
 
