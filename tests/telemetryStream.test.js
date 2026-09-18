@@ -34,7 +34,7 @@ async function runTests() {
           const data = JSON.parse(raw);
           assert.ok(data.globalHashrate, 'Deve conter hashrate global');
           assert.strictEqual(data.activeTarget.id, 'BTC_1000_P71');
-          assert.strictEqual(data.secondaryTarget.id, 'ETH_BIP39_8W');
+          assert.ok(data.secondaryTarget && typeof data.secondaryTarget.id === 'string' && data.secondaryTarget.id.length > 0, 'Alvo secundário dinâmico de maior ROI deve estar presente');
           assert.ok(data.proofOfShare, 'Deve conter proofOfShare');
           assert.ok(Array.isArray(data.proofOfShare.topWorkers), 'Top workers deve ser array');
           console.log('  ✅ [PASS] Pulso de telemetria recebido com estrutura validada.');
