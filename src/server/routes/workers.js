@@ -481,6 +481,21 @@ router.get('/puzzle/:id/parameters', (req, res) => {
 });
 
 /**
+ * POST /api/worker/submit-pow — Recebe chaves PoW individuais encontradas pelos mineradores
+ */
+router.post('/submit-pow', async (req, res) => {
+  try {
+    const { workerName, keyHex, targetAddress } = req.body;
+    const { parentLoteManager } = require('../../services/parentLoteManager');
+
+    const result = await parentLoteManager.submitProofKey(workerName || 'Anonimo', keyHex, targetAddress);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/workers/:id/dps — Despacho em lote de Distinguished Points (DPs) capturados pelo worker
  */
 router.post('/:id/dps', async (req, res) => {

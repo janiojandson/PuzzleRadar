@@ -21,6 +21,22 @@ router.get('/next/:worker_id', async (req, res) => {
     const hashrate = req.query.hashrate || req.headers['x-hashrate'] || null;
     const isBrowser = req.query.client === 'browser' || req.headers['x-client'] === 'browser';
 
+    const { parentLoteManager } = require('../../services/parentLoteManager');
+
+    if (isBrowser) {
+      const microLote = await parentLoteManager.getNextMicroLote(worker_id);
+      return res.json({
+        custom_range: `${microLote.startHex}:${microLote.endHex}`,
+        pool_conf_line: `custom_range=${microLote.startHex}:${microLote.endHex}`,
+        lote_id: `lote_p71_micro_${microLote.startHex.slice(0, 8)}`,
+        puzzle: 71,
+        parentHex: microLote.parentHex,
+        targets: microLote.targets,
+        powAddresses: microLote.powAddresses,
+        allocated_at: new Date().toISOString()
+      });
+    }
+
     const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate, isBrowser);
     
     // Registra worker ativo no Google Sheets Buffer de forma assíncrona
