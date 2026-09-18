@@ -264,6 +264,11 @@ class ParentLoteManager {
         resolve({ error: e.message });
       });
 
+      req.write(reqData);
+      req.end();
+    });
+  }
+
   /**
    * Retorna o status em tempo real da Fatia Pai oficial e da coleta das 6 chaves PoW
    */
