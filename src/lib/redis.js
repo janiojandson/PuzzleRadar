@@ -346,10 +346,42 @@ async function getDpStats(challengeId) {
   return { challengeId, totalDps, tameDps, wildDps };
 }
 
+/**
+ * Verifica se uma fatia definida por startHex/endHex ou chunkIndex já foi escaneada no bitmap
+ */
+async function isRangeScanned(puzzleId, startHex, endHex, baseStartHex = '400000000000000000', stepBigInt = 1n << 40n) {
+  try {
+    const sBig = BigInt(startHex.startsWith('0x') ? startHex : '0x' + startHex);
+    const bBig = BigInt(baseStartHex.startsWith('0x') ? baseStartHex : '0x' + baseStartHex);
+    if (sBig < bBig) return false;
+    const chunkIdx = Number((sBig - bBig) / stepBigInt);
+    return await isChunkScanned(puzzleId, chunkIdx);
+  } catch (_) {
+    return false;
+  }
+}
+
+/**
+ * Marca uma fatia definida por startHex/endHex no bitmap
+ */
+async function markRangeScanned(puzzleId, startHex, endHex, baseStartHex = '400000000000000000', stepBigInt = 1n << 40n) {
+  try {
+    const sBig = BigInt(startHex.startsWith('0x') ? startHex : '0x' + startHex);
+    const bBig = BigInt(baseStartHex.startsWith('0x') ? baseStartHex : '0x' + baseStartHex);
+    if (sBig < bBig) return 0;
+    const chunkIdx = Number((sBig - bBig) / stepBigInt);
+    return await markChunkScanned(puzzleId, chunkIdx);
+  } catch (_) {
+    return 0;
+  }
+}
+
 module.exports = {
   redisClient,
   markChunkScanned,
   isChunkScanned,
+  isRangeScanned,
+  markRangeScanned,
   bulkImportHistory,
   getPruningStats,
   sanitizeBitmap,
@@ -357,4 +389,5 @@ module.exports = {
   publishRevocation,
   getDpStats
 };
+
 

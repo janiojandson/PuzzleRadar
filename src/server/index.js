@@ -23,6 +23,8 @@ const discoveriesRoutes = require('./routes/discoveries');
 const fleetRoutes = require('./routes/fleet');
 const sandboxRoutes = require('./routes/sandbox');
 const kangarooRoutes = require('./routes/kangaroo');
+const rangeRoutesV5 = require('./routes/range');
+const webhookRoutes = require('./routes/webhook');
 const { router: telemetryRoutes } = require('./routes/telemetry');
 
 const app = express();
@@ -33,7 +35,7 @@ app.use(compression());
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-nexus-key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-nexus-key', 'x-puzzleradar-token', 'status', 'hex', 'privatekey', 'targetpuzzle', 'workername']
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -51,7 +53,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'online',
     service: 'PuzzleRadar',
-    version: '4.0.0',
+    version: '5.0.0',
+    mode: 'AUTONOMOUS_COORDINATOR_V5',
     features: [
       'crowdsourcing_workers',
       'google_colab_farm',
@@ -66,10 +69,10 @@ app.get('/health', (req, res) => {
       'ai_math_advisor',
       'nexus_cerebro_integrated',
       'kangaroo_distributed_v4',
-      'filter_engine_v4',
-      'priority_calculator_v4',
-      'dp_ttl_cleanup',
-      'dual_front_brute_force_kangaroo'
+      'btcpuzzle_coordinator_v5',
+      'hamming_weight_engine_v5',
+      'low_range_bias_filter_v5',
+      'external_data_aggregator_v5'
     ],
     timestamp: new Date().toISOString()
   });
@@ -88,6 +91,10 @@ app.use('/api/puzzle1000btc', puzzle1000btcRoutes);
 app.use('/api/pools', poolRoutes);
 app.use('/api/pool', poolRoutes); // Alias para /api/pool/job, /api/pool/submit-point
 app.use('/api/ranges', rangeRoutes);
+app.use('/api/range', rangeRoutesV5); // Coordenador v5.0 (/api/range/next/:worker_id)
+app.use('/api/webhook', webhookRoutes); // Webhook btcpuzzle (/api/webhook/btcpuzzle)
+app.use('/api/status', rangeRoutesV5); // Alias direto para status do coordenador
+app.use('/api/progress', rangeRoutesV5); // Alias direto para progresso do coordenador
 app.use('/api/contributions', contributionRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/dashboard', dashboardRoutes);

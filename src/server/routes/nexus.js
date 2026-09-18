@@ -14,6 +14,9 @@ const router = express.Router();
 const NEXUS_CEREBRO_URL = process.env.NEXUS_CEREBRO_URL || 'https://nexus-cerebro-production-a7c0.up.railway.app';
 const NEXUS_API_KEY = process.env.NEXUS_API_KEY || 'nexus-key';
 
+const { loteManager } = require('../../services/loteManager');
+const { dataAggregator } = require('../../services/dataAggregator');
+
 // ─── ARSENAL DE FERRAMENTAS EXPOSTAS AO CÉREBRO ───
 const ARSENAL = [
   {
@@ -24,14 +27,62 @@ const ARSENAL = [
       const sheets = await getSheetsStats().catch(() => ({ status: 'indisponível' }));
       const pruning = await getPruningStats('puzzle_btc_66', 10000).catch(() => ({ status: 'indisponível' }));
       const watcher = onChainWatcher.getStatusSummary();
+      const coordStats = loteManager.getStats(71);
       return {
         status: 'ONLINE',
-        versao: '3.0.0',
+        versao: '5.0.0',
+        coordinator: coordStats,
         sheetsStorage: sheets,
         pruningStats: pruning,
         onChainWatcher: watcher,
         timestamp: new Date().toISOString()
       };
+    }
+  },
+  {
+    name: 'obter_proximo_range_priorizado',
+    description: 'Obtém o próximo lote custom_range com maior priority_score para minerador GPU do Bitcoin Puzzle 71.',
+    parameters: {
+      type: 'object',
+      properties: {
+        workerId: { type: 'string', description: 'Identificador do worker GPU (ex: rig_rtx4090_01).' },
+        hashrate: { type: 'string', description: 'Hashrate estimado para dimensionamento adaptativo do lote (ex: 5 GH/s).' }
+      },
+      required: ['workerId']
+    },
+    funcao: async (workerId, hashrate) => {
+      return await loteManager.getNextOptimalRange(workerId || 'cerebro_auto_worker', hashrate);
+    }
+  },
+  {
+    name: 'consultar_estatisticas_pool_externo',
+    description: 'Consulta estatísticas de fatias e rate limits de sincronização com btcpuzzle.info e theCollider.',
+    parameters: {
+      type: 'object',
+      properties: {
+        puzzleNumber: { type: 'number', description: 'Número do puzzle (default 71).' }
+      },
+      required: []
+    },
+    funcao: async (puzzleNumber) => {
+      const pNum = puzzleNumber || 71;
+      const btcInfo = await dataAggregator.fetchBtcpuzzleRanges(pNum);
+      const rates = dataAggregator.getRateLimitStats();
+      const loteStats = loteManager.getStats(pNum);
+      return {
+        puzzle: pNum,
+        coordinator: loteStats,
+        btcpuzzleExternal: btcInfo,
+        rateLimits: rates
+      };
+    }
+  },
+  {
+    name: 'sincronizar_fatias_thecollider',
+    description: 'Aciona a sincronização das fatias já verificadas pela comunidade global no theCollider.',
+    parameters: { type: 'object', properties: {}, required: [] },
+    funcao: async () => {
+      return await dataAggregator.syncTheColliderRanges();
     }
   },
   {
