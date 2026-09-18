@@ -61,9 +61,25 @@ class SheetsBufferManager {
     const chunkLabel = `Chunk #${chunkIndex}`;
 
     const workerName = logEntry.workerName || logEntry.worker || 'Anonimo';
-    const scanStatus = logEntry.status || logEntry.scanStatus || 'COMPLETED';
+    let scanStatus = logEntry.status || logEntry.scanStatus || 'COMPLETED';
+    if (scanStatus.includes(' | Pai:')) {
+      scanStatus = scanStatus.split(' | Pai:')[0].trim();
+    }
     const hashrateStr = logEntry.hashrate || logEntry.hashrateStr || '0 GH/s';
     const discoveryStatus = logEntry.keyFound ? '🚨 CHAVE ENCONTRADA!' : (logEntry.discoveryStatus || 'NENHUMA');
+
+    let officialParentPoW = logEntry.officialParentPoW || logEntry.parentPoW || 'Pai: 0x4000000 (PoW: 0/6)';
+    try {
+      const { parentLoteManager } = require('../services/parentLoteManager');
+      const pStatus = parentLoteManager.getStatus();
+      if (pStatus && pStatus.parentHex) {
+        if (pStatus.powKeysFound >= pStatus.totalPowKeysRequired) {
+          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex})`;
+        } else {
+          officialParentPoW = `Pai: 0x${pStatus.parentHex} [PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
+        }
+      }
+    } catch (_) {}
 
     this.buffer.push({
       timestamp,
@@ -78,6 +94,8 @@ class SheetsBufferManager {
       workerName,
       status: scanStatus,
       scanStatus,
+      officialParentPoW,
+      parentPoW: officialParentPoW,
       hashrate: hashrateStr,
       hashrateStr,
       discoveryStatus,

@@ -62,12 +62,21 @@ async function fetchPoolStatus() {
       if (data && data.puzzle71) {
         setInner('headerDispute', '7.10 BTC (~$460K)');
         setInner('headerTarget', '<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> <span>1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU</span>');
-        const pct = ((data.puzzle71.scannedRanges / 1000) * 100).toFixed(4);
+        
+        let pct = '0.0000';
+        if (data.puzzle71.progressPercent !== undefined && !isNaN(data.puzzle71.progressPercent)) {
+          pct = Number(data.puzzle71.progressPercent).toFixed(4);
+        } else if (data.puzzle71.completed && data.puzzle71.totalLotes) {
+          pct = ((data.puzzle71.completed / data.puzzle71.totalLotes) * 100).toFixed(4);
+        } else if (data.parentLote && data.parentLote.powProgressPercent !== undefined) {
+          pct = Number(data.parentLote.powProgressPercent).toFixed(4);
+        }
         setInner('headerProgress', `${pct}% Concluído`);
       }
       if (data && data.parentLote) {
         const pl = data.parentLote;
         setInner('officialParentHex', `0x${pl.parentHex || '4000000'}...`);
+        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
         setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} Chaves (${pl.powProgressPercent}%)`);
         setInner('officialParentStatus', pl.statusLabel || 'VARRENDO');
       }
@@ -84,12 +93,12 @@ function switchTab(tabId) {
   if (activeEl) activeEl.classList.remove('hidden');
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.className = 'tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5';
+    btn.className = 'tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5';
   });
 
   const activeBtn = document.getElementById(`btn-${tabId}`);
   if (activeBtn) {
-    activeBtn.className = 'tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30';
+    activeBtn.className = 'tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30';
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -865,7 +874,7 @@ async function fetchLiveRangesData() {
 
     if (tbody) {
       if (ranges.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 text-xs">Aguardando novos blocos de varredura do cluster...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-500 text-xs">Aguardando novos blocos de varredura do cluster...</td></tr>`;
       } else {
         tbody.innerHTML = ranges.map(r => {
           const isPendingBuffer = r.status === 'BUFFER_PENDING_BATCH';
@@ -874,6 +883,7 @@ async function fetchLiveRangesData() {
             : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">✅ PRUNED_SCANNED</span>';
 
           const timeFormatted = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+          const powInfo = r.officialParentPoW || 'Pai: 0x4000000 [PoW: 0/6]';
 
           return `
             <tr class="hover:bg-white/5 transition font-mono text-[11px]">
@@ -885,6 +895,7 @@ async function fetchLiveRangesData() {
               <td class="py-2.5 px-3 text-slate-300 font-mono text-[10px] whitespace-nowrap" title="${r.rangeEnd}">0x${(r.rangeEnd || '').substring(0, 12)}...</td>
               <td class="py-2.5 px-3 text-slate-300 max-w-[130px] truncate" title="${r.workerName || 'Terminal Node'}">${r.workerName || 'Terminal Node'}</td>
               <td class="py-2.5 px-3 whitespace-nowrap">${statusBadge}</td>
+              <td class="py-2.5 px-3 text-cyan-300 font-mono text-[10px] whitespace-nowrap" title="${powInfo}">${powInfo}</td>
               <td class="py-2.5 px-3 text-right font-bold text-emerald-400 whitespace-nowrap">${r.hashrate || '0 H/s'}</td>
             </tr>
           `;

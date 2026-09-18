@@ -134,8 +134,9 @@ router.get('/recent', async (req, res) => {
           chunkIndex: item.chunkIndex,
           rangeStart: item.startHex,
           rangeEnd: item.endHex,
-          workerName: item.workerName || 'Colab Cluster',
+          workerName: item.workerName || 'Terminal Node',
           status: 'BUFFER_PENDING_BATCH',
+          officialParentPoW: item.officialParentPoW || item.parentPoW || 'Pai: 0x4000000 (PoW: 0/6)',
           hashrate: item.hashrate || '0 H/s'
         });
       }
@@ -149,7 +150,12 @@ router.get('/recent', async (req, res) => {
 
       for (const l of lastLines) {
         const parts = l.split(',');
-        if (parts.length >= 6) {
+        if (parts.length >= 7) {
+          const has11Cols = parts.length >= 11;
+          const status = parts[7] || 'PRUNED_SCANNED';
+          const officialParentPoW = has11Cols ? parts[8] : 'Pai: 0x4000000 (PoW: 0/6)';
+          const hashrate = has11Cols ? parts[9] : (parts[8] || '0 H/s');
+
           recentList.push({
             timestamp: parts[0] || new Date().toISOString(),
             chain: parts[1] || 'BTC',
@@ -157,9 +163,10 @@ router.get('/recent', async (req, res) => {
             chunkIndex: parts[3] || '0',
             rangeStart: parts[4] || '',
             rangeEnd: parts[5] || '',
-            workerName: parts[6] || 'Colab Farm Node',
-            status: parts[7] || 'PRUNED_SCANNED',
-            hashrate: parts[8] || '0 H/s'
+            workerName: parts[6] || 'Terminal Node',
+            status,
+            officialParentPoW,
+            hashrate
           });
         }
       }

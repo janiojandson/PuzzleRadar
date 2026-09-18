@@ -29,32 +29,41 @@ function doPost(e) {
 
     if (contents.action === "batch_ranges" || contents.batchMode) {
       let sheet = ss.getSheetByName(contents.targetSheet || contents.sheetName || "Ranges_Varredura");
+      const headers = [
+        "Timestamp", "Rede / Chain", "Desafio / Challenge ID", "Chunk #", 
+        "Range Início (Hex)", "Range Fim (Hex)", "Worker / Operador", "Status da Varredura", 
+        "Fatia Pai & PoW Oficial", "Hashrate", "Descoberta"
+      ];
       if (!sheet) {
         sheet = ss.insertSheet(contents.targetSheet || contents.sheetName || "Ranges_Varredura");
-        const headers = [
-          "Timestamp", "Chain", "Challenge ID", "Chunk #", 
-          "Range Início", "Range Fim", "Worker", "Status", 
-          "Hashrate", "Descoberta"
-        ];
+        sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      } else if (sheet.getLastColumn() < 11) {
         sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
       }
 
-      const rowsToInsert = (contents.rows || []).map(r => [
-        r.timestamp || new Date().toISOString(),
-        (r.chain || "BTC").toUpperCase(),
-        r.challenge_id || r.challengeId || "Puzzle 71",
-        r.chunkLabel || `Chunk #${r.chunkIndex || r.chunkNumber || 1}`,
-        "'" + (r.startHex || r.rangeStart || "").replace(/^0x/i, ''),
-        "'" + (r.endHex || r.rangeEnd || "").replace(/^0x/i, ''),
-        r.workerName || r.worker || "Anonimo",
-        r.status || r.scanStatus || "COMPLETED",
-        r.hashrate || r.hashrateStr || "0 GH/s",
-        r.keyFound ? "🚨 CHAVE ENCONTRADA!" : (r.discoveryStatus || "NENHUMA")
-      ]);
+      const rowsToInsert = (contents.rows || []).map(r => {
+        var cleanStatus = r.status || r.scanStatus || "COMPLETED";
+        if (cleanStatus.includes(" | Pai:")) cleanStatus = cleanStatus.split(" | Pai:")[0].trim();
+        var officialPoW = r.officialParentPoW || r.parentPoW || "Pai: 0x4000000 (PoW: 0/6)";
+
+        return [
+          r.timestamp || new Date().toISOString(),
+          (r.chain || "BTC").toUpperCase(),
+          r.challenge_id || r.challengeId || "BTC_1000_P71",
+          r.chunkLabel || `Chunk #${r.chunkIndex || r.chunkNumber || 1}`,
+          "'" + (r.startHex || r.rangeStart || "").replace(/^0x/i, ''),
+          "'" + (r.endHex || r.rangeEnd || "").replace(/^0x/i, ''),
+          r.workerName || r.worker || "Anonimo",
+          cleanStatus,
+          officialPoW,
+          r.hashrate || r.hashrateStr || "0 GH/s",
+          r.keyFound ? "🚨 CHAVE ENCONTRADA!" : (r.discoveryStatus || "NENHUMA")
+        ];
+      });
 
       if (rowsToInsert.length > 0) {
         const lastRow = sheet.getLastRow();
-        sheet.getRange(lastRow + 1, 1, rowsToInsert.length, 10).setValues(rowsToInsert);
+        sheet.getRange(lastRow + 1, 1, rowsToInsert.length, 11).setValues(rowsToInsert);
       }
 
       return ContentService.createTextOutput(JSON.stringify({ status: "success", inserted: rowsToInsert.length }))

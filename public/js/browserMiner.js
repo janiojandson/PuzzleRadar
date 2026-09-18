@@ -11,6 +11,12 @@ class BrowserMinerController {
     this.totalLotesCompleted = parseInt(localStorage.getItem('puzzleradar_lotes_completed') || '0', 10);
     this.currentHashrate = 0;
     this.currentLote = null;
+    this.heartbeatTimer = null;
+
+    // Auto-resume se a mineração estava ativa antes do reload
+    if (localStorage.getItem('puzzleradar_web_mining_active') === 'true') {
+      setTimeout(() => this.start(), 1000);
+    }
   }
 
   setNickname(name) {
@@ -23,6 +29,7 @@ class BrowserMinerController {
   async start() {
     if (this.isMining) return;
     this.isMining = true;
+    localStorage.setItem('puzzleradar_web_mining_active', 'true');
 
     if (!window.Worker) {
       alert('Seu navegador não suporta Web Workers.');
@@ -32,11 +39,21 @@ class BrowserMinerController {
     this.worker = new Worker('/js/worker-thread.js');
     this.worker.onmessage = (e) => this._handleWorkerMessage(e.data);
 
+    // Inicia heartbeat contínuo para manter status ONLINE no Leaderboard
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = setInterval(() => this._sendHeartbeat(), 4000);
+
     await this._fetchNextMicroLoteAndStart();
+    this._updateUi();
   }
 
   pause() {
     this.isMining = false;
+    localStorage.removeItem('puzzleradar_web_mining_active');
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
     if (this.worker) {
       this.worker.postMessage({ type: 'PAUSE' });
       this.worker.terminate();
@@ -46,14 +63,30 @@ class BrowserMinerController {
     this._updateUi();
   }
 
+  _sendHeartbeat() {
+    if (!this.isMining) return;
+    const kps = this.currentHashrate || 12000;
+    fetch(`/api/workers/${encodeURIComponent(this.workerName)}/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        keysPerSecond: kps,
+        progress: 50,
+        chain: 'BTC',
+        challenge_id: 'BTC_1000_P71',
+        status: 'RUNNING'
+      })
+    }).catch(() => {});
+  }
+
   async _fetchNextMicroLoteAndStart() {
     if (!this.isMining) return;
 
     try {
-      const res = await fetch(`/api/range/next/${this.workerName}?client=browser&hashrate=${this.currentHashrate || 50000}`);
+      const res = await fetch(`/api/range/next/${encodeURIComponent(this.workerName)}?client=browser&hashrate=${this.currentHashrate || 50000}`);
       const lote = await res.json();
 
-      if (lote && lote.custom_range) {
+      if (lote && lote.custom_range && this.isMining) {
         this.currentLote = lote;
         this.worker.postMessage({
           type: 'START',
@@ -63,10 +96,15 @@ class BrowserMinerController {
             apiBaseUrl: window.location.origin
           }
         });
+        this._updateUi();
+      } else if (this.isMining) {
+        setTimeout(() => this._fetchNextMicroLoteAndStart(), 3000);
       }
     } catch (e) {
-      console.warn('Erro ao obter micro-lote:', e.message);
-      setTimeout(() => this._fetchNextMicroLoteAndStart(), 5000);
+      console.warn('Erro ao obter micro-lote, tentando novamente em 3s:', e.message);
+      if (this.isMining) {
+        setTimeout(() => this._fetchNextMicroLoteAndStart(), 3000);
+      }
     }
   }
 

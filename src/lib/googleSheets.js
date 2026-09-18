@@ -154,8 +154,8 @@ async function _flushBatch(force = false) {
 }
 
 // ─── API PÚBLICA: appendRangesToSheet ────────────────────────────────────────
-// MUDANÇA v4.0: Não mais uma chamada por range — acumula no buffer e envia em batch.
-async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, ranges = [], source = 'Google Colab Farm', extraMeta = {}) {
+// MUDANÇA v5.4: 11 colunas com coluna dedicada 'Fatia Pai & PoW Oficial'
+async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, ranges = [], source = 'Universal GPU/CPU Cluster', extraMeta = {}) {
   const timestamp = new Date().toISOString();
   const csvLines  = [];
 
@@ -185,19 +185,31 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
       }
     } catch (_) {}
 
-    // Enriquece o status com a Fatia Pai Oficial e o progresso das chaves PoW
+    // Coluna dedicada para a Fatia Pai Oficial e progresso das chaves PoW
+    let officialParentPoW = extraMeta.officialParentPoW || 'Pai: 0x4000000 (PoW: 0/6)';
     try {
       const { parentLoteManager } = require('../services/parentLoteManager');
       const pStatus = parentLoteManager.getStatus();
-      if (pStatus && pStatus.parentHex && !status.includes('Pai:')) {
-        status = `${status} | Pai: 0x${pStatus.parentHex} (PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired})`;
+      if (pStatus && pStatus.parentHex) {
+        if (pStatus.powKeysFound >= pStatus.totalPowKeysRequired) {
+          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex})`;
+        } else {
+          officialParentPoW = `Pai: 0x${pStatus.parentHex} [PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
+        }
       }
     } catch (_) {}
 
-    const row = [timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, workerName, status, hashrate, discovery];
+    // Limpa o status para não ficar concatenado
+    let cleanStatus = status;
+    if (cleanStatus.includes(' | Pai:')) {
+      cleanStatus = cleanStatus.split(' | Pai:')[0].trim();
+    }
+
+    // 11 Colunas: [Timestamp, Rede, Desafio, Chunk #, Range Início, Range Fim, Worker, Status da Varredura, Fatia Pai & PoW Oficial, Hashrate, Descoberta]
+    const row = [timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, workerName, cleanStatus, officialParentPoW, hashrate, discovery];
     csvLines.push(row.join(','));
 
-    // Acumular no buffer com schema estrito de 10 colunas
+    // Acumular no buffer com schema estrito de 11 colunas
     _pendingBatchRows.push({
       timestamp,
       chain,
@@ -209,8 +221,10 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
       startHex: rangeStart,
       endHex: rangeEnd,
       workerName,
-      status,
-      scanStatus: status,
+      status: cleanStatus,
+      scanStatus: cleanStatus,
+      officialParentPoW,
+      parentPoW: officialParentPoW,
       hashrate,
       hashrateStr: hashrate,
       discoveryStatus: discovery,

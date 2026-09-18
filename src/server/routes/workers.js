@@ -367,6 +367,18 @@ router.post('/:id/heartbeat', async (req, res) => {
     worker.progress = progress || 0;
     worker.lastSeen = Date.now();
 
+    try {
+      const { leaderboardService } = require('../../services/leaderboardService');
+      const hashrateFormatted = worker.keysPerSecond >= 1e6
+        ? `${(worker.keysPerSecond / 1e6).toFixed(2)} MH/s`
+        : worker.keysPerSecond >= 1e3
+          ? `${(worker.keysPerSecond / 1e3).toFixed(1)} kH/s`
+          : null;
+      leaderboardService.recordContribution(worker.name || id, {
+        hashrate: hashrateFormatted
+      }).catch(() => {});
+    } catch (_) {}
+
     res.json({ ok: true, timestamp: new Date().toISOString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -449,6 +461,15 @@ router.post('/:id/result', async (req, res) => {
       worker.currentTask = null;
       worker.lastSeen = Date.now();
     }
+
+    try {
+      const { leaderboardService } = require('../../services/leaderboardService');
+      leaderboardService.recordContribution(req.body.workerName || worker?.name || id, {
+        keysChecked: Number(keysChecked) || 16777216,
+        isLoteCompleted: true,
+        hashrate: hashrate || (worker?.keysPerSecond ? `${(worker.keysPerSecond / 1e6).toFixed(2)} MH/s` : null)
+      }).catch(() => {});
+    } catch (_) {}
 
     try {
       if (isRealKeyFound) {

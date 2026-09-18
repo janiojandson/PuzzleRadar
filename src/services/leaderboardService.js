@@ -6,6 +6,7 @@
 // =========================================================================
 
 const { redisClient } = require('../lib/redis');
+const { fleetState } = require('../lib/fleetState');
 
 class LeaderboardService {
   constructor() {
@@ -14,12 +15,12 @@ class LeaderboardService {
   }
 
   _initDefaultSeeds() {
-    // Sementes iniciais para ambiente comunitário vivo
+    // Sementes comunitárias padrão
     const defaultSeeds = [
-      { workerName: 'SatoshiGhost_Rig1', keysChecked: 1420000000000, lotesCompleted: 5, lastSeen: Date.now() - 60000, hashrate: '12.4 GH/s' },
-      { workerName: 'NakamotoHunter_GPU', keysChecked: 980000000000, lotesCompleted: 3, lastSeen: Date.now() - 120000, hashrate: '8.2 GH/s' },
-      { workerName: 'NexusCerebro_Colab_01', keysChecked: 650000000000, lotesCompleted: 2, lastSeen: Date.now() - 30000, hashrate: '5.1 GH/s' },
-      { workerName: 'Cypherpunk_Browser_BR', keysChecked: 8589934592, lotesCompleted: 2, lastSeen: Date.now() - 45000, hashrate: '120 kH/s' }
+      { workerName: 'SatoshiGhost_Rig1', keysChecked: 1420000000000, lotesCompleted: 5, lastSeen: Date.now() - 300000, hashrate: '12.4 GH/s' },
+      { workerName: 'NakamotoHunter_GPU', keysChecked: 980000000000, lotesCompleted: 3, lastSeen: Date.now() - 300000, hashrate: '8.2 GH/s' },
+      { workerName: 'NexusCluster_RTX4090', keysChecked: 650000000000, lotesCompleted: 2, lastSeen: Date.now() - 300000, hashrate: '5.1 GH/s' },
+      { workerName: 'Cypherpunk_Browser_BR', keysChecked: 8589934592, lotesCompleted: 2, lastSeen: Date.now() - 300000, hashrate: '120 kH/s' }
     ];
 
     for (const item of defaultSeeds) {
@@ -62,12 +63,53 @@ class LeaderboardService {
   }
 
   /**
-   * Retorna os Top N maiores contribuidores
+   * Retorna os Top N maiores contribuidores mesclando os nós ativos do cluster
    */
   async getTopContributors(limit = 20) {
     const now = Date.now();
-    const list = Array.from(this.memoryContributors.values()).map(item => {
-      const isOnline = (now - item.lastSeen) < (5 * 60 * 1000); // 5 minutos
+    const combinedMap = new Map();
+
+    // 1. Carrega dados acumulados da memória
+    for (const [key, item] of this.memoryContributors.entries()) {
+      combinedMap.set(key, { ...item });
+    }
+
+    // 2. Mescla nós em tempo real do fleetState (Workers Terminal / Python / Browser)
+    if (fleetState && fleetState.nodes) {
+      for (const node of fleetState.nodes.values()) {
+        const name = node.name || node.id;
+        if (!name) continue;
+
+        const isLive = (now - (node.lastSeen || 0)) < (3 * 60 * 1000);
+        let kpsFormatted = null;
+        if (node.keysPerSecond) {
+          kpsFormatted = node.keysPerSecond >= 1e9
+            ? `${(node.keysPerSecond / 1e9).toFixed(2)} GH/s`
+            : node.keysPerSecond >= 1e6
+              ? `${(node.keysPerSecond / 1e6).toFixed(2)} MH/s`
+              : `${(node.keysPerSecond / 1e3).toFixed(1)} kH/s`;
+        }
+
+        const existing = combinedMap.get(name);
+        if (existing) {
+          existing.lastSeen = Math.max(existing.lastSeen || 0, node.lastSeen || now);
+          existing.lotesCompleted = Math.max(existing.lotesCompleted || 0, node.completedChunks || 0);
+          existing.keysChecked = Math.max(existing.keysChecked || 0, node.totalKeysChecked || (node.completedChunks ? node.completedChunks * 16777216 : 0));
+          if (kpsFormatted) existing.hashrate = kpsFormatted;
+        } else {
+          combinedMap.set(name, {
+            workerName: name,
+            keysChecked: node.totalKeysChecked || (node.completedChunks ? node.completedChunks * 16777216 : 50000),
+            lotesCompleted: node.completedChunks || 0,
+            lastSeen: node.lastSeen || now,
+            hashrate: kpsFormatted || node.hardware || '3.0 MH/s'
+          });
+        }
+      }
+    }
+
+    const list = Array.from(combinedMap.values()).map(item => {
+      const isOnline = (now - (item.lastSeen || 0)) < (3 * 60 * 1000); // 3 minutos
       return {
         ...item,
         isOnline,
@@ -76,8 +118,11 @@ class LeaderboardService {
       };
     });
 
-    // Ordena por chaves verificadas decrescente
-    list.sort((a, b) => b.keysChecked - a.keysChecked);
+    // Ordena: nós ONLINE primeiro, depois por chaves verificadas decrescente
+    list.sort((a, b) => {
+      if (a.isOnline !== b.isOnline) return a.isOnline ? -1 : 1;
+      return b.keysChecked - a.keysChecked;
+    });
 
     const top = list.slice(0, limit).map((c, index) => ({
       rank: index + 1,
