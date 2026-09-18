@@ -430,8 +430,8 @@ router.post('/:id/result', async (req, res) => {
       chunkIndex: chunkIndex !== undefined ? chunkIndex : 0,
       rangeStart: rangeStart || '',
       rangeEnd: rangeEnd || ''
-    }], req.body.workerName || `Colab Node (${id})`, {
-      status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED',
+    }], req.body.workerName || `Terminal Node (${id})`, {
+      status: isRealKeyFound ? 'KEY_FOUND_CONFIRMED' : 'COMPLETED (Terminal)',
       hashrate: hashrate || (keysChecked ? `${(keysChecked / 5e9).toFixed(2)} GH/s` : '0 H/s'),
       keyFound: isRealKeyFound,
       rescueTx: rescueResult && rescueResult.rescue ? rescueResult.rescue.txHash : null,

@@ -135,6 +135,9 @@ router.post('/btcpuzzle', (req, res) => {
 
           await markRangeScanned(targetPuzzle, startHex, endHex).catch(() => {});
 
+          const isWebClient = (headers['hashrate'] && String(headers['hashrate']).includes('kH/s')) || String(workerName).toLowerCase().includes('web');
+          const clientStatus = isWebClient ? 'COMPLETED (Navegador)' : 'COMPLETED_BTCPUZZLE_CLIENT';
+
           appendRangesToSheet(undefined, [{
             chain: 'BTC',
             challengeId: `BTC_1000_P${targetPuzzle}`,
@@ -145,7 +148,7 @@ router.post('/btcpuzzle', (req, res) => {
             rangeEnd: endHex,
             workerName
           }], workerName, {
-            status: 'COMPLETED_BTCPUZZLE_CLIENT',
+            status: clientStatus,
             hashrate: headers['hashrate'] || '0 H/s'
           }).catch(() => {});
         }

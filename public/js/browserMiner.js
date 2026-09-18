@@ -95,7 +95,12 @@ class BrowserMinerController {
       this.totalLotesCompleted += 1;
       localStorage.setItem('puzzleradar_lotes_completed', this.totalLotesCompleted);
 
-      // Notifica o backend via webhook para pontuar no leaderboard
+      const loteRange = data.custom_range || this.currentLote?.custom_range || '';
+      const startHex = loteRange.split(':')[0] || '';
+      const endHex = loteRange.split(':')[1] || '';
+      const hexPayload = startHex && endHex ? `${startHex}${endHex}` : startHex;
+
+      // Notifica o backend via webhook para pontuar no leaderboard e gravar na planilha
       const token = localStorage.getItem('pzk_jwt_token') || 'wrk_anon_browser';
       fetch('/api/webhook/btcpuzzle', {
         method: 'POST',
@@ -103,14 +108,17 @@ class BrowserMinerController {
           'Status': 'rangeScanned',
           'Workername': this.workerName,
           'Authorization': `Bearer ${token}`,
-          'Hex': startHex,
+          'Hex': hexPayload,
           'Targetpuzzle': '71',
           'Hashrate': `${(this.currentHashrate / 1000).toFixed(1)} kH/s`
         }
       }).catch(() => {});
 
       this._updateUi();
-      this._fetchNextMicroLoteAndStart();
+      // Solicita imediatamente a próxima fatia para manter a mineração contínua 24/7 até o usuário pausar
+      if (this.isMining) {
+        this._fetchNextMicroLoteAndStart();
+      }
     }
   }
 
