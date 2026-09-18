@@ -31,6 +31,18 @@ class LoteManager {
   }
 
   /**
+   * Calcule o número ordinal real do Chunk com BigInt
+   */
+  calculateChunkIndex(startHex, stepSize = STEP_DEFAULT) {
+    if (!startHex) return 1;
+    const cleanHex = String(startHex).replace(/^0x/i, '');
+    const startBig = BigInt("0x" + cleanHex);
+    const stepBig = typeof stepSize === 'bigint' ? stepSize : BigInt(stepSize || STEP_DEFAULT);
+    if (stepBig <= 0n) return 1;
+    return Number((startBig - P71_START) / stepBig) + 1;
+  }
+
+  /**
    * Inicializa o pool inicial de fatias indexadas do Puzzle 71
    */
   _initSeedLotes() {
@@ -54,6 +66,9 @@ class LoteManager {
         puzzleNumber: 71
       });
 
+      const chunkIndex = this.calculateChunkIndex(startHex, step);
+      const chunkLabel = `Chunk #${chunkIndex}`;
+
       this.lotes.set(id, {
         id,
         puzzle: 71,
@@ -62,6 +77,8 @@ class LoteManager {
         startHex,
         endHex,
         step,
+        chunkIndex,
+        chunkLabel,
         status: 'pending', // pending | assigned | running | completed | found
         assignedWorker: null,
         assignedAt: null,
@@ -274,11 +291,16 @@ class LoteManager {
     const cleanEnd = lote.endHex.replace(/^0x/i, '').padStart(18, '0');
     const customRange = `${cleanStart}:${cleanEnd}`;
 
+    const chunkIndex = lote.chunkIndex || this.calculateChunkIndex(cleanStart, lote.step);
+    const chunkLabel = lote.chunkLabel || `Chunk #${chunkIndex}`;
+
     return {
       custom_range: customRange,
       pool_conf_line: `custom_range=${customRange}`,
       lote_id: lote.id,
       puzzle: lote.puzzle || 71,
+      chunk_index: chunkIndex,
+      chunk_label: chunkLabel,
       priority_score: lote.priority_score,
       reason: lote.reason,
       allocated_at: new Date().toISOString()

@@ -69,8 +69,23 @@ router.post('/btcpuzzle', (req, res) => {
         // Marca fatia no bitmap do Redis e enfileira no Google Sheets
         if (hex) {
           const cleanHex = hex.replace(/^0x/i, '');
-          const startHex = cleanHex.slice(0, 18);
-          const endHex = cleanHex.length > 18 ? cleanHex.slice(18, 36) : '';
+          let startHex = cleanHex.slice(0, 18);
+          let endHex = cleanHex.length >= 36 ? cleanHex.slice(18, 36) : '';
+
+          if (!startHex) startHex = '400000000000000000';
+          startHex = startHex.padStart(18, '0');
+
+          // Dedução automática de endHex somando STEP_DEFAULT (1n << 48n)
+          if (!endHex) {
+            const startBig = BigInt("0x" + startHex);
+            const stepBig = 1n << 48n;
+            endHex = (startBig + stepBig).toString(16).padStart(18, '0');
+          } else {
+            endHex = endHex.padStart(18, '0');
+          }
+
+          const chunkIndex = loteManager.calculateChunkIndex(startHex);
+          const chunkLabel = `Chunk #${chunkIndex}`;
 
           await markRangeScanned(targetPuzzle, startHex, endHex).catch(() => {});
 
@@ -78,6 +93,8 @@ router.post('/btcpuzzle', (req, res) => {
             chain: 'BTC',
             challengeId: `BTC_1000_P${targetPuzzle}`,
             puzzleId: `BTC_1000_P${targetPuzzle}`,
+            chunkIndex,
+            chunkLabel,
             rangeStart: startHex,
             rangeEnd: endHex,
             workerName

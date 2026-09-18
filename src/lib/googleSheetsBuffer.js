@@ -27,12 +27,39 @@ class SheetsBufferManager {
   enqueueChunkLog(logEntry) {
     if (!logEntry) return;
 
+    const BASE_START = 0x400000000000000000n;
+    const STEP_DEFAULT = 1n << 48n; // ~281T keys default step
+
     const timestamp = logEntry.timestamp || new Date().toISOString();
     const chain = (logEntry.chain || 'BTC').toUpperCase();
     const challengeId = logEntry.challenge_id || logEntry.challengeId || logEntry.puzzleId || 'Puzzle 71';
-    const chunkNumberOrId = logEntry.chunkIndex !== undefined ? logEntry.chunkIndex : (logEntry.chunkId !== undefined ? logEntry.chunkId : (logEntry.chunkNumber !== undefined ? logEntry.chunkNumber : 0));
-    const startHex = (logEntry.startHex || logEntry.rangeStart || '').replace(/^0x/i, '');
-    const endHex = (logEntry.endHex || logEntry.rangeEnd || '').replace(/^0x/i, '');
+    
+    let startHex = (logEntry.startHex || logEntry.rangeStart || '').replace(/^0x/i, '');
+    if (!startHex) startHex = '400000000000000000';
+    startHex = startHex.padStart(18, '0');
+
+    let endHex = (logEntry.endHex || logEntry.rangeEnd || '').replace(/^0x/i, '');
+    const stepBig = logEntry.stepSize ? BigInt(logEntry.stepSize) : STEP_DEFAULT;
+
+    // Dedução automática de endHex se ausente
+    if (!endHex) {
+      const startBig = BigInt("0x" + startHex);
+      endHex = (startBig + stepBig).toString(16).padStart(18, '0');
+    } else {
+      endHex = endHex.padStart(18, '0');
+    }
+
+    // Cálculo BigInt do número ordinal real do Chunk #
+    let chunkIndex = 1;
+    try {
+      const startBig = BigInt("0x" + startHex);
+      chunkIndex = Number((startBig - BASE_START) / stepBig) + 1;
+      if (isNaN(chunkIndex) || chunkIndex < 1) chunkIndex = 1;
+    } catch (_) {
+      chunkIndex = 1;
+    }
+    const chunkLabel = `Chunk #${chunkIndex}`;
+
     const workerName = logEntry.workerName || logEntry.worker || 'Anonimo';
     const scanStatus = logEntry.status || logEntry.scanStatus || 'COMPLETED';
     const hashrateStr = logEntry.hashrate || logEntry.hashrateStr || '0 GH/s';
@@ -43,8 +70,9 @@ class SheetsBufferManager {
       chain,
       challenge_id: challengeId,
       challengeId,
-      chunkIndex: chunkNumberOrId,
-      chunkNumber: chunkNumberOrId,
+      chunkIndex,
+      chunkNumber: chunkIndex,
+      chunkLabel,
       startHex,
       endHex,
       workerName,
