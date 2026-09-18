@@ -67,7 +67,7 @@ router.get('/next/:worker_id', async (req, res) => {
  * GET /api/status
  * Telemetria geral de coordenação, fatias ativas e conformidade de rate limit
  */
-router.get('/status', (req, res) => {
+const getCoordinatorStatus = (req, res) => {
   try {
     const stats71 = loteManager.getStats(71);
     const rateLimits = dataAggregator.getRateLimitStats();
@@ -85,7 +85,10 @@ router.get('/status', (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.get('/', getCoordinatorStatus);
+router.get('/status', getCoordinatorStatus);
 
 /**
  * GET /api/progress/:puzzle_number
