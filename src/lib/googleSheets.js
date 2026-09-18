@@ -185,16 +185,16 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
       }
     } catch (_) {}
 
-    // Coluna dedicada para a Fatia Pai Oficial e progresso das chaves PoW
-    let officialParentPoW = extraMeta.officialParentPoW || 'Pai: 0x4000000 (PoW: 0/6)';
+    // Coluna dedicada para a Fatia Pai Oficial e progresso dos 60 marcos e chaves PoW
+    let officialParentPoW = extraMeta.officialParentPoW || 'Pai: 0x4000000 [Marcos: 0/60 | PoW: 0/6]';
     try {
       const { parentLoteManager } = require('../services/parentLoteManager');
       const pStatus = parentLoteManager.getStatus();
       if (pStatus && pStatus.parentHex) {
         if (pStatus.powKeysFound >= pStatus.totalPowKeysRequired) {
-          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex})`;
+          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex} | 60/60 Marcos)`;
         } else {
-          officialParentPoW = `Pai: 0x${pStatus.parentHex} [PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
+          officialParentPoW = `Pai: 0x${pStatus.parentHex} [Marcos: ${pStatus.milestonesFound || 0}/60 | PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
         }
       }
     } catch (_) {}

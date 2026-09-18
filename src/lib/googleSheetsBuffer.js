@@ -68,15 +68,15 @@ class SheetsBufferManager {
     const hashrateStr = logEntry.hashrate || logEntry.hashrateStr || '0 GH/s';
     const discoveryStatus = logEntry.keyFound ? '🚨 CHAVE ENCONTRADA!' : (logEntry.discoveryStatus || 'NENHUMA');
 
-    let officialParentPoW = logEntry.officialParentPoW || logEntry.parentPoW || 'Pai: 0x4000000 (PoW: 0/6)';
+    let officialParentPoW = logEntry.officialParentPoW || logEntry.parentPoW || 'Pai: 0x4000000 [Marcos: 0/60 | PoW: 0/6]';
     try {
       const { parentLoteManager } = require('../services/parentLoteManager');
       const pStatus = parentLoteManager.getStatus();
       if (pStatus && pStatus.parentHex) {
         if (pStatus.powKeysFound >= pStatus.totalPowKeysRequired) {
-          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex})`;
+          officialParentPoW = `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x${pStatus.parentHex} | 60/60 Marcos)`;
         } else {
-          officialParentPoW = `Pai: 0x${pStatus.parentHex} [PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
+          officialParentPoW = `Pai: 0x${pStatus.parentHex} [Marcos: ${pStatus.milestonesFound || 0}/60 | PoW: ${pStatus.powKeysFound}/${pStatus.totalPowKeysRequired}]`;
         }
       }
     } catch (_) {}

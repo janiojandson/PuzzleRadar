@@ -76,9 +76,16 @@ async function fetchPoolStatus() {
       if (data && data.parentLote) {
         const pl = data.parentLote;
         setInner('officialParentHex', `0x${pl.parentHex || '4000000'}...`);
-        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
-        setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} Chaves (${pl.powProgressPercent}%)`);
+        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (Marcos: ${pl.milestonesFound || 0}/60 | PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
+        setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} PoW Oficiais (${pl.powProgressPercent || 0}%)`);
+        setInner('officialMilestonesCount', `${pl.milestonesFound || 0} / 60 Marcos (${pl.milestonesProgressPercent || 0}%)`);
         setInner('officialParentStatus', pl.statusLabel || 'VARRENDO');
+
+        const mBar = document.getElementById('officialMilestonesBar');
+        if (mBar) {
+          const w = Math.max(2, Math.min(100, parseFloat(pl.milestonesProgressPercent || 0)));
+          mBar.style.width = `${w}%`;
+        }
       }
     }
   } catch (e) {}

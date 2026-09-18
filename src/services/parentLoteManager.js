@@ -279,6 +279,14 @@ class ParentLoteManager {
     const progressPercent = totalPow > 0 ? ((powCount / totalPow) * 100).toFixed(1) : '0.0';
     const currentAllocated = parent.allocatedOffset ? Number(parent.allocatedOffset / STEP_CPU) : 0;
 
+    // 60 Marcos Comunitários (1 marco a cada ~34.952 micro-lotes de 2^24 ou a cada chave PoW = 10 marcos)
+    const TOTAL_MILESTONES = 60;
+    const microLotesPerMilestone = 34952;
+    const milestonesFromLotes = Math.min(TOTAL_MILESTONES, Math.floor(currentAllocated / microLotesPerMilestone));
+    const milestonesFromPow = powCount * 10;
+    const milestonesFound = Math.min(TOTAL_MILESTONES, Math.max(milestonesFromLotes, milestonesFromPow));
+    const milestonesPercent = ((milestonesFound / TOTAL_MILESTONES) * 100).toFixed(1);
+
     return {
       connectedToOfficialApi: Boolean(this.currentParent),
       parentHex: parent.hex || '4000000',
@@ -287,13 +295,18 @@ class ParentLoteManager {
       powKeysFound: powCount,
       totalPowKeysRequired: totalPow,
       powProgressPercent: progressPercent,
+      milestonesFound,
+      totalMilestones: TOTAL_MILESTONES,
+      milestonesProgressPercent: milestonesPercent,
       collectedPowKeys: Array.from(this.collectedPowKeys.entries()).map(([addr, key]) => ({
         address: addr,
         keyHex: key ? `${key.substring(0, 10)}...${key.slice(-6)}` : null,
         found: true
       })),
       microLotesAllocated: currentAllocated,
-      statusLabel: powCount >= totalPow ? '🎯 6 CHAVES COLETADAS (SUBMETIDO PUT OFICIAL)' : `VARRENDO (${powCount}/${totalPow} CHAVES POW)`
+      statusLabel: powCount >= totalPow
+        ? '🎯 6/6 PoW OFICIAIS & 60/60 MARCOS (SUBMETIDO PUT)'
+        : `VARRENDO (${milestonesFound}/60 MARCOS | ${powCount}/6 POW)`
     };
   }
 }
