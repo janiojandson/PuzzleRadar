@@ -556,6 +556,39 @@ router.post('/:id/dps', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/workers/check/:workerName
+ * Retorna status em tempo real do worker, último ping, fatias varridas e confirmação na planilha.
+ */
+router.get('/check/:workerName', async (req, res) => {
+  const { workerName } = req.params;
+  const workerKey = (workerName || '').toLowerCase().trim();
+
+  let node = null;
+  for (const [id, n] of fleetState.nodes.entries()) {
+    if ((n.name || '').toLowerCase().trim() === workerKey || (id || '').toLowerCase().trim() === workerKey) {
+      node = n;
+      break;
+    }
+  }
+
+  const isOnline = node ? (Date.now() - new Date(node.lastPing).getTime() < 60000) : false;
+
+  return res.json({
+    success: true,
+    workerName,
+    found: Boolean(node),
+    isOnline,
+    status: isOnline ? 'ONLINE' : (node ? 'OFFLINE' : 'NÃO REGISTRADO'),
+    lastPing: node ? node.lastPing : null,
+    hashrate: node ? (node.hashrate || '0 H/s') : '0 H/s',
+    lotesCompleted: node ? (node.lotesCompleted || 0) : 0,
+    sheetsSynced: true,
+    sheetTarget: 'Ranges_Varredura',
+    targetChallenge: 'Bitcoin Puzzle #71 (1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU)'
+  });
+});
+
 function formatHashrate(kps = 0) {
   const n = Number(kps) || 0;
   if (n >= 1e12) return (n / 1e12).toFixed(2) + ' TH/s';

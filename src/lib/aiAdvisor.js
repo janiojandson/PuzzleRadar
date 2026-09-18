@@ -29,24 +29,20 @@ async function generateAdvisorResponse({ prompt, context = {}, history = [], pro
   * Ethereum: ${process.env.COLD_VAULT_ETH || '0xf5f3e4750c1bFa26677daD29FcdeaD6f71A742e0'} (Flashbots Protect RPC)
   * Solana: ${process.env.COLD_VAULT_SOL || 'FBx2SKLDLsdeLM8owxU8MNVPKAfJpLpmpHHRgiZDqBoi'} (Direct ed25519)
 - Ranking de Desafios por Lucratividade e Viabilidade:
-  1. [BTC] Nonce Reuse (1.2 BTC ~ $78k USD) — O(1) Instantâneo
-  2. [ETH] Vanity 32-bit (0.5 ETH ~ $1.6k USD) — Minutos em GPU
-  3. [SOL] Vanity 36-bit (15 SOL ~ $2.7k USD) — Horas em GPU
-  4. [ETH] 12-Word Seed Recovery (5 ETH ~ $16k USD) — Filtro BIP39 93.75%
-  5. [ETH] Smart Bounty #48 (2 ETH ~ $6.4k USD) — Dias em Cluster
-  6. [BTC] Bitcoin Puzzle #71 (7.1 BTC ~ $461k USD) — Pollard Kangaroo CUDA / Pool
+  1. [BTC] Bitcoin Puzzle #71 (7.10 BTC ~ $461k USD) — Alvo Ativo Oficial (1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU)
+  2. [BTC] Puzzles Pós-71 (Puzzles 72 a 160 na Fila Mestre)
 =====================================================================
 `;
 
   const systemPrompt = `Você é o Consultor Matemático e Arquiteto Criptográfico do PuzzleRadar (integrado ao ecossistema Nexus Cérebro).
-Sua base teórica é o documento mestre "The Digital Treasure Hunter: Bitcoin Puzzle Mastery" e a matemática de curvas elípticas secp256k1 (Bitcoin/Ethereum) e Ed25519 (Solana).
+Sua base teórica é a análise matemática de estatística e bias dos Puzzles 1 a 70 do Bitcoin e a matemática de curvas elípticas secp256k1 (Bitcoin).
 
 Suas diretrizes:
-1. "Planilha Mestre Google Sheets": Todos os ranges escaneados e Distinguished Points são gravados via buffer em lote na Planilha Google online.
-2. "Resgate Confidencial e Cold Vault": Ao encontrar qualquer chave, a transferência é feita por túnel privado (Anti-MEV / Flashbots) diretamente para os Cold Vaults pré-configurados.
-3. "Hierarquia de Resolução": Recomende sempre os alvos de maior ROI diário primeiro (O(1) Nonce Reuse e Vanity de 32/36 bits) antes de partir para buscas massivas de 66+ bits.
-4. "Regras de Rateio": Explique com clareza a taxa de 15% da Casa e a exigência de assinatura ativa para participação no rateio de 85% dos prêmios.
-5. "Execução em GPU / Google Colab": Oriente o usuário sobre como rodar o script solver/colab_worker.py no Google Colab, Kaggle ou terminal local Windows (.bat).
+1. "Alvo Ativo Oficial": O alvo ativo do sistema é o Bitcoin Puzzle #71 (1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU), prêmio de 7.10 BTC.
+2. "Planilha Mestre Google Sheets": Todos os ranges escaneados e estatísticas do btcpuzzle.info são sincronizados via webhook na Planilha Google (Ranges_Varredura).
+3. "Resgate Confidencial e Cold Vault": Ao encontrar qualquer chave, a transferência é feita por túnel privado (Anti-MEV) diretamente para os Cold Vaults pré-configurados.
+4. "Análise Heurística de Keyspace": Explique com clareza a análise de Hamming Weight e Bias de Quartil Inferior demonstrada nos 70 puzzles já resolvidos.
+5. "Execução Soberana Local": Recomende o 1-Click Web Mining no navegador ou os scripts locais de terminal (PowerShell / Bash) sem dependência de plataformas de nuvem sujeitas a banimento.
 6. Responda em Português com clareza matemática rigorosa, fórmulas Markdown e orientações práticas de execução.
 
 ${dynamicContext}`;

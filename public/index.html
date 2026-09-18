@@ -87,9 +87,9 @@
       <div>
         <div class="flex items-center gap-2">
           <span class="font-extrabold text-xl tracking-tight text-white">Puzzle<span class="text-amber-400">Radar</span></span>
-          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">1000 BTC & Multi-Chain</span>
+          <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">Bitcoin Puzzle #71 & 1000 BTC</span>
         </div>
-        <p class="text-xs text-slate-400">Desafios Criptográficos • Space Pruning • Orquestrador de GPUs Colab</p>
+        <p class="text-xs text-slate-400">Desafios Criptográficos • Space Pruning • Coordenador Autônomo 100% Real</p>
       </div>
     </div>
 
@@ -154,13 +154,9 @@
       <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
       <span>Puzzle 1000 BTC (160 Carteiras)</span>
     </button>
-    <button onclick="switchTab('tab-multichain')" id="btn-tab-multichain" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
-      <span>Desafios Multi-Chain</span>
-    </button>
     <button onclick="switchTab('tab-analyst')" id="btn-tab-analyst" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-      <span>Radar IA (Gemini)</span>
+      <span>Radar IA (Heurística Keyspace)</span>
     </button>
     <button onclick="switchTab('tab-pool')" id="btn-tab-pool" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
@@ -168,7 +164,7 @@
     </button>
     <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="cloud" class="w-4 h-4 text-emerald-400"></i>
-      <span>Multi-Cloud Farm (4 Opções)</span>
+      <span>Terminal & Worker Nodes</span>
     </button>
     <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
@@ -176,7 +172,7 @@
     </button>
     <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
-      <span>Learning Lab</span>
+      <span>Benchmark Real Criptográfico</span>
     </button>
     <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
       <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
@@ -673,10 +669,6 @@ custom_range=400000000000000000:400000010000000000</pre>
             <span class="text-slate-400">Nós Conectados:</span>
             <span id="dashActiveNodes" class="font-extrabold text-emerald-400 text-sm ml-1.5">0 Ativos</span>
           </div>
-          <div class="h-6 w-px bg-white/10"></div>
-          <button onclick="triggerSimulatedWorkerStep()" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-md">
-            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Simular Pulso
-          </button>
         </div>
       </div>
 
@@ -706,7 +698,7 @@ custom_range=400000000000000000:400000010000000000</pre>
             <div class="p-3 rounded-xl bg-black/60 border border-amber-500/20 font-mono text-xs space-y-1.5">
               <div class="flex items-center justify-between text-[11px]">
                 <span class="text-slate-400">Endereço Oficial:</span>
-                <span class="text-amber-400 font-bold select-all" id="officialTargetAddress">1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ</span>
+                <span class="text-amber-400 font-bold select-all" id="officialTargetAddress">1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU</span>
               </div>
               <div class="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
                 <span class="text-slate-400">Conexão btcpuzzle.info:</span>
@@ -780,72 +772,6 @@ custom_range=400000000000000000:400000010000000000</pre>
             </button>
           </div>
 
-          <!-- Card Alvo Secundário (Diferenciado entre Auditoria Algébrica O(1) e Força Bruta O(N)) -->
-          <div class="glass-panel p-5 rounded-2xl border border-purple-500/30 space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 font-mono text-[10px] font-bold uppercase flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>
-                <span>Alvo Secundário / Auditoria</span>
-              </span>
-              <span class="text-xs font-mono font-bold text-amber-400" id="dashSecBadgePrize">1.20 BTC</span>
-            </div>
-
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-bold text-white tracking-tight truncate" id="dashSecTitle">Bitcoin ECDSA Nonce Reuse</h3>
-                <select id="dashSecChallengeDropdown" onchange="changeSecondaryTarget(this.value)" class="px-2 py-1 rounded-lg bg-cypher-900 border border-white/10 text-[10px] text-purple-300 font-mono focus:outline-none focus:border-purple-400">
-                  <option value="BTC_SATOSHI_NONCE_REUSE">BTC Nonce Reuse (1.2 BTC - O(1))</option>
-                  <option value="ETH_VANITY_32">ETH Vanity 32-bit (0.5 ETH - O(N))</option>
-                  <option value="SOL_VANITY_PREFIX_36">SOL Vanity 36-bit (15 SOL - O(N))</option>
-                  <option value="ETH_BIP39_SEED_RECOVERY">ETH 12-Word Seed (5 ETH - BIP39)</option>
-                </select>
-              </div>
-              <p class="text-xs text-slate-300" id="dashSecPrize">Prêmio: 1.20 BTC (~$78.000 USD)</p>
-            </div>
-
-            <!-- Painel Condicional para Auditoria Algébrica O(1) -->
-            <div id="dashSecAlgebraicBlock" class="p-3.5 rounded-xl bg-cypher-950 border border-purple-500/20 font-mono text-xs space-y-2">
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="text-slate-400">Tipo de Ataque:</span>
-                <span class="text-purple-300 font-bold">Algébrico O(1) via ECDSA</span>
-              </div>
-              <div class="text-[11px] text-slate-300 space-y-1">
-                <div class="flex justify-between"><span>Transações Auditadas:</span> <strong class="text-white">48 On-Chain</strong></div>
-                <div class="flex justify-between"><span>Valores 'r' Únicos:</span> <strong class="text-emerald-400">48 / 48 (100% Únicos)</strong></div>
-              </div>
-              <div class="p-2 rounded bg-purple-500/10 border border-purple-500/30 text-[10px] text-purple-200">
-                ✓ <strong>Resultado:</strong> Espaço de assinaturas auditado. Nenhuma repetição de nonce detectada. Chave protegida contra O(1).
-              </div>
-            </div>
-
-            <!-- Painel Condicional para Busca de Chaves O(N) / Vanity -->
-            <div id="dashSecSearchBlock" class="hidden space-y-2">
-              <div class="p-3 rounded-xl bg-cypher-950 border border-white/10 space-y-1.5 font-mono text-xs">
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-slate-400">Algoritmo / Filtro:</span>
-                  <span class="text-cyan-300 font-bold" id="dashSecComplexity">O(N) Exaustão GPU</span>
-                </div>
-                <div class="flex items-center justify-between text-[11px]">
-                  <span class="text-slate-400">Tempo Frota Estimado:</span>
-                  <span class="text-amber-300 font-bold" id="dashSecTime">Instantâneo</span>
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <div class="flex justify-between text-[11px] font-mono text-slate-400">
-                  <span>Exaustão do Espaço:</span>
-                  <span id="dashSecScanned" class="text-purple-300 font-bold">0.00%</span>
-                </div>
-                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden border border-white/10 p-0.5">
-                  <div id="dashSecProgressBar" class="bg-gradient-to-r from-purple-500 to-cyan-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
-                </div>
-              </div>
-            </div>
-
-            <button onclick="attackSecondaryTarget()" id="dashSecActionButton" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
-              <i data-lucide="crosshair" class="w-4 h-4"></i>
-              <span>Atacar Alvo Secundário</span>
-            </button>
           </div>
         </div>
 
@@ -1163,10 +1089,6 @@ custom_range=400000000000000000:400000010000000000</pre>
               <div class="text-[10px] text-slate-400">Total Shares Acumuladas</div>
               <div id="poolTotalSharesDisplay" class="text-xl font-extrabold text-emerald-400">0</div>
             </div>
-            <button onclick="triggerSimulatedWorkerStep()" id="btnSimulatePoS" class="px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
-              <i data-lucide="zap" class="w-4 h-4"></i>
-              <span>Simular DP / Passo ao Vivo</span>
-            </button>
           </div>
         </div>
 
@@ -1557,9 +1479,6 @@ custom_range=400000000000000000:400000010000000000</pre>
               <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
               <span>Buffer de Lotes: <strong id="bufferStatsDisplay" class="text-white">0 itens</strong></span>
             </div>
-            <button onclick="triggerSimulatedWorkerStep()" class="px-3.5 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-md">
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Simular Chunk
-            </button>
           </div>
         </div>
 

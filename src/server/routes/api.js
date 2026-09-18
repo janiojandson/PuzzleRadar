@@ -45,7 +45,7 @@ router.get('/diag/pool-connection', (req, res) => {
         if (poolRes.statusCode >= 200 && poolRes.statusCode < 300) {
           return res.json({
             success: true,
-            targetAddress: data.targetAddress || '1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ',
+            targetAddress: data.targetAddress || '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU',
             hex: data.hex || data.range || '400000000000000000:400000010000000000',
             connected: true,
             status: poolRes.statusCode,
@@ -66,7 +66,7 @@ router.get('/diag/pool-connection', (req, res) => {
           success: poolRes.statusCode === 200,
           connected: poolRes.statusCode === 200,
           status: poolRes.statusCode,
-          targetAddress: '1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ',
+          targetAddress: '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU',
           rawResponse: raw.substring(0, 150)
         });
       }
