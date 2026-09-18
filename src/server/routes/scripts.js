@@ -35,22 +35,31 @@ if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
 }
 
 $BaseUrl = "${baseUrl}"
+$ApiUrl = $BaseUrl
 
-Write-Host ""
-Write-Host "[+] Conectando ao Hub PuzzleRadar ($BaseUrl)..." -ForegroundColor Green
-Write-Host "[+] Worker registrado: $WorkerName" -ForegroundColor Green
+if [ ! -f "solver/terminal_worker.py" ]; then
+    echo "Baixando terminal_worker.py..."
+    curl -sSL "$ApiUrl/raw/terminal_worker.py" -o solver/terminal_worker.py
+fi
+
+echo "Iniciando terminal_worker.py..."
+python3 solver/terminal_worker.py --api="$ApiUrl" --name="$WorkerName" --token="$Token" --chain="$Chain" --challenge="$Challenge"
 Write-Host "[!] DICA PARA GPU NVIDIA: Para minerar em GPU, execute: btcpuzzle.exe -c pool.conf" -ForegroundColor DarkYellow
 
 # Se Node.js estiver presente, executa o motor criptográfico real em Node.js (cpuMiner.js)
 $HasNode = Get-Command node -ErrorAction SilentlyContinue
 if ($HasNode) {
     Write-Host "[+] Node.js detectado! Iniciando motor criptografico real de CPU (Adicao P+G secp256k1)..." -ForegroundColor Green
-    $WorkerScriptUrl = "$BaseUrl/src/workers/cpuMiner.js"
-    $TempScript = Join-Path $env:TEMP "cpuMiner.js"
-    Invoke-WebRequest -Uri $WorkerScriptUrl -OutFile $TempScript -UseBasicParsing
-    $env:WORKER_NAME = $WorkerName
-    $env:HUB_URL = $BaseUrl
-    node $TempScript
+    $InstallDir = "."
+    $WorkerScript = "$InstallDir\\solver\\terminal_worker.py"
+
+    if (-not (Test-Path $WorkerScript)) {
+        Write-Host "Baixando terminal_worker.py..." -ForegroundColor Cyan
+        Invoke-WebRequest -Uri "$ApiUrl/raw/terminal_worker.py" -OutFile $WorkerScript
+    }
+
+    Write-Host "Iniciando terminal_worker.py..." -ForegroundColor Green
+    python $WorkerScript --api="$ApiUrl" --name="$WorkerName" --token="$Token" --chain="$Chain" --challenge="$Challenge"
     exit
 }
 

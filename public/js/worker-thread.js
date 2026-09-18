@@ -124,8 +124,6 @@ async function executeMiningLoop(lote, workerName, apiBaseUrl) {
         progressPercent,
         currentHex: currentBig.toString(16).padStart(18, '0')
       });
-
-      await new Promise(r => setTimeout(r, 0));
     }
   }
 

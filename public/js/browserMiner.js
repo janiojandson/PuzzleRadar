@@ -77,6 +77,19 @@ class BrowserMinerController {
       this.totalKeysChecked += data.keysBatch;
       this.currentHashrate = data.speedHps;
       localStorage.setItem('puzzleradar_keys_checked', this.totalKeysChecked);
+      
+      const token = localStorage.getItem('pzk_jwt_token') || 'wrk_anon_browser';
+      fetch('/api/webhook/btcpuzzle', {
+        method: 'POST',
+        headers: {
+          'Status': 'workerPing',
+          'Workername': this.workerName,
+          'Authorization': `Bearer ${token}`,
+          'Targetpuzzle': '71',
+          'Hashrate': `${(this.currentHashrate / 1000).toFixed(1)} kH/s`
+        }
+      }).catch(() => {});
+
       this._updateUi(data);
     } else if (data.type === 'COMPLETED') {
       this.totalLotesCompleted += 1;
