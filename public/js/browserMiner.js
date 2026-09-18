@@ -108,14 +108,25 @@ class BrowserMinerController {
     const valLotes = document.getElementById('webMinerLotes');
     const valCurrentRange = document.getElementById('webMinerCurrentRange');
     const progressBar = document.getElementById('webMinerProgressBar');
+    const statusBadge = document.getElementById('webMinerStatusBadge');
+
+    if (statusBadge) {
+      if (this.isMining) {
+        statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block mr-1"></span> Conectado ao Hub / Minerando';
+        statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+      } else {
+        statusBadge.innerText = '⏹ Pausado / Aguardando Início';
+        statusBadge.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-white/10';
+      }
+    }
 
     if (btnToggle) {
       if (this.isMining) {
-        btnToggle.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i> Pausar Mineração Web';
-        btnToggle.className = 'w-full py-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition flex items-center justify-center gap-2';
+        btnToggle.innerHTML = '<i data-lucide="square" class="w-4 h-4"></i> ⏹ Pausar Mineração';
+        btnToggle.className = 'w-full py-3.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold border border-amber-500/40 transition flex items-center justify-center gap-2';
       } else {
-        btnToggle.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> ▶ Iniciar 1-Click Mining no Navegador';
-        btnToggle.className = 'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-extrabold shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2';
+        btnToggle.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> ▶ Iniciar Mineração no Navegador';
+        btnToggle.className = 'w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-extrabold shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 text-sm';
       }
     }
 

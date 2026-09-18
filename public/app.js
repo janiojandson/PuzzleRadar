@@ -1979,9 +1979,74 @@ function trainPuzzleInLab(num) {
   showToast(`🧪 Puzzle #${num} carregado no Learning Lab Sandbox.`);
 }
 
-// Inicializações periódicas de Kangaroo Stats
+// ─── GOOGLE SHEETS & POOL DIAGNOSTIC HELPERS ───
+async function testGoogleSheetsConnection(btnElement) {
+  const feedbackEl = document.getElementById('sheetsPingFeedback');
+  if (btnElement) {
+    btnElement.disabled = true;
+    btnElement.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> Testando Conexão...';
+  }
+
+  try {
+    const res = await fetch('/api/sheets/test-ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workerName: currentUser?.username || 'Web_Dashboard_Admin' })
+    });
+    const data = await res.json();
+
+    if (feedbackEl) {
+      feedbackEl.classList.remove('hidden');
+      if (data.success) {
+        feedbackEl.innerHTML = `
+          <div class="flex items-center gap-2 text-emerald-400 font-bold mb-1">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>${data.message}</span>
+          </div>
+          <div class="text-[11px] text-slate-300">Timestamp: <strong>${data.timestamp}</strong> | Modo: <strong>Atômico Flush OK</strong></div>
+        `;
+      } else {
+        feedbackEl.innerHTML = `<span class="text-rose-400">❌ Falha: ${data.error}</span>`;
+      }
+    }
+    showToast('📊 Ping no Google Sheets executado com sucesso!');
+  } catch (err) {
+    if (feedbackEl) {
+      feedbackEl.classList.remove('hidden');
+      feedbackEl.innerHTML = `<span class="text-rose-400">❌ Erro de conexão: ${err.message}</span>`;
+    }
+    showToast('⚠️ Erro ao testar Google Sheets: ' + err.message);
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+      btnElement.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 🔄 Testar Conexão Google Sheets';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+}
+
+async function checkPoolConnectionDiagnostics() {
+  try {
+    const badge = document.getElementById('dashPoolConnectionBadge');
+    const res = await fetch('/api/diag/pool-connection');
+    const data = await res.json();
+
+    if (badge) {
+      if (data.connected || data.success) {
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span>CONEXÃO ATIVA</span>';
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1';
+      } else {
+        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> <span>STANDBY (71 BITS)</span>';
+        badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1';
+      }
+    }
+  } catch (_) {}
+}
+
+// Inicializações periódicas de Kangaroo Stats e Diagnósticos
 setInterval(loadKangarooStats, 5000);
 setTimeout(loadKangarooStats, 800);
+setTimeout(checkPoolConnectionDiagnostics, 1200);
 
 // Inicializa checagem de sessão
 checkAuthSession();

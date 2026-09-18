@@ -27,6 +27,7 @@ const rangeRoutesV5 = require('./routes/range');
 const webhookRoutes = require('./routes/webhook');
 const leaderboardRoutes = require('./routes/leaderboard');
 const scriptsRoutes = require('./routes/scripts');
+const apiRoutes = require('./routes/api');
 const { router: telemetryRoutes } = require('./routes/telemetry');
 
 const app = express();
@@ -94,6 +95,7 @@ const { cryptoAnalystAgent } = require('../services/cryptoAnalystAgent');
 
 // ─── ROTAS DA API ───
 app.use('/api/auth', authRoutes);
+app.use('/api', apiRoutes); // Diagnóstico de Pool (/api/diag/pool-connection) e Sheets Ping (/api/sheets/test-ping)
 app.use('/api/puzzles', puzzleRoutes);
 app.use('/api/puzzle1000btc', puzzle1000btcRoutes);
 app.use('/api/pools', poolRoutes);

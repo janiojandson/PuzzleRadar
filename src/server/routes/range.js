@@ -22,6 +22,24 @@ router.get('/next/:worker_id', async (req, res) => {
     const isBrowser = req.query.client === 'browser' || req.headers['x-client'] === 'browser';
 
     const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate, isBrowser);
+    
+    // Registra worker ativo no Google Sheets Buffer de forma assíncrona
+    try {
+      const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+      const startHex = (rangeAssignment.custom_range || '').split(':')[0] || '';
+      const endHex = (rangeAssignment.custom_range || '').split(':')[1] || '';
+      sheetsBuffer.enqueueChunkLog({
+        timestamp: new Date().toISOString(),
+        chain: 'BTC',
+        challenge_id: 'BTC_1000_P71',
+        startHex,
+        endHex,
+        workerName: worker_id,
+        status: isBrowser ? 'ONLINE_BROWSER' : 'ONLINE_TERMINAL',
+        hashrate: hashrate || (isBrowser ? '50 kH/s' : '1.0 GH/s')
+      });
+    } catch (_) {}
+
     res.json(rangeAssignment);
   } catch (err) {
     console.error('❌ [Range Route Error]', err.message);

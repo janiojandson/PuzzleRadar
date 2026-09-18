@@ -204,7 +204,7 @@
             <div>
               <div class="flex items-center gap-2">
                 <h2 class="text-2xl font-extrabold text-white">1-Click Web Mining no Navegador</h2>
-                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">v5.1 Zero-Setup</span>
+                <span id="webMinerStatusBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-400 border border-white/10">Aguardando Início</span>
               </div>
               <p class="text-sm text-slate-300 mt-1">Doe poder computacional com 1 clique direto no seu navegador e pontue no Leaderboard Comunitário.</p>
             </div>
@@ -220,7 +220,7 @@
         <!-- Tacômetro & Métricas do Web Miner -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
           <div class="p-4 rounded-xl bg-black/40 border border-white/5">
-            <div class="text-[11px] text-slate-400">Hashrate Atual</div>
+            <div class="text-[11px] text-slate-400">Velocidade / Tacômetro</div>
             <div class="text-xl font-extrabold font-mono text-emerald-400 mt-1" id="webMinerHashrate">0.0 kH/s</div>
           </div>
           <div class="p-4 rounded-xl bg-black/40 border border-white/5">
@@ -244,47 +244,69 @@
 
         <!-- Botão de Ação -->
         <button id="btnToggleWebMining" onclick="if(window.browserMiner) { if(window.browserMiner.isMining) window.browserMiner.pause(); else window.browserMiner.start(); }" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black font-extrabold shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2 text-sm">
-          <i data-lucide="play" class="w-4 h-4"></i> ▶ Iniciar 1-Click Mining no Navegador
+          <i data-lucide="play" class="w-4 h-4"></i> ▶ Iniciar Mineração no Navegador
         </button>
       </div>
 
-      <!-- Scripts 1-Clique para Terminal & Nuvem -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <!-- Windows 1-Click -->
-        <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl">💻</div>
-            <div>
-              <div class="font-bold text-white text-sm">Windows (PowerShell 1-Clique)</div>
-              <div class="text-[11px] text-slate-400">Zero downloads manuais • Sem dependências</div>
+      <!-- Scripts 1-Clique para Terminal & Nuvem (3 Opções) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Google Colab 1-Click -->
+        <div class="glass-panel rounded-2xl p-5 border border-amber-500/30 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">🚀</div>
+              <div>
+                <div class="font-bold text-white text-sm">Google Colab (GPU T4)</div>
+                <div class="text-[11px] text-slate-400">GPU Gratuita na Nuvem (18 GH/s)</div>
+              </div>
+              <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300">GPU</span>
             </div>
-            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">1-Click</span>
+            <p class="text-xs text-slate-300 mb-3">Notebook 1-clique pré-configurado sem configurações manuais.</p>
           </div>
-          <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-cyan-300 mb-3 space-y-1">
-            <div class="text-slate-500"># Cole no PowerShell (Terminal do Windows):</div>
-            <div class="text-emerald-400 font-bold">irm https://puzzleradar-production.up.railway.app/start.ps1 | iex</div>
+          <a href="/PuzzleRadar_Colab.ipynb" download="PuzzleRadar_Colab.ipynb" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-md">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar Notebook Colab (.ipynb)
+          </a>
+        </div>
+
+        <!-- Windows 1-Click -->
+        <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl">💻</div>
+              <div>
+                <div class="font-bold text-white text-sm">Windows (PowerShell)</div>
+                <div class="text-[11px] text-slate-400">Zero downloads • Sem dependências</div>
+              </div>
+              <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300">1-Click</span>
+            </div>
+            <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-cyan-300 mb-3 space-y-1 truncate">
+              <div class="text-slate-500"># PowerShell:</div>
+              <div class="text-emerald-400 font-bold truncate">irm .../start.ps1 | iex</div>
+            </div>
           </div>
-          <button onclick="copyToClipboard('irm https://puzzleradar-production.up.railway.app/start.ps1 | iex', this)" class="w-full py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-2">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando PowerShell
+          <button onclick="copyToClipboard('irm https://puzzleradar-production.up.railway.app/start.ps1 | iex', this)" class="w-full py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar PowerShell
           </button>
         </div>
 
         <!-- Linux / macOS 1-Click -->
-        <div class="glass-panel rounded-2xl p-5 border border-purple-500/30">
-          <div class="flex items-center gap-3 mb-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl">🐧</div>
-            <div>
-              <div class="font-bold text-white text-sm">Linux / macOS / WSL (Bash 1-Clique)</div>
-              <div class="text-[11px] text-slate-400">Execução instantânea via terminal</div>
+        <div class="glass-panel rounded-2xl p-5 border border-purple-500/30 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl">🐧</div>
+              <div>
+                <div class="font-bold text-white text-sm">Linux / macOS / WSL</div>
+                <div class="text-[11px] text-slate-400">Terminal Bash instantâneo</div>
+              </div>
+              <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300">1-Click</span>
             </div>
-            <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300">1-Click</span>
+            <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-purple-300 mb-3 space-y-1 truncate">
+              <div class="text-slate-500"># Bash:</div>
+              <div class="text-emerald-400 font-bold truncate">curl -sSL .../start.sh | bash</div>
+            </div>
           </div>
-          <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-purple-300 mb-3 space-y-1">
-            <div class="text-slate-500"># Cole no Terminal Linux/Mac:</div>
-            <div class="text-emerald-400 font-bold">curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash</div>
-          </div>
-          <button onclick="copyToClipboard('curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash', this)" class="w-full py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30 transition flex items-center justify-center gap-2">
-            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Bash
+          <button onclick="copyToClipboard('curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash', this)" class="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30 transition flex items-center justify-center gap-2">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Bash
           </button>
         </div>
       </div>
@@ -651,6 +673,21 @@
             <div>
               <h3 class="text-xl font-extrabold text-white tracking-tight" id="dashTargetTitle">Bitcoin Puzzle #71</h3>
               <p class="text-xs text-slate-300 mt-0.5" id="dashTargetPrize">Prêmio: 7.10 BTC (~$461.500 USD)</p>
+            </div>
+
+            <!-- Endereço Oficial e Indicador de Conexão com o Pool -->
+            <div class="p-3 rounded-xl bg-black/60 border border-amber-500/20 font-mono text-xs space-y-1.5">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-400">Endereço Oficial:</span>
+                <span class="text-amber-400 font-bold select-all" id="officialTargetAddress">1MVDYgVaSN6iKKEsbzRUAYFrYJadLYZvvZ</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
+                <span class="text-slate-400">Conexão btcpuzzle.info:</span>
+                <span id="dashPoolConnectionBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>CONEXÃO ATIVA</span>
+                </span>
+              </div>
             </div>
 
             <!-- On-Chain Sentinel Status Badge -->
@@ -1572,6 +1609,30 @@
           </div>
         </div>
 
+        <!-- Card Google Sheets Integration -->
+        <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 bg-cypher-950 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl">📊</div>
+              <div>
+                <h4 class="font-bold text-white text-sm">Integração Google Sheets & Apps Script</h4>
+                <p class="text-[11px] text-slate-400">Espelho de auditoria, registro de fatias e proteção anti-flood</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="testGoogleSheetsConnection(this)" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/40 transition flex items-center gap-1.5 shadow-md">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 🔄 Testar Conexão Google Sheets
+              </button>
+              <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black text-xs font-extrabold transition flex items-center gap-1.5 shadow-md">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> 📊 Abrir Planilha Google
+              </a>
+            </div>
+          </div>
+          <div id="sheetsPingFeedback" class="hidden p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-mono text-emerald-300">
+            <!-- Retorno dinâmico do teste -->
+          </div>
+        </div>
+
         <!-- Live Recent Ranges Table -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -1795,34 +1856,43 @@
             return;
           }
           
-          tbody.innerHTML = data.leaderboard.map(c => `
-            <tr class="hover:bg-white/5 transition">
-              <td class="px-6 py-3 font-bold ${c.rank === 1 ? 'text-amber-400' : c.rank === 2 ? 'text-slate-300' : c.rank === 3 ? 'text-amber-600' : 'text-slate-500'}">
-                #${c.rank}
-              </td>
-              <td class="px-6 py-3 font-semibold text-white flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full ${c.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}"></span>
-                ${c.workerName}
-              </td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-500'}">
-                  ${c.status}
-                </span>
-              </td>
-              <td class="px-6 py-3 text-slate-300">${c.hashrate || '—'}</td>
-              <td class="px-6 py-3 text-cyan-400 font-bold">${c.lotesCompleted || 0}</td>
-              <td class="px-6 py-3 text-right text-emerald-400 font-bold">${(c.keysChecked || 0).toLocaleString('pt-BR')}</td>
-            </tr>
-          `).join('');
+          const currentUserNick = window.browserMiner ? window.browserMiner.workerName : (localStorage.getItem('puzzleradar_worker_nickname') || '');
+
+          tbody.innerHTML = data.leaderboard.map(c => {
+            const isMe = currentUserNick && c.workerName.toLowerCase() === currentUserNick.toLowerCase();
+            const rowHighlight = isMe ? 'bg-amber-500/15 border border-amber-500/30 font-bold' : 'hover:bg-white/5';
+
+            return `
+              <tr class="${rowHighlight} transition">
+                <td class="px-6 py-3 font-bold ${c.rank === 1 ? 'text-amber-400' : c.rank === 2 ? 'text-slate-300' : c.rank === 3 ? 'text-amber-600' : 'text-slate-500'}">
+                  #${c.rank}
+                </td>
+                <td class="px-6 py-3 font-semibold text-white flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full ${c.isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}"></span>
+                  <span>${c.workerName}</span>
+                  ${isMe ? '<span class="px-1.5 py-0.5 rounded bg-amber-400 text-black text-[9px] font-extrabold ml-1">VOCÊ</span>' : ''}
+                </td>
+                <td class="px-6 py-3">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.isOnline ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-500'}">
+                    ${c.status}
+                  </span>
+                </td>
+                <td class="px-6 py-3 text-slate-300">${c.hashrate || '—'}</td>
+                <td class="px-6 py-3 text-cyan-400 font-bold">${c.lotesCompleted || 0}</td>
+                <td class="px-6 py-3 text-right text-emerald-400 font-bold">${(c.keysChecked || 0).toLocaleString('pt-BR')}</td>
+              </tr>
+            `;
+          }).join('');
         }
       } catch (e) {
         console.warn('Erro ao carregar leaderboard:', e);
       }
     }
 
-    // Auto-carregar leaderboard se estiver na aba
+    // Auto-carregar leaderboard a cada 5 segundos
     document.addEventListener('DOMContentLoaded', () => {
       loadLeaderboardData();
+      setInterval(loadLeaderboardData, 5000);
     });
   </script>
 </body>

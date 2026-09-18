@@ -43,7 +43,7 @@ if (!fs.existsSync(ARCHIVE_DIR)) {
   try { fs.mkdirSync(ARCHIVE_DIR, { recursive: true }); } catch (e) {}
 }
 if (!fs.existsSync(ARCHIVE_FILE)) {
-  try { fs.writeFileSync(ARCHIVE_FILE, 'timestamp,chain,challengeId,chunkIndex,rangeStart,rangeEnd,source,status\n', 'utf-8'); } catch (e) {}
+  try { fs.writeFileSync(ARCHIVE_FILE, 'timestamp,chain,challengeId,chunkIndex,rangeStart,rangeEnd,workerName,status,hashrate,discovery\n', 'utf-8'); } catch (e) {}
 }
 
 // ─── POSTAGEM HTTP COM TRATAMENTO DE REDIRECT 302 ─────────────────────────────
@@ -128,6 +128,8 @@ async function _flushBatch(force = false) {
       const res = await postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
         secretToken: SHEETS_WEBHOOK_SECRET,
         action:      'batch_ranges',
+        sheetName:   'Ranges_Varredura',
+        targetSheet: 'Ranges_Varredura',
         rows:        rowsToSend,
         batchSize:   rowsToSend.length,
         timestamp:   new Date().toISOString(),
@@ -161,20 +163,36 @@ async function appendRangesToSheet(spreadsheetId = DEFAULT_SPREADSHEET_ID, range
     const chunkIndex  = typeof item === 'object' ? (item.chunkIndex || item.chunkId || item.index || 0) : parseInt(item, 10) || 0;
     const rangeStart  = typeof item === 'object' ? (item.rangeStart || item.startHex || '') : '';
     const rangeEnd    = typeof item === 'object' ? (item.rangeEnd   || item.endHex   || '') : '';
-    const challengeId = typeof item === 'object' ? (item.challengeId || item.puzzleId || 'puzzle_btc_71') : 'puzzle_btc_71';
+    const challengeId = typeof item === 'object' ? (item.challengeId || item.puzzleId || 'Puzzle 71') : 'Puzzle 71';
     const chain       = typeof item === 'object'
-      ? (item.chain || (challengeId.toLowerCase().includes('eth') ? 'ETH' : challengeId.toLowerCase().includes('sol') ? 'SOL' : 'BTC'))
+      ? (item.chain || (String(challengeId).toLowerCase().includes('eth') ? 'ETH' : String(challengeId).toLowerCase().includes('sol') ? 'SOL' : 'BTC'))
       : 'BTC';
+    const workerName  = source || (typeof item === 'object' ? (item.workerName || item.worker) : 'Anonimo') || 'Anonimo';
+    const status      = extraMeta.status || (typeof item === 'object' ? item.status : 'COMPLETED') || 'COMPLETED';
+    const hashrate    = extraMeta.hashrate || (typeof item === 'object' ? item.hashrate : '0 GH/s') || '0 GH/s';
+    const discovery   = extraMeta.keyFound ? '🚨 CHAVE ENCONTRADA!' : 'NENHUMA';
 
-    const row = [timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, source, 'PRUNED_SCANNED'];
+    const row = [timestamp, chain, challengeId, chunkIndex, rangeStart, rangeEnd, workerName, status, hashrate, discovery];
     csvLines.push(row.join(','));
 
-    // Acumular no buffer — NÃO chamar webhook aqui (causa das 800 execuções)
+    // Acumular no buffer com schema de 10 colunas
     _pendingBatchRows.push({
-      chain, challengeId, puzzleId: challengeId,
-      chunkId: chunkIndex, startHex: rangeStart, endHex: rangeEnd,
-      workerName: source, status: extraMeta.status || 'COMPLETED',
-      hashrate: extraMeta.hashrate || '0 H/s', keyFound: extraMeta.keyFound || false,
+      timestamp,
+      chain,
+      challengeId,
+      challenge_id: challengeId,
+      puzzleId: challengeId,
+      chunkId: chunkIndex,
+      chunkIndex,
+      startHex: rangeStart,
+      endHex: rangeEnd,
+      workerName,
+      status,
+      scanStatus: status,
+      hashrate,
+      hashrateStr: hashrate,
+      discoveryStatus: discovery,
+      keyFound: Boolean(extraMeta.keyFound),
     });
   }
 
