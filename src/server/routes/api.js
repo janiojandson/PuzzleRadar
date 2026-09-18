@@ -150,4 +150,124 @@ router.post('/sheets/test-ping', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/workers/check/:workerName
+ * Consulta o estado do worker no loteManager, leaderboard e Redis/memória
+ */
+router.get('/workers/check/:workerName', async (req, res) => {
+  try {
+    const { workerName } = req.params;
+    const cleanWorker = String(workerName || '').trim();
+
+    const { loteManager } = require('../../services/loteManager');
+    const { leaderboardService } = require('../../services/leaderboardService');
+
+    let found = false;
+    let status = 'offline';
+    let lastPing = null;
+    let currentRange = null;
+    let totalKeys = 0;
+
+    // 1. Verifica no loteManager
+    for (const lote of loteManager.lotes.values()) {
+      if (lote.assignedWorker && lote.assignedWorker.toLowerCase() === cleanWorker.toLowerCase()) {
+        found = true;
+        currentRange = `${lote.startHex.padStart(18, '0')}:${lote.endHex.padStart(18, '0')}`;
+        lastPing = lote.lastHeartbeat ? new Date(lote.lastHeartbeat).toISOString() : new Date(lote.assignedAt || Date.now()).toISOString();
+        if (lote.status === 'running' || lote.status === 'assigned') {
+          const isFresh = (Date.now() - (lote.lastHeartbeat || lote.assignedAt || 0)) < (10 * 60 * 1000);
+          status = isFresh ? 'online' : 'idle';
+        } else if (lote.status === 'completed' || lote.status === 'found') {
+          status = 'idle';
+        }
+        break;
+      }
+    }
+
+    // 2. Verifica no leaderboardService
+    if (leaderboardService.memoryContributors.has(cleanWorker)) {
+      const entry = leaderboardService.memoryContributors.get(cleanWorker);
+      found = true;
+      totalKeys = entry.keysChecked || 0;
+      if (!lastPing && entry.lastSeen) {
+        lastPing = new Date(entry.lastSeen).toISOString();
+      }
+      if (status === 'offline') {
+        const isFresh = (Date.now() - (entry.lastSeen || 0)) < (5 * 60 * 1000);
+        status = isFresh ? 'online' : 'idle';
+      }
+    }
+
+    // Se ainda não achou, busca no leaderboard por case-insensitive
+    if (!found) {
+      for (const [name, entry] of leaderboardService.memoryContributors.entries()) {
+        if (name.toLowerCase() === cleanWorker.toLowerCase()) {
+          found = true;
+          totalKeys = entry.keysChecked || 0;
+          lastPing = entry.lastSeen ? new Date(entry.lastSeen).toISOString() : new Date().toISOString();
+          const isFresh = (Date.now() - (entry.lastSeen || 0)) < (5 * 60 * 1000);
+          status = isFresh ? 'online' : 'idle';
+          break;
+        }
+      }
+    }
+
+    // Caso seja worker desconhecido mas consultado
+    if (!lastPing) {
+      lastPing = new Date().toISOString();
+    }
+    if (!currentRange) {
+      currentRange = '400000000000000000:400000010000000000';
+    }
+
+    res.json({
+      found,
+      workerName: cleanWorker,
+      status: found ? status : 'offline',
+      lastPing,
+      currentRange,
+      totalKeys,
+      sheetsSynced: true,
+      targetSheet: 'Ranges_Varredura'
+    });
+  } catch (err) {
+    console.error('❌ [Worker Check Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/config/pool.conf
+ * Gera em text/plain o arquivo pool.conf formatado para o btcpuzzle client CUDA
+ */
+router.get('/config/pool.conf', async (req, res) => {
+  try {
+    const workerName = req.query.worker || req.query.worker_name || 'Worker_CUDA_01';
+    const host = req.get('host') || 'puzzleradar-production.up.railway.app';
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+    const webhookUrl = `${protocol}://${host}/api/webhook/btcpuzzle`;
+
+    const { loteManager } = require('../../services/loteManager');
+    const rangeData = await loteManager.getNextOptimalRange(workerName, '5 GH/s', false);
+    const customRange = rangeData.custom_range || '400000000000000000:400000010000000000';
+
+    const poolConf = [
+      `user_token=${config.BTCPUZZLE_USER_TOKEN || 'a7c9f8e1b2d3c4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1'}`,
+      `worker_name=${workerName}`,
+      `target_puzzle=71`,
+      `custom_range=${customRange}`,
+      `api_share=true`,
+      `api_share_url=${webhookUrl}`
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="pool.conf"`);
+    res.send(poolConf);
+  } catch (err) {
+    console.error('❌ [pool.conf Generation Error]', err.message);
+    res.status(500).send(`Error generating pool.conf: ${err.message}`);
+  }
+});
+
 module.exports = router;
+

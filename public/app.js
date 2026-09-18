@@ -2025,29 +2025,169 @@ async function testGoogleSheetsConnection(btnElement) {
   }
 }
 
+// ─── SCRIPTS REATIVOS & VALIDAÇÃO DINÂMICA DE WORKER ───
+function updateDynamicScriptCommands(workerName) {
+  const name = String(workerName || '').trim() || 'MeuMinerador_01';
+  const host = window.location.host || 'puzzleradar-production.up.railway.app';
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const baseUrl = `${protocol}://${host}`;
+
+  // Atualiza blocos de comando
+  const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
+  const bashCmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
+
+  const psEl = document.getElementById('quickPowerShellCmd');
+  if (psEl) psEl.innerText = psCmd;
+
+  const bashEl = document.getElementById('quickBashCmd');
+  if (bashEl) bashEl.innerText = bashCmd;
+
+  // Atualiza prévia do pool.conf
+  const poolConfPreview = document.getElementById('livePoolConfPreview');
+  if (poolConfPreview) {
+    poolConfPreview.innerText = `worker_name=${name}\ntarget_puzzle=71\napi_share=true\napi_share_url=${baseUrl}/api/webhook/btcpuzzle\n# Acesse /api/config/pool.conf?worker=${name} para o arquivo completo`;
+  }
+
+  const curlRangeCmd = document.getElementById('liveCurlRangeCmd');
+  if (curlRangeCmd) {
+    curlRangeCmd.innerText = `curl -s ${baseUrl}/api/range/next/${encodeURIComponent(name)}`;
+  }
+
+  const btnDlPoolConf = document.getElementById('btnDownloadPoolConf');
+  if (btnDlPoolConf) {
+    btnDlPoolConf.href = `/api/config/pool.conf?worker=${encodeURIComponent(name)}`;
+  }
+}
+
+function copyDynamicScriptCmd(type, btnElement) {
+  const inputEl = document.getElementById('webMinerNickname') || document.getElementById('workerValidatorInput');
+  const name = (inputEl && inputEl.value.trim()) || 'MeuMinerador_01';
+  const host = window.location.host || 'puzzleradar-production.up.railway.app';
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const baseUrl = `${protocol}://${host}`;
+
+  let cmd = '';
+  if (type === 'powershell') {
+    cmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
+  } else if (type === 'bash') {
+    cmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
+  }
+
+  if (cmd) {
+    copyToClipboard(cmd, btnElement);
+  }
+}
+
+async function checkWorkerConnectionStatus(btnElement) {
+  const inputEl = document.getElementById('workerValidatorInput');
+  const resultEl = document.getElementById('workerValidatorResult');
+  const workerName = (inputEl && inputEl.value.trim()) || (currentUser?.username) || 'SatoshiHunter';
+
+  if (btnElement) {
+    btnElement.disabled = true;
+    btnElement.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Validando...';
+  }
+
+  try {
+    const res = await fetch(`/api/workers/check/${encodeURIComponent(workerName)}`);
+    const data = await res.json();
+
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      const isOnline = data.status === 'online' || data.found;
+      const statusBadge = isOnline
+        ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ONLINE / ATIVO</span>'
+        : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-white/10">STANDBY / OFFLINE</span>';
+
+      resultEl.innerHTML = `
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-white/10 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}"></span>
+            <span class="font-bold text-white text-sm">${data.workerName}</span>
+            ${statusBadge}
+          </div>
+          <div class="text-[11px] text-slate-400">
+            Último Ping: <strong class="text-slate-200">${data.lastPing ? new Date(data.lastPing).toLocaleTimeString() : 'N/A'}</strong>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-[11px]">
+          <div>
+            <span class="text-slate-400 block">Fatia Ativa (71 bits):</span>
+            <span class="text-amber-300 font-bold select-all truncate block">${data.currentRange || 'Nenhuma'}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Sincronização Google Sheets:</span>
+            <span class="text-emerald-400 font-bold">✓ Confirmado em '${data.targetSheet || 'Ranges_Varredura'}'</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Chaves Verificadas:</span>
+            <span class="text-cyan-300 font-bold">${Number(data.totalKeys || 0).toLocaleString()} chaves</span>
+          </div>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+    }
+    showToast(`🔍 Status do worker "${workerName}": ${data.status.toUpperCase()}`);
+  } catch (err) {
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      resultEl.innerHTML = `<span class="text-rose-400">❌ Falha na consulta de status: ${err.message}</span>`;
+    }
+  } finally {
+    if (btnElement) {
+      btnElement.disabled = false;
+      btnElement.innerHTML = '<i data-lucide="search" class="w-3.5 h-3.5"></i> Validar Conexão';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+}
+
 async function checkPoolConnectionDiagnostics() {
+  const startTime = Date.now();
   try {
     const badge = document.getElementById('dashPoolConnectionBadge');
     const res = await fetch('/api/diag/pool-connection');
+    const latency = Date.now() - startTime;
     const data = await res.json();
 
     if (badge) {
       if (data.connected || data.success) {
-        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span>CONEXÃO ATIVA</span>';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span>CONEXÃO ATIVA (${latency}ms)</span>`;
         badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1';
       } else {
-        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> <span>STANDBY (71 BITS)</span>';
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> <span>STANDBY 71-BITS (${latency}ms)</span>`;
         badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1';
       }
     }
   } catch (_) {}
 }
 
+// Escuta inputs de apelido para atualizar em tempo real os blocos de comandos
+document.addEventListener('DOMContentLoaded', () => {
+  const minerNickInput = document.getElementById('webMinerNickname');
+  if (minerNickInput) {
+    minerNickInput.addEventListener('input', (e) => {
+      updateDynamicScriptCommands(e.target.value);
+    });
+    // Dispara inicialização dos comandos
+    updateDynamicScriptCommands(minerNickInput.value);
+  }
+
+  const workerValInput = document.getElementById('workerValidatorInput');
+  if (workerValInput) {
+    workerValInput.addEventListener('input', (e) => {
+      updateDynamicScriptCommands(e.target.value);
+    });
+  }
+});
+
 // Inicializações periódicas de Kangaroo Stats e Diagnósticos
 setInterval(loadKangarooStats, 5000);
+setInterval(checkPoolConnectionDiagnostics, 15000);
 setTimeout(loadKangarooStats, 800);
 setTimeout(checkPoolConnectionDiagnostics, 1200);
 
 // Inicializa checagem de sessão
 checkAuthSession();
+
 

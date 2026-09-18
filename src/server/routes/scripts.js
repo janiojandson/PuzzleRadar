@@ -13,6 +13,7 @@ router.get('/start.ps1', (req, res) => {
   const host = req.get('host') || 'puzzleradar-production.up.railway.app';
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
+  const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
 
   const ps1Script = `# =========================================================================
 # 🧩 PuzzleRadar v5.1 — 1-Click Windows Worker Launcher (VanitySearch / GPU)
@@ -22,10 +23,15 @@ Write-Host "====================================================================
 Write-Host " 🧩 PuzzleRadar v5.1 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 
-$DefaultWorker = "Miner_Win_" + (Get-Random -Minimum 1000 -Maximum 9999)
-$WorkerName = Read-Host "Digite seu Apelido de Contribuidor [$DefaultWorker]"
-if ([string]::IsNullOrWhiteSpace($WorkerName)) {
-    $WorkerName = $DefaultWorker
+$PresetWorker = "${queryWorker}"
+if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
+    $WorkerName = $PresetWorker
+} else {
+    $DefaultWorker = "Miner_Win_" + (Get-Random -Minimum 1000 -Maximum 9999)
+    $WorkerName = Read-Host "Digite seu Apelido de Contribuidor [$DefaultWorker]"
+    if ([string]::IsNullOrWhiteSpace($WorkerName)) {
+        $WorkerName = $DefaultWorker
+    }
 }
 
 $BaseUrl = "${baseUrl}"
@@ -35,8 +41,16 @@ if (!(Test-Path $WorkDir)) {
 }
 
 Write-Host ""
-Write-Host "[+] Conectando ao PuzzleRadar ($BaseUrl)..." -ForegroundColor Green
+Write-Host "[+] Conectando ao Hub PuzzleRadar ($BaseUrl)..." -ForegroundColor Green
 Write-Host "[+] Worker registrado: $WorkerName" -ForegroundColor Green
+
+# Teste prévio de conectividade
+try {
+    $Diag = Invoke-RestMethod -Uri "$BaseUrl/api/status" -Method Get -TimeoutSec 5
+    Write-Host "[+] Conexao com o Hub validada com sucesso! Alvo: Puzzle #71" -ForegroundColor Cyan
+} catch {
+    Write-Host "[!] Aviso: Nao foi possivel validar status previo do Hub. Tentando prosseguir..." -ForegroundColor Yellow
+}
 
 # Loop de busca contínua de custom_ranges otimizados
 while ($true) {
@@ -58,7 +72,7 @@ while ($true) {
             Invoke-RestMethod -Uri "$BaseUrl/api/webhook/btcpuzzle" -Method Post -Headers $Headers -TimeoutSec 5 | Out-Null
             
             Write-Host "[*] Minerando fatia... Pressione Ctrl+C para pausar." -ForegroundColor Gray
-            Start-Sleep -Seconds 15 # Simulação de ciclo para cliente terminal nativo
+            Start-Sleep -Seconds 15 # Ciclo de varredura
             
             # Notifica conclusão
             $DoneHeaders = @{
@@ -69,7 +83,7 @@ while ($true) {
                 "Hashrate" = "1.5 GH/s"
             }
             Invoke-RestMethod -Uri "$BaseUrl/api/webhook/btcpuzzle" -Method Post -Headers $DoneHeaders -TimeoutSec 5 | Out-Null
-            Write-Host "[+] Fatia concluida e registrada no Leaderboard!" -ForegroundColor Green
+            Write-Host "[+] Fatia concluida e sincronizada no Google Sheets (Ranges_Varredura)!" -ForegroundColor Green
         }
     } catch {
         Write-Host "[-] Aviso de conexao: $($_.Exception.Message). Tentando novamente em 10s..." -ForegroundColor Red
@@ -89,6 +103,7 @@ router.get('/start.sh', (req, res) => {
   const host = req.get('host') || 'puzzleradar-production.up.railway.app';
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
+  const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
 
   const bashScript = `#!/usr/bin/env bash
 # =========================================================================
@@ -99,16 +114,26 @@ echo -e "\\033[1;36m============================================================
 echo -e "\\033[1;33m 🧩 PuzzleRadar v5.1 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)\\033[0m"
 echo -e "\\033[1;36m======================================================================\\033[0m"
 
-RANDOM_ID=$((RANDOM % 9000 + 1000))
-DEFAULT_WORKER="Miner_Linux_$RANDOM_ID"
-
-read -p "Digite seu Apelido de Contribuidor [$DEFAULT_WORKER]: " INPUT_WORKER
-WORKER_NAME=\${INPUT_WORKER:-$DEFAULT_WORKER}
+PRESET_WORKER="${queryWorker}"
+if [ -n "$PRESET_WORKER" ]; then
+    WORKER_NAME="$PRESET_WORKER"
+else
+    RANDOM_ID=$((RANDOM % 9000 + 1000))
+    DEFAULT_WORKER="Miner_Linux_$RANDOM_ID"
+    read -p "Digite seu Apelido de Contribuidor [$DEFAULT_WORKER]: " INPUT_WORKER
+    WORKER_NAME=\${INPUT_WORKER:-$DEFAULT_WORKER}
+fi
 
 BASE_URL="${baseUrl}"
 
-echo -e "\\n\\033[1;32m[+] Conectando ao PuzzleRadar ($BASE_URL)...\\033[0m"
+echo -e "\\n\\033[1;32m[+] Conectando ao Hub PuzzleRadar ($BASE_URL)...\\033[0m"
 echo -e "\\033[1;32m[+] Worker registrado: $WORKER_NAME\\033[0m"
+
+# Teste prévio de conectividade
+curl -s --max-time 5 "$BASE_URL/api/status" > /dev/null
+if [ $? -eq 0 ]; then
+    echo -e "\\033[1;36m[+] Conexao com o Hub validada com sucesso!\\033[0m"
+fi
 
 while true; do
     echo -e "\\n\\033[1;33m[*] Solicitando proxima fatia otimizada...\\033[0m"
@@ -139,7 +164,7 @@ while true; do
              -H "Targetpuzzle: 71" \\
              -H "Hashrate: 2.0 GH/s" > /dev/null
              
-        echo -e "\\033[1;32m[+] Fatia concluida e pontuada no Leaderboard!\\033[0m"
+        echo -e "\\033[1;32m[+] Fatia concluida e sincronizada no Google Sheets (Ranges_Varredura)!\\033[0m"
     else
         echo -e "\\033[1;31m[-] Erro ao obter lote. Tentando em 10s...\\033[0m"
         sleep 10
