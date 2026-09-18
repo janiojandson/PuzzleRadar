@@ -12,6 +12,7 @@ const { antiMevRescue } = require('../../services/antiMevRescue');
 const { leaderboardService } = require('../../services/leaderboardService');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
 const { markRangeScanned } = require('../../lib/redis');
+const workersRouter = require('./workers');
 
 const router = express.Router();
 
@@ -27,15 +28,60 @@ router.post('/btcpuzzle', (req, res) => {
   const targetPuzzle = (headers['targetpuzzle'] || req.body?.targetpuzzle || '71').toString().trim();
   const workerName = (headers['workername'] || req.body?.workername || 'btcpuzzle_worker').toString().trim();
   const hashrate = headers['hashrate'] || req.body?.hashrate || '0 H/s';
+  const authHeader = headers['authorization'] || '';
+  const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : 'wrk_anonymous_node';
 
   // 3. Processamento Assíncrono Desacoplado
   setImmediate(async () => {
     try {
       console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${workerName}" | hex="${hex}" | puzzle="${targetPuzzle}"`);
 
+      // Update active workers map for telemetry hashrate
+      const activeWorkersMap = workersRouter.activeWorkersMap;
+      if (activeWorkersMap) {
+        let worker = activeWorkersMap.get(workerName);
+        if (!worker) {
+          worker = {
+            id: workerName,
+            name: workerName,
+            hardware: 'GPU',
+            status: 'RUNNING',
+            chain: 'BTC',
+            challengeId: `BTC_1000_P${targetPuzzle}`,
+            totalKeysChecked: 0,
+            keysPerSecond: 0,
+            shares: 0,
+            userToken
+          };
+          activeWorkersMap.set(workerName, worker);
+        }
+        
+        let kps = 0;
+        if (hashrate) {
+           // Parse "45.0 kH/s" -> 45000
+           const num = parseFloat(hashrate);
+           if (!isNaN(num)) {
+             if (hashrate.toLowerCase().includes('kh/s')) kps = num * 1000;
+             else if (hashrate.toLowerCase().includes('mh/s')) kps = num * 1000000;
+             else if (hashrate.toLowerCase().includes('gh/s')) kps = num * 1000000000;
+             else kps = num;
+           }
+        }
+        worker.keysPerSecond = kps;
+        worker.lastSeen = Date.now();
+      }
+
       // Registra contribuição no Leaderboard
       const isCompleted = (status === 'rangeScanned' || status === 'reachedOfKeySpace' || status === 'keyFound');
       const keysEst = isCompleted ? 4294967296 : 50000;
+      
+      if (activeWorkersMap) {
+        let worker = activeWorkersMap.get(workerName);
+        if (worker && isCompleted) {
+          worker.shares = (worker.shares || 0) + 10; // 10 shares per chunk
+        }
+      }
+
       leaderboardService.recordContribution(workerName, {
         keysChecked: keysEst,
         isLoteCompleted: isCompleted,

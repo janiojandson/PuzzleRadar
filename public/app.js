@@ -234,9 +234,7 @@ function render1000Table(puzzles) {
             <button onclick="downloadBatForPuzzle(${p.num})" title="Baixar script .bat Windows configurado para este Puzzle" class="p-1 rounded-lg bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition">
               <i data-lucide="download" class="w-3 h-3"></i>
             </button>
-            <button onclick="generateColabTargetCommand(${p.num})" title="Copiar Comando Colab" class="p-1 rounded-lg bg-white/5 hover:bg-white/20 text-emerald-400 hover:text-emerald-300 transition">
-              <i data-lucide="copy" class="w-3 h-3"></i>
-            </button>
+
           </div>
         </td>
       </tr>`;
@@ -373,14 +371,6 @@ function downloadBatForPuzzle(num) {
   showToast(`📥 Script Windows (.bat) para Puzzle #${num} baixado!`);
 }
 
-function generateColabTargetCommand(num) {
-  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
-  const token = (currentUser && currentUser.workerToken) ? ` --token="${currentUser.workerToken}"` : '';
-  const cmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P${num}"`;
-  navigator.clipboard.writeText(cmd).then(() => {
-    showToast(`📋 Comando GPU Colab para Puzzle #${num} copiado!`);
-  });
-}
 
 // ─── MULTI-CHAIN DATA COM ROI DINÂMICO ───
 function getExplorerUrl(chain, address) {
@@ -1164,15 +1154,6 @@ async function evaluateCustomChallenge() {
   }
 }
 
-// ─── COLAB 1-CLICK LAUNCH (URL pré-preenchida) ───
-function openColabWithCode() {
-  const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
-  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/colab_worker.py\n!python colab_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  const encoded = encodeURIComponent(code);
-  window.open(`https://colab.research.google.com/#create=true&code=${encoded}`, '_blank');
-  showToast(`🚀 Abrindo Colab para [${currentActiveChain}] ${currentActiveChallenge}!`);
-}
 
 // ─── ALIAS COPY HELPER ───
 function copyText(text) {

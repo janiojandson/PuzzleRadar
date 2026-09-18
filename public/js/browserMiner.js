@@ -83,12 +83,13 @@ class BrowserMinerController {
       localStorage.setItem('puzzleradar_lotes_completed', this.totalLotesCompleted);
 
       // Notifica o backend via webhook para pontuar no leaderboard
-      const startHex = (data.custom_range || '').split(':')[0] || '';
+      const token = localStorage.getItem('pzk_jwt_token') || 'wrk_anon_browser';
       fetch('/api/webhook/btcpuzzle', {
         method: 'POST',
         headers: {
           'Status': 'rangeScanned',
           'Workername': this.workerName,
+          'Authorization': `Bearer ${token}`,
           'Hex': startHex,
           'Targetpuzzle': '71',
           'Hashrate': `${(this.currentHashrate / 1000).toFixed(1)} kH/s`
