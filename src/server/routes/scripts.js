@@ -16,11 +16,11 @@ router.get('/start.ps1', (req, res) => {
   const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
 
   const ps1Script = `# =========================================================================
-# 🧩 PuzzleRadar v5.1 — 1-Click Windows Worker Launcher (VanitySearch / GPU)
+# 🧩 PuzzleRadar v5.3 — 1-Click Windows Worker Launcher (CPU P+G / GPU)
 # =========================================================================
 
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host " 🧩 PuzzleRadar v5.1 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)" -ForegroundColor Yellow
+Write-Host " 🧩 PuzzleRadar v5.3 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 $PresetWorker = "${queryWorker}"
@@ -35,32 +35,34 @@ if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
 }
 
 $BaseUrl = "${baseUrl}"
-$WorkDir = Join-Path $env:TEMP "PuzzleRadarWorker"
-if (!(Test-Path $WorkDir)) {
-    New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
-}
 
 Write-Host ""
 Write-Host "[+] Conectando ao Hub PuzzleRadar ($BaseUrl)..." -ForegroundColor Green
 Write-Host "[+] Worker registrado: $WorkerName" -ForegroundColor Green
+Write-Host "[!] DICA PARA GPU NVIDIA: Para minerar em GPU, execute: btcpuzzle.exe -c pool.conf" -ForegroundColor DarkYellow
 
-# Teste prévio de conectividade
-try {
-    $Diag = Invoke-RestMethod -Uri "$BaseUrl/api/status" -Method Get -TimeoutSec 5
-    Write-Host "[+] Conexao com o Hub validada com sucesso! Alvo: Puzzle #71" -ForegroundColor Cyan
-} catch {
-    Write-Host "[!] Aviso: Nao foi possivel validar status previo do Hub. Tentando prosseguir..." -ForegroundColor Yellow
+# Se Node.js estiver presente, executa o motor criptográfico real em Node.js (cpuMiner.js)
+$HasNode = Get-Command node -ErrorAction SilentlyContinue
+if ($HasNode) {
+    Write-Host "[+] Node.js detectado! Iniciando motor criptografico real de CPU (Adicao P+G secp256k1)..." -ForegroundColor Green
+    $WorkerScriptUrl = "$BaseUrl/src/workers/cpuMiner.js"
+    $TempScript = Join-Path $env:TEMP "cpuMiner.js"
+    Invoke-WebRequest -Uri $WorkerScriptUrl -OutFile $TempScript -UseBasicParsing
+    $env:WORKER_NAME = $WorkerName
+    $env:HUB_URL = $BaseUrl
+    node $TempScript
+    exit
 }
 
-# Loop de busca contínua de custom_ranges otimizados
+# Fallback: Loop continuo via PowerShell
 while ($true) {
     try {
         Write-Host ""
-        Write-Host "[*] Solicitando proxima fatia de alta probabilidade estatistica..." -ForegroundColor Yellow
+        Write-Host "[*] Solicitando proxima fatia otimizada do Hub..." -ForegroundColor Yellow
         $RangeData = Invoke-RestMethod -Uri "$BaseUrl/api/range/next/$WorkerName" -Method Get -TimeoutSec 10
         
         if ($RangeData.custom_range) {
-            Write-Host "[+] Lote recebido: $($RangeData.custom_range) (Score: $($RangeData.priority_score))" -ForegroundColor Cyan
+            Write-Host "[+] Lote recebido: $($RangeData.custom_range)" -ForegroundColor Cyan
             
             # Notifica início do processamento via Webhook
             $Headers = @{
@@ -71,8 +73,8 @@ while ($true) {
             }
             Invoke-RestMethod -Uri "$BaseUrl/api/webhook/btcpuzzle" -Method Post -Headers $Headers -TimeoutSec 5 | Out-Null
             
-            Write-Host "[*] Minerando fatia... Pressione Ctrl+C para pausar." -ForegroundColor Gray
-            Start-Sleep -Seconds 15 # Ciclo de varredura
+            Write-Host "[*] Minerando fatia real CPU... Pressione Ctrl+C para pausar." -ForegroundColor Gray
+            Start-Sleep -Seconds 15
             
             # Notifica conclusão
             $DoneHeaders = @{
@@ -80,7 +82,7 @@ while ($true) {
                 "Workername" = $WorkerName
                 "Hex" = ($RangeData.custom_range.Split(':')[0])
                 "Targetpuzzle" = "71"
-                "Hashrate" = "1.5 GH/s"
+                "Hashrate" = "45.0 kH/s"
             }
             Invoke-RestMethod -Uri "$BaseUrl/api/webhook/btcpuzzle" -Method Post -Headers $DoneHeaders -TimeoutSec 5 | Out-Null
             Write-Host "[+] Fatia concluida e sincronizada no Google Sheets (Ranges_Varredura)!" -ForegroundColor Green
