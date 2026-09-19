@@ -2305,12 +2305,16 @@ function updateDynamicScriptCommands(workerName) {
   // Atualiza blocos de comando
   const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
   const bashCmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
+  const colabCmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}" | bash`;
 
   const psEl = document.getElementById('quickPowerShellCmd');
   if (psEl) psEl.innerText = psCmd;
 
   const bashEl = document.getElementById('quickBashCmd');
   if (bashEl) bashEl.innerText = bashCmd;
+
+  const colabEl = document.getElementById('quickColabCmd');
+  if (colabEl) colabEl.innerText = colabCmd;
 
   // Atualiza prévia do pool.conf
   const poolConfPreview = document.getElementById('livePoolConfPreview');
@@ -2341,6 +2345,8 @@ function copyDynamicScriptCmd(type, btnElement) {
     cmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
   } else if (type === 'bash') {
     cmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
+  } else if (type === 'colab') {
+    cmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}" | bash`;
   }
 
   if (cmd) {
