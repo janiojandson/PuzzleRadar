@@ -295,6 +295,50 @@ router.post('/submit-chunk', async (req, res) => {
       parentLoteManager.markMicroLoteCompleted(startHex);
     } catch (_) {}
 
+    // Registra/atualiza worker ativo no activeWorkersMap para telemetria e velocidade somada
+    try {
+      const workersRouter = require('./workers');
+      if (workersRouter.activeWorkersMap) {
+        const nodeId = req.body.nodeId || req.body.node_id || workerName;
+        const operatorName = req.body.operator || req.body.user || workerName.split('_node_')[0];
+        
+        let kps = 0;
+        if (hashrate) {
+          const num = parseFloat(hashrate);
+          if (!isNaN(num)) {
+            if (String(hashrate).toLowerCase().includes('gh/s')) kps = num * 1e9;
+            else if (String(hashrate).toLowerCase().includes('mh/s')) kps = num * 1e6;
+            else if (String(hashrate).toLowerCase().includes('kh/s')) kps = num * 1e3;
+            else kps = num;
+          }
+        }
+        if (kps === 0 && keysChecked) {
+          kps = Math.round(Number(keysChecked) / 3.0);
+        }
+
+        const existing = workersRouter.activeWorkersMap.get(nodeId) || {};
+        const displayName = nodeId.includes('_') ? `${operatorName} (${nodeId.split('_').slice(-1)[0]})` : operatorName;
+
+        workersRouter.activeWorkersMap.set(nodeId, {
+          ...existing,
+          id: nodeId,
+          name: displayName,
+          workerName: operatorName,
+          operator: operatorName,
+          nodeId,
+          hardware: 'Kangaroo Pool Node (Colab/GPU)',
+          gpuModel: 'Python Multi-Core / CUDA',
+          chain,
+          challengeId,
+          keysPerSecond: kps > 0 ? kps : (existing.keysPerSecond || 50000),
+          status: 'ONLINE',
+          progress: 100,
+          totalKeysChecked: (existing.totalKeysChecked || 0) + Number(keysChecked || 0),
+          lastSeen: Date.now()
+        });
+      }
+    } catch (_) {}
+
     // Enfileira no buffer de lotes para o Google Sheets
     sheetsBuffer.enqueueChunkLog({
       timestamp: new Date().toISOString(),

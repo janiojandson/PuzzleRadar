@@ -46,6 +46,50 @@ router.get('/next/:worker_id', async (req, res) => {
         });
       } catch (_) {}
 
+      // Atualiza o mapa de nós ativos (activeWorkersMap) para telemetria em tempo real e soma de velocidade
+      try {
+        const workersRouter = require('./workers');
+        if (workersRouter.activeWorkersMap) {
+          const nodeId = req.query.node_id || req.query.nodeId || worker_id;
+          const operatorName = req.query.operator || req.query.user || worker_id.split('_node_')[0];
+          
+          let kps = 0;
+          if (hashrate) {
+            const num = parseFloat(hashrate);
+            if (!isNaN(num)) {
+              if (String(hashrate).toLowerCase().includes('gh/s')) kps = num * 1e9;
+              else if (String(hashrate).toLowerCase().includes('mh/s')) kps = num * 1e6;
+              else if (String(hashrate).toLowerCase().includes('kh/s')) kps = num * 1e3;
+              else kps = num;
+            }
+          }
+          if (kps === 0) {
+            kps = isBrowser ? 45000 : 1000000;
+          }
+
+          const existing = workersRouter.activeWorkersMap.get(nodeId) || {};
+          const displayName = nodeId.includes('_') ? `${operatorName} (${nodeId.split('_').slice(-1)[0]})` : operatorName;
+
+          workersRouter.activeWorkersMap.set(nodeId, {
+            ...existing,
+            id: nodeId,
+            name: displayName,
+            workerName: operatorName,
+            operator: operatorName,
+            nodeId,
+            hardware: isBrowser ? 'Navegador Web (WebAssembly)' : 'Terminal Worker (Colab/CPU)',
+            gpuModel: isBrowser ? 'CPU WebWorker' : 'Multi-Core / CUDA',
+            chain: 'BTC',
+            challengeId: 'BTC_1000_P71',
+            keysPerSecond: kps,
+            status: 'ONLINE',
+            progress: 100,
+            totalKeysChecked: (existing.totalKeysChecked || 0) + 16777216,
+            lastSeen: Date.now()
+          });
+        }
+      } catch (_) {}
+
       return res.json({
         custom_range: `${microLote.startHex}:${microLote.endHex}`,
         pool_conf_line: `custom_range=${microLote.startHex}:${microLote.endHex}`,

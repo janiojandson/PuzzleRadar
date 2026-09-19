@@ -60,7 +60,10 @@ if (![string]::IsNullOrWhiteSpace($PresetPower)) {
 }
 
 $Threads = [math]::Max(1, [int][math]::Round($TotalCores * ($PowerPercent / 100.0)))
+$NodeSessionId = "win_" + (Get-Random -Minimum 1000 -Maximum 9999)
+$FullNodeId = "\${WorkerName}_\${NodeSessionId}"
 Write-Host "[+] Potencia configurada: $PowerPercent% ($Threads de $TotalCores nucleos ativos)" -ForegroundColor Green
+Write-Host "[+] Identificador unico do No: \${FullNodeId} (Operador: \${WorkerName})" -ForegroundColor Cyan
 
 $BaseUrl = "${baseUrl}"
 $WorkerDir = "solver"
@@ -85,11 +88,11 @@ $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
 
 if ($PyCmd) {
     Write-Host "Iniciando minerador via py -3.12 com $Threads threads..." -ForegroundColor Green
-    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
+    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 } elseif ($PythonCmd) {
     Write-Host "Iniciando minerador via python com $Threads threads..." -ForegroundColor Green
-    & python $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
+    & python $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 }
 
@@ -100,8 +103,8 @@ if ($PowerPercent -ge 100) { $SleepSec = 1 }
 while ($true) {
     try {
         Write-Host ""
-        Write-Host "[*] Solicitando proxima fatia otimizada do Hub..." -ForegroundColor Yellow
-        $RangeData = Invoke-RestMethod -Uri "$BaseUrl/api/range/next/$WorkerName" -Method Get -TimeoutSec 10
+        Write-Host "[*] Solicitando proxima fatia otimizada do Hub ($FullNodeId)..." -ForegroundColor Yellow
+        $RangeData = Invoke-RestMethod -Uri "$BaseUrl/api/range/next/$FullNodeId?operator=$WorkerName&node_id=$FullNodeId&hashrate=45.0%20kH/s" -Method Get -TimeoutSec 10
         
         if ($RangeData.custom_range) {
             Write-Host "[+] Lote recebido: $($RangeData.custom_range)" -ForegroundColor Cyan
@@ -110,6 +113,8 @@ while ($true) {
             $Headers = @{
                 "Status" = "workerStarted"
                 "Workername" = $WorkerName
+                "Nodeid" = $FullNodeId
+                "Operator" = $WorkerName
                 "Hex" = ($RangeData.custom_range.Split(':')[0])
                 "Targetpuzzle" = "71"
             }
@@ -122,6 +127,8 @@ while ($true) {
             $DoneHeaders = @{
                 "Status" = "rangeScanned"
                 "Workername" = $WorkerName
+                "Nodeid" = $FullNodeId
+                "Operator" = $WorkerName
                 "Hex" = ($RangeData.custom_range.Split(':')[0])
                 "Targetpuzzle" = "71"
                 "Hashrate" = "45.0 kH/s"
@@ -196,10 +203,14 @@ echo -e "\\033[1;32m[+] Potencia Selecionada: \${CHOSEN_POWER}% ($THREADS de $TO
 SLEEP_SEC=$(( 15 * (100 - CHOSEN_POWER) / 100 ))
 [ "$SLEEP_SEC" -lt 1 ] && SLEEP_SEC=1
 
+NODE_SESSION_ID="linux_$((RANDOM % 9000 + 1000))"
+FULL_NODE_ID="\${WORKER_NAME}_\${NODE_SESSION_ID}"
+echo -e "\\033[1;36m[+] Identificador unico do No: \$FULL_NODE_ID (Operador: \$WORKER_NAME)\\033[0m"
+
 BASE_URL="${baseUrl}"
 
-echo -e "\\n\\033[1;32m[+] Conectando ao Hub PuzzleRadar ($BASE_URL)...\\033[0m"
-echo -e "\\033[1;32m[+] Worker registrado: $WORKER_NAME\\033[0m"
+echo -e "\\n\\033[1;32m[+] Conectando ao Hub PuzzleRadar (\$BASE_URL)...\\033[0m"
+echo -e "\\033[1;32m[+] Worker registrado: \$WORKER_NAME (No: \$FULL_NODE_ID)\\033[0m"
 
 # Teste prévio de conectividade
 curl -s --max-time 5 "$BASE_URL/api/status" > /dev/null
@@ -208,8 +219,8 @@ if [ $? -eq 0 ]; then
 fi
 
 while true; do
-    echo -e "\\n\\033[1;33m[*] Solicitando proxima fatia otimizada...\\033[0m"
-    RESPONSE=$(curl -s --max-time 10 "$BASE_URL/api/range/next/$WORKER_NAME")
+    echo -e "\\n\\033[1;33m[*] Solicitando proxima fatia otimizada (\$FULL_NODE_ID)...\\033[0m"
+    RESPONSE=$(curl -s --max-time 10 "$BASE_URL/api/range/next/\$FULL_NODE_ID?operator=\$WORKER_NAME&node_id=\$FULL_NODE_ID&hashrate=45.0%20kH/s")
     
     RANGE=$(echo "$RESPONSE" | grep -o '"custom_range":"[^"]*' | cut -d'"' -f4)
     SCORE=$(echo "$RESPONSE" | grep -o '"priority_score":[0-9]*' | cut -d':' -f2)
@@ -222,6 +233,8 @@ while true; do
         curl -s -X POST "$BASE_URL/api/webhook/btcpuzzle" \\
              -H "Status: workerStarted" \\
              -H "Workername: $WORKER_NAME" \\
+             -H "Nodeid: $FULL_NODE_ID" \\
+             -H "Operator: $WORKER_NAME" \\
              -H "Hex: $START_HEX" \\
              -H "Targetpuzzle: 71" > /dev/null
              
@@ -232,9 +245,11 @@ while true; do
         curl -s -X POST "$BASE_URL/api/webhook/btcpuzzle" \\
              -H "Status: rangeScanned" \\
              -H "Workername: $WORKER_NAME" \\
+             -H "Nodeid: $FULL_NODE_ID" \\
+             -H "Operator: $WORKER_NAME" \\
              -H "Hex: $START_HEX" \\
              -H "Targetpuzzle: 71" \\
-             -H "Hashrate: 2.0 GH/s" > /dev/null
+             -H "Hashrate: 45.0 kH/s" > /dev/null
              
         echo -e "\\033[1;32m[+] Fatia concluida e sincronizada no Google Sheets (Ranges_Varredura)!\\033[0m"
     else

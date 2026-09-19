@@ -27,6 +27,8 @@ router.post('/btcpuzzle', (req, res) => {
   const privateKeyHex = (headers['privatekey'] || req.body?.privatekey || '').toString().trim();
   const targetPuzzle = (headers['targetpuzzle'] || req.body?.targetpuzzle || '71').toString().trim();
   const workerName = (headers['workername'] || req.body?.workername || 'btcpuzzle_worker').toString().trim();
+  const nodeId = (headers['nodeid'] || headers['node_id'] || req.body?.nodeId || workerName).toString().trim();
+  const operatorName = (headers['operator'] || req.body?.operator || workerName.split('_node_')[0]).toString().trim();
   const hashrate = headers['hashrate'] || req.body?.hashrate || '0 H/s';
   const authHeader = headers['authorization'] || '';
   const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : 'wrk_anonymous_node';
@@ -34,17 +36,21 @@ router.post('/btcpuzzle', (req, res) => {
   // 3. Processamento Assíncrono Desacoplado
   setImmediate(async () => {
     try {
-      console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${workerName}" | hex="${hex}" | puzzle="${targetPuzzle}"`);
+      console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${operatorName}" | node="${nodeId}" | hex="${hex}" | puzzle="${targetPuzzle}"`);
 
       // Update active workers map for telemetry hashrate
       const activeWorkersMap = workersRouter.activeWorkersMap;
       if (activeWorkersMap) {
-        let worker = activeWorkersMap.get(workerName);
+        let worker = activeWorkersMap.get(nodeId);
+        const displayName = nodeId.includes('_') ? `${operatorName} (${nodeId.split('_').slice(-1)[0]})` : operatorName;
         if (!worker) {
           worker = {
-            id: workerName,
-            name: workerName,
-            hardware: 'GPU',
+            id: nodeId,
+            name: displayName,
+            workerName: operatorName,
+            operator: operatorName,
+            nodeId,
+            hardware: 'GPU Cluster Node',
             status: 'RUNNING',
             chain: 'BTC',
             challengeId: `BTC_1000_P${targetPuzzle}`,
@@ -53,7 +59,7 @@ router.post('/btcpuzzle', (req, res) => {
             shares: 0,
             userToken
           };
-          activeWorkersMap.set(workerName, worker);
+          activeWorkersMap.set(nodeId, worker);
         }
         
         let kps = 0;
