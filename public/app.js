@@ -75,20 +75,135 @@ async function fetchPoolStatus() {
       }
       if (data && data.parentLote) {
         const pl = data.parentLote;
-        setInner('officialParentHex', `0x${pl.parentHex || '4000000'}...`);
-        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (Marcos: ${pl.milestonesFound || 0}/60 | PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
-        setInner('officialPowCount', `${pl.powKeysFound} / ${pl.totalPowKeysRequired} PoW Oficiais (${pl.powProgressPercent || 0}%)`);
-        setInner('officialMilestonesCount', `${pl.milestonesFound || 0} / 60 Marcos (${pl.milestonesProgressPercent || 0}%)`);
-        setInner('officialParentStatus', pl.statusLabel || 'VARRENDO');
 
+        // 🚀 60 MARCOS HERO CARD EM EVIDÊNCIA MÁXIMA
+        setInner('milestonesHeroCount', `${pl.milestonesFound || 0} <span class="text-base font-normal text-slate-500">/ 60 Marcos</span>`);
+        setInner('milestonesHeroPercent', `${pl.milestonesProgressPercent || '0.0'}%`);
+        setInner('milestonesProgressBadge', `${pl.milestonesFound || 0}/60 MARCOS ATIVOS`);
+        
         const mBar = document.getElementById('officialMilestonesBar');
         if (mBar) {
           const w = Math.max(2, Math.min(100, parseFloat(pl.milestonesProgressPercent || 0)));
           mBar.style.width = `${w}%`;
         }
+
+        renderMilestonesGrid(pl.milestonesFound || 0, 60);
+
+        // 🌐 INFORMAÇÕES VISUAIS DA API OFICIAL
+        setInner('officialParentHex', `0x${pl.parentHex || '4000000'}... (2^45 chaves)`);
+        setInner('officialParentRange', `0x${pl.parentStartHex || '400000000000000000'} ➔ 0x${pl.parentEndHex || '400001ffffffffffff'}`);
+        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (Marcos: ${pl.milestonesFound || 0}/60 | PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
+
+        // 🧠 AVALIAÇÃO MATEMÁTICA DE IA (ZONA QUENTE VS FRIA)
+        if (pl.aiEvaluation) {
+          const ai = pl.aiEvaluation;
+          const zoneBadge = document.getElementById('officialAiZoneBadge');
+          if (zoneBadge) {
+            if (ai.isHotZone) {
+              zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+              zoneBadge.innerHTML = '🔥 ZONA QUENTE (&lt;50% Keyspace)';
+            } else {
+              zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30';
+              zoneBadge.innerHTML = '❄️ ZONA FRIA (&gt;50% Keyspace)';
+            }
+          }
+          setInner('officialAiZonePosition', `Posição: ${ai.zonePercent || '0.00'}% do Keyspace`);
+          setInner('officialAiProbRating', ai.probabilityRating || '62.8% de Ocorrência');
+          setInner('officialAiRecommendation', `💡 ${ai.recommendation || 'Fatia sob análise probabilística.'}`);
+        }
+
+        // 🔀 BOTÕES DE ESTRATÉGIA ATIVA
+        updateStrategyButtonsUI(pl.mode || 'OFFICIAL_POOL');
+
+        // 💤 SUB-PAINEL APÁTICO (AS 6 CHAVES DA POOL CENTRAL)
+        renderApatheticPowBadges(pl);
       }
     }
   } catch (e) {}
+}
+
+function renderMilestonesGrid(foundCount, total = 60) {
+  const container = document.getElementById('milestonesMiniGrid');
+  if (!container) return;
+
+  let html = '';
+  for (let i = 1; i <= total; i++) {
+    if (i <= foundCount) {
+      html += `<div title="Marco #${i} Concluído" class="h-2.5 rounded-sm bg-emerald-400 border border-emerald-300/80 shadow-[0_0_5px_rgba(52,211,153,0.8)] flex items-center justify-center text-[7px] font-bold text-black cursor-default">✓</div>`;
+    } else if (i === foundCount + 1) {
+      html += `<div title="Marco #${i} Em Varredura Ativa" class="h-2.5 rounded-sm bg-amber-400 border border-amber-200 animate-pulse flex items-center justify-center text-[7px] font-black text-black cursor-default">▶</div>`;
+    } else {
+      html += `<div title="Marco #${i} na Fila" class="h-2.5 rounded-sm bg-white/5 border border-white/10 hover:border-white/20 transition cursor-default"></div>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+function renderApatheticPowBadges(pl) {
+  const grid = document.getElementById('officialPowBadgesGrid');
+  if (!grid) return;
+  const powKeys = pl.collectedPowKeys || [];
+  const foundSet = new Set(powKeys.filter(k => k.found).map(k => k.address));
+
+  const total = pl.totalPowKeysRequired || 6;
+  const addresses = pl.powAddresses || [];
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    const addr = addresses[i] || '';
+    const isFound = foundSet.has(addr);
+    if (isFound) {
+      html += `<div class="p-1 rounded bg-emerald-950/40 border border-emerald-500/30 text-center text-emerald-400 text-[8px] font-mono font-bold">PoW ${i+1}: ✅</div>`;
+    } else {
+      html += `<div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px] font-mono">PoW ${i+1}: ⏳</div>`;
+    }
+  }
+  grid.innerHTML = html;
+  setInner('officialPowCountApathetic', `${pl.powKeysFound || 0} / ${total} chaves (${pl.powProgressPercent || 0}%)`);
+}
+
+async function changeMiningStrategy(mode) {
+  try {
+    const res = await fetch('/api/pool/mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      updateStrategyButtonsUI(data.mode);
+      fetchPoolStatus();
+    }
+  } catch (e) {
+    console.error('Erro ao alternar estratégia:', e);
+  }
+}
+
+async function requestNewOfficialSlice() {
+  try {
+    const confirmed = window.confirm('Deseja realmente pular a fatia atual e requisitar uma nova fatia pai de 2^45 chaves da API oficial btcpuzzle.info?');
+    if (!confirmed) return;
+
+    const res = await fetch('/api/pool/request-new-slice', { method: 'POST' });
+    if (res.ok) {
+      fetchPoolStatus();
+    }
+  } catch (e) {
+    console.error('Erro ao requisitar nova fatia:', e);
+  }
+}
+
+function updateStrategyButtonsUI(mode) {
+  const btnOfficial = document.getElementById('btnModeOfficial');
+  const btnAutonomous = document.getElementById('btnModeAutonomous');
+  if (!btnOfficial || !btnAutonomous) return;
+
+  if (mode === 'OFFICIAL_POOL') {
+    btnOfficial.className = 'py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm shadow-cyan-500/20';
+    btnAutonomous.className = 'py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-black/40 border-white/10 text-slate-400 hover:text-amber-300 hover:border-amber-500/40';
+  } else {
+    btnAutonomous.className = 'py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm shadow-amber-500/20';
+    btnOfficial.className = 'py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-black/40 border-white/10 text-slate-400 hover:text-cyan-300 hover:border-cyan-500/40';
+  }
 }
 
 // ─── TAB SWITCHER ───

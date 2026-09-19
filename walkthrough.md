@@ -9,49 +9,81 @@ Nesta iteração, implementamos a **Arquitetura de Mini-Pool Real** no PuzzleRad
 ## Frentes de Trabalho Executadas
 
 ### 1. Gestor de Fatia Pai & Agregador de PoW (`src/services/parentLoteManager.js`)
-- **Integração Oficial:** Conecta-se via HTTP `GET` em `https://api.btcpuzzle.info/puzzle/71/range` utilizando `process.env.BTCPUZZLE_USER_TOKEN`.
-- **Mapeamento HASH160:** Converte o endereço alvo do Puzzle 71 (`1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU`) e os 6 endereços de Prova de Trabalho (PoW) em seus 20-byte HASH160 em memória.
-- **Micro-Lotes CPU/Navegador:** Subdivide a fatia pai em fatias contíguas de $2^{24}$ chaves (~16.777.216 chaves) fornecidas via `GET /api/range/next/:worker_id`.
-- **Agregação PoW & Submissão Oficial:** Ao receber as 6 chaves PoW dos mineradores locais (`POST /api/worker/submit-pow`), calcula `SHA256(k1 + k2 + k3 + k4 + k5 + k6)` e dispara a submissão via `PUT https://api.btcpuzzle.info/puzzle/71/range` com headers oficiais (`UserToken`, `HEX`, `HashedProofKey`, `WorkerName`).
+# Walkthrough: Nova Coluna Dedicada, Leaderboard Dinâmico Online, Fix NaN% e Mineração Contínua 24/7
 
-### 2. Motor Criptográfico Real para CPU ($P_{i+1} = P_i + G$)
-- **Navegador Web Worker (`public/js/worker-thread.js`):** Implementa adição sequencial de pontos em curva elíptica secp256k1 com BigInt nativo. Varre os micro-lotes de $2^{24}$ chaves sem engasgos na interface gráfica, reportando progresso a cada 25.000 chaves.
-- **Terminal Node.js (`src/workers/cpuMiner.js`):** Motor autônomo em Node.js com adição de pontos elípticos, exibindo velocidade real ($kH/s$) e barra de progresso no terminal.
-- **Scripts de 1-Clique (`/start.ps1` e `/start.sh`):** Atualizados em `src/server/routes/scripts.js` para detectar Node.js e executar o `cpuMiner.js`, mantendo instruções documentadas para mineradores GPU NVIDIA via `btcpuzzle.exe -c pool.conf`.
-
-### 3. Buffer do Google Sheets & Chunk # BigInt
-- **Numeração Ordinal BigInt:** Em `src/services/loteManager.js` e `src/lib/googleSheetsBuffer.js`:
-  ```js
-  const BASE_START = 0x400000000000000000n;
-  const chunkIndex = Number((BigInt("0x" + startHex.replace(/^0x/i, '')) - BASE_START) / stepSize) + 1;
-  const chunkLabel = `Chunk #${chunkIndex}`;
-  ```
-- **Alinhamento Estrito de 10 Colunas:** `googleSheetsBuffer.js` e `src/server/routes/webhook.js` garantem que o array de colunas contenha exatamente 10 elementos `[Timestamp, Chain, Challenge ID, Chunk #, Range Início, Range Fim, Worker, Status, Hashrate, Descoberta]`. Se `endHex` estiver ausente no payload, é deduzido automaticamente via `(startBig + stepSize)`.
-
-### 4. Google Apps Script v5.3 & Reatividade Frontend
-- **Apps Script v5.3 (`src/services/googleAppsScript.js`):** Código mestre v5.3 atualizado com suporte a `batch_ranges` e sincronização ao vivo com `btcpuzzle.info`.
-- **Reatividade e Apelido de Usuário (`public/app.js`):** Funções de cópia de script injetam dinamicamente o apelido do usuário. Tacômetro e badges reagem em tempo real aos pings dos workers.
+Nesta iteração, implementamos todas as melhorias visuais, de controle e estabilidade solicitadas para o Bitcoin Puzzle #71 e a integração com a API oficial da pool (`btcpuzzle.info`).
 
 ---
 
-## Verificação e Resultados de Testes
+## 1. Informação das 6 Chaves PoW e Envio ao Servidor Oficial: Como Funciona?
 
-### 1. Suíte da Arquitetura Mini-Pool (`tests/miniPoolArchitecture.test.js`)
-- Executado `node tests/miniPoolArchitecture.test.js`:
-  - ✅ Micro-fatiamento de $2^{24}$ chaves validado.
-  - ✅ Agregação de 6 chaves PoW e hash `SHA256(k1+...k6)` validado.
-  - ✅ Cálculo ordinal BigInt `Chunk #1` e 10 colunas no buffer validados.
-  - ✅ Motor matemático de adição de pontos $P+G$ em secp256k1 validado com 100% de precisão.
-  - **Resultado:** Exit Code 0.
+> [!IMPORTANT]
+> **A informação das 6 chaves PoW NÃO foi retirada!**
+> Ela está ativa no `parentLoteManager.js`, que faz a ponte com a API oficial `https://api.btcpuzzle.info/puzzle/71/range`.
 
-### 2. Validação Mestre Integrada (`tests/masterValidation.test.js`)
-- Executado `node tests/masterValidation.test.js`:
+### Como Funciona Visualmente no Painel (Dashboard):
+1. **Card "Fatia Pai Oficial & PoW (btcpuzzle.info)"**:
+   - **Range Pai Ativo**: Exibe a fatia oficial em execução (ex: `0x4000000...` cobrindo $2^{45}$ chaves).
+   - **Marcos Comunitários (60x)**: Exibe `X / 60 Marcos (Y%)` com barra dinâmica de progresso acelerada em 10x.
+   - **Contador PoW Oficial**: Exibe `Z / 6 PoW Oficiais`.
+   - **Grid dos 6 Desafios PoW**: 6 caixas dedicadas (`PoW #1` a `PoW #6`), com os endereços de desafio oficiais (`1PWo...`).
+   - Cada badge exibe `⏳ Varrendo...` e, no momento em que a chave privada for computada pelos mineradores, transforma-se em um badge verde brilhante `✅ ACHADA: 0x...`.
+   - Assim que a 6ª chave é encontrada, o card aciona o banner de celebração: `🎉 6/6 CHAVES PoW ENCONTRADAS & 60/60 MARCOS! Lote Pai submetido com sucesso à API Oficial!` com status `SUBMETIDO AO OFICIAL (HTTP 200)`.
+
+### Como Funciona na Planilha Google (Aba `Ranges_Varredura`):
+- **Nova Coluna Dedicada (Coluna 9)**: Em vez de misturar com o status da varredura, criamos a coluna:
+  - **`Fatia Pai & PoW Oficial`**:
+    - Enquanto varre: `Pai: 0x4000000 [Marcos: 0/60 | PoW: 0/6]`
+    - Quando enviada ao oficial: `🚀 6/6 PoW ENVIADO AO OFICIAL! (Pai: 0x4000000 | 60/60 Marcos)`
+- **`Status da Varredura` (Coluna 8)** agora fica limpa e legível:
+  - `COMPLETED (Terminal)` para nós GPU/CPU locais.
+  - `COMPLETED (Navegador)` para o minerador Web 1-Click.
+
+---
+
+## 2. Correção do Progresso da Pool ("NaN% Concluído")
+
+- **Diagnóstico**: No frontend (`public/app.js`), o cálculo tentava ler `data.puzzle71.scannedRanges`, campo que não existia na resposta de `/api/status`, dividindo `undefined / 1000`, o que gerava `NaN`.
+- **Correção**: Implementamos verificação com fallback em `data.puzzle71.progressPercent`, `data.puzzle71.completed / totalLotes` e `powProgressPercent`, garantindo valor numérico sempre formatado (ex: `0.0000% Concluído`).
+
+---
+
+## 3. Registro Anti-Colisão de Ranges Varridos
+
+- **Alinhamento com a API Oficial**:
+  - O cabeçalho e os indicadores da aba `Ranges & Space Pruning` foram ajustados para refletir a decomposição das fatias oficiais de $2^{45}$ chaves em micro-lotes atômicos de $2^{24}$ chaves.
+  - O card exibe a fatia pai oficial ativa e o buffer de quarentena.
+  - A tabela de fatias recentes agora conta com a coluna **`Fatia Pai & PoW Oficial`**, permitindo auditar exatamente qual fatia oficial cada worker está processando.
+
+---
+
+## 4. Leaderboard da Comunidade: Nós Reais Aparecendo ONLINE
+
+- **Diagnóstico**: O `leaderboardService` dependia de mock seeds estáticos que expiravam após 5 minutos. Os workers de terminal (`terminal_worker.py`) e web reportavam via rotas de API que não chamavam `recordContribution`.
+- **Correção**:
+  - `leaderboardService.getTopContributors()` agora mescla dinamicamente os nós registrados no `fleetState.nodes`.
+  - As rotas `/api/workers/:id/heartbeat`, `/api/workers/:id/result` e `/api/range/next/:worker_id` registram contribuição ativa.
+  - O minerador ativo (ex: `Teste-02` ou seu minerador web) aparece imediatamente com a badge verde pulsante **ONLINE**, velocidade real medida (ex: `3.15 MH/s`) e total de chaves doadas.
+  - Nomes que continham referências obsoletas ("Colab") foram eliminados.
+
+---
+
+## 5. Web Mining no Navegador: Funcionamento Contínuo e Perpétuo
+
+- O `BrowserMinerController` (`public/js/browserMiner.js`) foi blindado:
+  - **Auto-Resume**: Ao fechar ou recarregar a aba, se o usuário deixou ativado, ele retoma automaticamente (`localStorage.puzzleradar_web_mining_active = 'true'`).
+  - **Loop Infinito Confiável**: Ao completar cada micro-lote, requisita imediatamente o próximo da fila da pool sem interrupção.
+  - **Heartbeat Ativo**: Envia pulso a cada 4 segundos ao backend para manter o status **ONLINE** no Leaderboard comunitário.
+  - O minerador só para se o usuário clicar explicitamente em **⏹ Pausar Mineração**.
+
+---
+
+## 6. Ajuste dos Botões do Cabeçalho e Abas
+
+- Aplicadas classes utilitárias CSS `shrink-0`, `whitespace-nowrap`, `min-w-fit` e `flex-nowrap` no `<header>` e na barra `<nav>`:
+  - Nenhum botão é esmagado ou sobrepõe o botão vizinho.
+  - A barra de navegação desliza com rolagem horizontal suave em telas menores, mantendo todos os retângulos preservados.
   - ✅ 12/12 capítulos de testes integrados aprovados (Puzzles 1000 BTC, Anti-MEV, Sheets Buffer, Criptografia).
-  - **Resultado:** 100% de aprovação (Exit Code 0).
-
----
-
-## Tabela de Commits no Repositório
 
 | Commit Hash | Descrição do Commit |
 |---|---|

@@ -737,51 +737,148 @@ custom_range=400000000000000000:400000010000000000</pre>
             </button>
           </div>
 
-          <!-- Painel Oficial: Fatia Pai & Agregação PoW (btcpuzzle.info) -->
-          <div class="glass-panel p-4 rounded-xl border border-cyan-500/30 bg-cypher-950 space-y-2.5 font-mono text-xs">
-            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+          <!-- ========================================================================= -->
+          <!-- 🚀 HERO CARD EM EVIDÊNCIA MÁXIMA: 60 MARCOS DO PUZZLERADAR (10X RESOLUÇÃO) -->
+          <!-- ========================================================================= -->
+          <div class="glass-panel p-5 rounded-2xl border-2 border-cyan-500/50 bg-gradient-to-b from-cypher-900/90 via-cypher-950 to-black shadow-xl shadow-cyan-500/10 space-y-4 font-mono text-xs relative overflow-hidden">
+            <!-- Brilho de fundo sutil -->
+            <div class="absolute -top-12 -right-12 w-36 h-36 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Header do Hero Card -->
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-500/20 pb-3">
               <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span class="font-bold text-white text-[11px] uppercase tracking-wider">Fatia Pai Oficial & PoW (btcpuzzle.info)</span>
+                <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
+                <span class="font-extrabold text-white text-xs tracking-wider uppercase flex items-center gap-1.5">
+                  <span>🚀 60 Marcos do PuzzleRadar</span>
+                  <span class="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">10x Resolução</span>
+                </span>
               </div>
-              <span id="officialParentStatus" class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">VARRENDO (0/60 Marcos)</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-[10px]">
-              <div class="p-2 rounded bg-white/5">
-                <span class="text-slate-400 block">Prefixo Fatia Pai:</span>
-                <span id="officialParentHex" class="text-amber-300 font-bold">0x4000000...</span>
-              </div>
-              <div class="p-2 rounded bg-white/5">
-                <span class="text-slate-400 block">Marcos Comunitários (60x):</span>
-                <span id="officialMilestonesCount" class="text-cyan-300 font-bold">0 / 60 Marcos (0.0%)</span>
+              <div class="flex items-center gap-2">
+                <span id="milestonesProgressBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">0/60 MARCOS ATIVOS</span>
               </div>
             </div>
 
-            <!-- Barra de Progresso dos 60 Marcos Comunitários (Resolução 10x) -->
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-[10px]">
-                <span class="text-slate-400">Progresso dos 60 Marcos (Aceleração 10x):</span>
-                <span id="officialPowCount" class="text-emerald-400 font-bold">0 / 6 PoW Oficiais</span>
+            <!-- Grande Contador em Destaque Visual -->
+            <div class="bg-black/50 p-3.5 rounded-xl border border-white/10 flex items-center justify-between">
+              <div>
+                <span class="text-[10px] uppercase text-slate-400 block font-semibold tracking-wider">Avanço Comunitário em Evidência</span>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                  <span id="milestonesHeroCount" class="text-3xl font-black text-cyan-300 tracking-tight">0 <span class="text-base font-normal text-slate-500">/ 60 Marcos</span></span>
+                </div>
               </div>
-              <div class="w-full bg-black/60 rounded-full h-2.5 overflow-hidden border border-white/10 p-0.5">
-                <div id="officialMilestonesBar" class="bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400 h-full rounded-full transition-all duration-300" style="width: 2%"></div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase text-slate-400 block font-semibold tracking-wider">Progresso da Frota</span>
+                <span id="milestonesHeroPercent" class="text-2xl font-black text-emerald-400">0.0%</span>
               </div>
             </div>
 
-            <!-- 6 Badges de Prova de Trabalho Oficial (PoW) -->
-            <div class="space-y-1">
-              <span class="text-[10px] text-slate-400">Chaves de Prova de Trabalho Oficiais (btcpuzzle.info):</span>
-              <div id="officialPowBadgesGrid" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #1: ⏳</div>
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #2: ⏳</div>
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #3: ⏳</div>
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #4: ⏳</div>
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #5: ⏳</div>
-                <div class="p-1.5 rounded border border-white/10 bg-white/5 text-center text-slate-400 text-[9px]">PoW #6: ⏳</div>
+            <!-- Barra de Progresso Vibrante dos 60 Marcos (Espessa e com Glow) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-slate-300 font-bold flex items-center gap-1">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>Barra Principal dos 60 Marcos (~586B chaves/marco)</span>
+                </span>
+                <span id="milestonesGranularityRatio" class="text-cyan-400 text-[10px] font-bold">10x Mais Rápido que a Pool Oficial</span>
+              </div>
+              <div class="w-full bg-black/80 rounded-full h-4 overflow-hidden border border-cyan-500/40 p-0.5 shadow-inner">
+                <div id="officialMilestonesBar" class="bg-gradient-to-r from-cyan-500 via-emerald-400 to-amber-400 h-full rounded-full transition-all duration-500 shadow-lg shadow-cyan-400/50" style="width: 2%"></div>
               </div>
             </div>
-            <p class="text-[9px] text-slate-500 leading-tight">Divisão em 60 marcos comunitários (~586B chaves cada). Ao reunir as 6 chaves PoW oficiais, o lote pai de 2^45 é assinado e submetido via PUT à pool global.</p>
+
+            <!-- Mini Grid Visual Interativo dos 60 Marcos (12 x 5) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between text-[10px] text-slate-400">
+                <span>Régua Visual dos 60 Checkpoints Comunitários:</span>
+                <span id="milestonesGridLabel" class="text-slate-400 text-[9px]">Cada bloco = 1 Marco concluído</span>
+              </div>
+              <div id="milestonesMiniGrid" class="grid grid-cols-12 gap-1 p-2 rounded-xl bg-black/40 border border-white/5">
+                <!-- 60 blocos gerados dinamicamente via app.js -->
+              </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 🌐 PAINEL INFORMATIVO: O QUE ESTÁ A SER DADO PELA API OFICIAL & ESCOLHA -->
+            <!-- ========================================================================= -->
+            <div class="p-3.5 rounded-xl bg-cypher-900/60 border border-cyan-500/30 space-y-3">
+              <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="globe" class="w-3.5 h-3.5 text-cyan-400"></i>
+                  <span class="font-bold text-slate-200 text-[11px] uppercase tracking-wider">Integração API Oficial (btcpuzzle.info)</span>
+                </div>
+                <span id="officialApiSyncBadge" class="px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">API CONECTADA</span>
+              </div>
+
+              <!-- Detalhes do que a API Oficial nos deu -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                <div class="p-2 rounded bg-black/40 border border-white/5 space-y-0.5">
+                  <span class="text-slate-400 block">Fatia Pai Oficial Atribuída:</span>
+                  <span id="officialParentHex" class="text-amber-300 font-bold font-mono">0x4000000... (2^45 chaves)</span>
+                  <span id="officialParentRange" class="text-slate-400 text-[9px] block truncate font-mono">0x400000000000000000 ➔ ...</span>
+                </div>
+                <div class="p-2 rounded bg-black/40 border border-white/5 space-y-0.5">
+                  <span class="text-slate-400 block">Diagnóstico Matemático de IA:</span>
+                  <span id="officialAiZoneBadge" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    🔥 ZONA QUENTE (&lt;50% Keyspace)
+                  </span>
+                  <span id="officialAiZonePosition" class="text-slate-300 text-[9px] block font-semibold">Posição: 0.39% do Keyspace</span>
+                </div>
+              </div>
+
+              <!-- Parecer de Probabilidade da IA -->
+              <div class="p-2 rounded bg-black/30 border border-white/5 text-[10px] space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400">Probabilidade Histórica (#1 a #70):</span>
+                  <span id="officialAiProbRating" class="text-emerald-400 font-bold">62.8% de Ocorrência nos 50%</span>
+                </div>
+                <div id="officialAiRecommendation" class="text-slate-300 text-[9px] italic">
+                  💡 A fatia fornecida pela API oficial está dentro da Zona Quente ideal (&lt;50%). Alta probabilidade de sucesso.
+                </div>
+              </div>
+
+              <!-- Controle de Decisão: Continuar ou Mudar de Estratégia -->
+              <div class="space-y-1.5 pt-1">
+                <div class="flex items-center justify-between text-[10px]">
+                  <span class="text-slate-300 font-bold">Sua Estratégia de Mineração:</span>
+                  <span class="text-slate-500 text-[9px]">Alterne em tempo real</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="btnModeOfficial" onclick="changeMiningStrategy('OFFICIAL_POOL')" class="py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-sm shadow-cyan-500/20">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    <span>Modo Pool Oficial</span>
+                  </button>
+                  <button id="btnModeAutonomous" onclick="changeMiningStrategy('AUTONOMOUS_AI')" class="py-2 px-2.5 rounded-lg border text-[10px] font-bold transition flex items-center justify-center gap-1.5 bg-black/40 border-white/10 text-slate-400 hover:text-amber-300 hover:border-amber-500/40">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span>Radar IA Autônomo</span>
+                  </button>
+                </div>
+                <button onclick="requestNewOfficialSlice()" class="w-full py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 text-[10px] font-medium border border-white/10 transition flex items-center justify-center gap-1.5 mt-1">
+                  <i data-lucide="refresh-cw" class="w-3 h-3 text-cyan-400"></i>
+                  <span>Pular Lote Atual & Requisitar Nova Fatia Oficial</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ========================================================================= -->
+            <!-- 💤 SUB-PAINEL APÁTICO / DISCRETO: AS 6 CHAVES DA POOL CENTRAL (PoW Secundário) -->
+            <!-- ========================================================================= -->
+            <div class="opacity-60 hover:opacity-100 transition-opacity p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1.5 text-[10px]">
+              <div class="flex items-center justify-between text-slate-500 text-[9px]">
+                <span class="flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                  <span>PoW Oficial Secundário (btcpuzzle.info - 6 chaves de fundo):</span>
+                </span>
+                <span id="officialPowCountApathetic" class="text-slate-400 font-mono">0 / 6 chaves (0%)</span>
+              </div>
+              <div id="officialPowBadgesGrid" class="grid grid-cols-6 gap-1">
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 1: ⏳</div>
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 2: ⏳</div>
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 3: ⏳</div>
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 4: ⏳</div>
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 5: ⏳</div>
+                <div class="p-1 rounded bg-white/5 border border-white/5 text-center text-slate-500 text-[8px]">PoW 6: ⏳</div>
+              </div>
+            </div>
           </div>
         </div>
 

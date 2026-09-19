@@ -455,4 +455,60 @@ router.get('/transparency', async (req, res) => {
   res.json(await getTransparencyData());
 });
 
+/**
+ * GET /api/pool/status
+ * Retorna o status unificado da Pool Oficial e dos 60 Marcos do PuzzleRadar
+ */
+router.get('/status', (req, res) => {
+  try {
+    const { parentLoteManager } = require('../../services/parentLoteManager');
+    res.json({
+      success: true,
+      parentLote: parentLoteManager.getStatus()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/pool/mode
+ * Altera a estratégia ativa: 'OFFICIAL_POOL' ou 'AUTONOMOUS_AI'
+ */
+router.post('/mode', (req, res) => {
+  try {
+    const { mode } = req.body;
+    const { parentLoteManager } = require('../../services/parentLoteManager');
+    const result = parentLoteManager.setMode(mode);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    res.json({
+      success: true,
+      mode: result.mode,
+      parentLote: parentLoteManager.getStatus()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/pool/request-new-slice
+ * Força a requisição de uma nova fatia pai da API oficial
+ */
+router.post('/request-new-slice', async (req, res) => {
+  try {
+    const { parentLoteManager } = require('../../services/parentLoteManager');
+    const newStatus = await parentLoteManager.requestNewOfficialSlice();
+    res.json({
+      success: true,
+      message: 'Nova fatia pai requisitada com sucesso da API oficial',
+      parentLote: newStatus
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
