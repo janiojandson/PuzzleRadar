@@ -23,6 +23,8 @@ class ParentLoteManager {
     this.isFetching = false;
     this.cacheTtlMs = 30 * 60 * 1000; // 30 minutos TTL
     this.mode = 'OFFICIAL_POOL'; // 'OFFICIAL_POOL' ou 'AUTONOMOUS_AI'
+    this.activeMicroLotes = new Map(); // startHex -> { workerId, startBig, endBig, startHex, endHex, allocatedAt }
+    this.reclaimQueue = []; // Fila de reciclagem de micro-lotes abandonados
   }
 
   /**
@@ -155,19 +157,75 @@ class ParentLoteManager {
   }
 
   /**
-   * Obtém a próxima micro-fatia contígua de 2^24 chaves (~16.7M) para um minerador CPU/Navegador
+   * Revalida e recicla micro-lotes que foram alocados há mais de 15 minutos sem confirmação de varredura (Anti-Abandono)
+   */
+  reclaimAbandonedMicroLotes() {
+    const now = Date.now();
+    const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutos sem confirmação
+
+    for (const [startHex, lote] of this.activeMicroLotes.entries()) {
+      if (now - lote.allocatedAt > TIMEOUT_MS) {
+        console.warn(`♻️ [ParentLoteManager] Micro-Lote 0x${startHex} reciclado (Worker "${lote.workerId}" inativo >15m). Retornando à fila para fechar lacuna.`);
+        this.reclaimQueue.push({
+          startBig: lote.startBig,
+          endBig: lote.endBig,
+          startHex: lote.startHex,
+          endHex: lote.endHex
+        });
+        this.activeMicroLotes.delete(startHex);
+      }
+    }
+  }
+
+  /**
+   * Marca um micro-lote como concluído com sucesso, liberando da auditoria de abandono
+   */
+  markMicroLoteCompleted(hex) {
+    if (!hex) return;
+    const cleanHex = String(hex).replace(/^0x/i, '').slice(0, 18).padStart(18, '0');
+    this.activeMicroLotes.delete(cleanHex);
+    this.reclaimQueue = this.reclaimQueue.filter(item => item.startHex !== cleanHex);
+  }
+
+  /**
+   * Obtém a próxima micro-fatia contígua de 2^24 chaves (~16.7M) para um minerador CPU/Navegador/Colab
    */
   async getNextMicroLote(workerId) {
     if (!this.currentParent || (Date.now() - this.currentParent.createdAt > this.cacheTtlMs)) {
       await this.fetchParentRangeFromOfficialPool();
     }
 
-    const startBig = this.currentParent.parentStartBig + this.currentParent.allocatedOffset;
-    const endBig = startBig + STEP_CPU;
-    this.currentParent.allocatedOffset += STEP_CPU;
+    // 1. Limpeza preventiva de fatias de workers que possam ter fechado o navegador/sessão
+    this.reclaimAbandonedMicroLotes();
 
-    const startHex = startBig.toString(16).padStart(18, '0');
-    const endHex = endBig.toString(16).padStart(18, '0');
+    let startBig, endBig, startHex, endHex;
+
+    // 2. Prioridade 1: Se houver fatias abandonadas na fila, entrega primeiro para garantir que a fileira não fique com lacunas
+    if (this.reclaimQueue.length > 0) {
+      const recycled = this.reclaimQueue.shift();
+      startBig = recycled.startBig;
+      endBig = recycled.endBig;
+      startHex = recycled.startHex;
+      endHex = recycled.endHex;
+    } else {
+      // 3. Prioridade 2: Avança o ponteiro contíguo sequencial
+      startBig = this.currentParent.parentStartBig + this.currentParent.allocatedOffset;
+      endBig = startBig + STEP_CPU;
+      this.currentParent.allocatedOffset += STEP_CPU;
+
+      startHex = startBig.toString(16).padStart(18, '0');
+      endHex = endBig.toString(16).padStart(18, '0');
+    }
+
+    // Registra na tabela de fatias ativas com timestamp
+    this.activeMicroLotes.set(startHex, {
+      workerId,
+      startBig,
+      endBig,
+      startHex,
+      endHex,
+      allocatedAt: Date.now()
+    });
 
     return {
       workerId,

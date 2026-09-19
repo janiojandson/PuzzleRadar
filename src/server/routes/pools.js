@@ -289,6 +289,12 @@ router.post('/submit-chunk', async (req, res) => {
       await markChunkScanned(challengeId, chunkIndex);
     }
 
+    // Libera micro-lote no parentLoteManager para confirmar varredura da fatia
+    try {
+      const { parentLoteManager } = require('../../services/parentLoteManager');
+      parentLoteManager.markMicroLoteCompleted(startHex);
+    } catch (_) {}
+
     // Enfileira no buffer de lotes para o Google Sheets
     sheetsBuffer.enqueueChunkLog({
       timestamp: new Date().toISOString(),

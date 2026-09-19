@@ -135,6 +135,11 @@ router.post('/btcpuzzle', (req, res) => {
 
           await markRangeScanned(targetPuzzle, startHex, endHex).catch(() => {});
 
+          try {
+            const { parentLoteManager } = require('../../services/parentLoteManager');
+            parentLoteManager.markMicroLoteCompleted(startHex);
+          } catch (_) {}
+
           const isWebClient = (headers['hashrate'] && String(headers['hashrate']).includes('kH/s')) || String(workerName).toLowerCase().includes('web');
           const clientStatus = isWebClient ? 'COMPLETED (Navegador)' : 'COMPLETED_BTCPUZZLE_CLIENT';
 
