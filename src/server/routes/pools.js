@@ -268,14 +268,14 @@ router.post('/simulate-worker-step', async (req, res) => {
 // Valida Proof-of-Share estatístico (Binomial) e enfileira no buffer de lotes
 router.post('/submit-chunk', async (req, res) => {
   try {
+    const startHex = req.body.startHex || req.body.rangeStart;
+    const endHex = req.body.endHex || req.body.rangeEnd;
     const {
       workerToken,
       workerName = 'Colab Farm Node',
       challengeId = 'BTC_1000_P71',
       chain = 'BTC',
       chunkIndex,
-      startHex,
-      endHex,
       hashrate = '0 H/s',
       pointsSubmitted = 0,
       keysChecked = 1000000000000
@@ -292,7 +292,7 @@ router.post('/submit-chunk', async (req, res) => {
     // Libera micro-lote no parentLoteManager para confirmar varredura da fatia
     try {
       const { parentLoteManager } = require('../../services/parentLoteManager');
-      parentLoteManager.markMicroLoteCompleted(startHex);
+      if (startHex) parentLoteManager.markMicroLoteCompleted(startHex);
     } catch (_) {}
 
     // Registra/atualiza worker ativo no activeWorkersMap para telemetria e velocidade somada
@@ -326,13 +326,15 @@ router.post('/submit-chunk', async (req, res) => {
           workerName: operatorName,
           operator: operatorName,
           nodeId,
-          hardware: 'Kangaroo Pool Node (Colab/GPU)',
-          gpuModel: 'Python Multi-Core / CUDA',
+          hardware: 'Kangaroo Pool Node (Colab/Python)',
+          gpuModel: 'Python Multi-Core / Cloud Instance',
           chain,
           challengeId,
           keysPerSecond: kps > 0 ? kps : (existing.keysPerSecond || 50000),
           status: 'ONLINE',
           progress: 100,
+          shares: (existing.shares || 0) + 1,
+          completedChunks: (existing.completedChunks || 0) + 1,
           totalKeysChecked: (existing.totalKeysChecked || 0) + Number(keysChecked || 0),
           lastSeen: Date.now()
         });

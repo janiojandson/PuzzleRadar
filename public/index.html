@@ -615,7 +615,51 @@
             <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer" class="px-3 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold border border-amber-500/40 transition flex items-center gap-1" title="Abrir Google Colab em Nova Aba">
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Colab
             </a>
+        </div>
+      </div>
+
+      <!-- Retângulo Adaptável: Google Colab Multi-Instância (Python Puro • Anti-Ban • Sem Dependências) -->
+      <div class="glass-panel-glow rounded-2xl p-6 border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900 to-cypher-950 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1 max-w-2xl">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg">🐍</div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2 flex-wrap">
+                <span>Google Colab & Nuvem — Python Multi-Instância</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Zero Instalações</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Anti-Ban</span>
+              </h3>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Script em Python puro utilizando bibliotecas nativas padrão (sem <code class="text-amber-300 font-mono">!pip install</code>). Gera um <strong>ID de nó exclusivo para cada aba aberta</strong>, evitando sobreposição de trabalho e somando todo o hashrate ao seu perfil.
+            </p>
           </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="copyColabFullScript(this)" id="btnCopyColabFull" class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Completo
+            </button>
+            <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 transition flex items-center gap-1.5">
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Colab
+            </a>
+            <a href="/solver/colab_worker.py" download="colab_worker.py" class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs border border-amber-500/30 transition flex items-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar .py
+            </a>
+          </div>
+        </div>
+
+        <!-- Bloco de Código Adaptável com Barra de Rolagem e Auto-Resize -->
+        <div class="relative group rounded-xl overflow-hidden border border-amber-500/30">
+          <div class="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-amber-500/30 text-[11px] font-mono text-slate-400">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+              <span class="text-slate-200 font-bold ml-1">colab_worker.py</span>
+            </div>
+            <span class="text-[10px] text-amber-400/80">Clique dentro para selecionar tudo • Cole na 1ª célula do Colab</span>
+          </div>
+          <textarea id="colabFullCodeBox" readonly onclick="this.select();" class="w-full h-80 p-4 bg-black/90 text-xs font-mono text-amber-300 select-all focus:outline-none focus:border-amber-400 custom-scrollbar resize-y leading-relaxed font-mono"></textarea>
         </div>
       </div>
 
