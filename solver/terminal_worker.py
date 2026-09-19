@@ -126,18 +126,33 @@ class HybridHardwareDetector:
 
 
 class HybridFarmWorker:
-    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, mobile=False, threads=None):
+    def __init__(self, api_url=DEFAULT_API_URL, node_name=None, token=None, chain=DEFAULT_CHAIN, challenge_id=DEFAULT_CHALLENGE, mobile=False, threads=None, power=None):
         self.api_url = api_url.rstrip('/')
         self.instance_id = f"inst_{int(time.time())}_{random.randint(1000, 9999)}"
-        self.node_name = node_name or f"miner-{random.randint(1000, 9999)}"
+        self.power = int(power) if power in (25, 50, 75, 100) else 100
+        
+        # Identificação única por sessão para permitir múltiplos acessos simultâneos
+        base_name = node_name or f"miner-{random.randint(1000, 9999)}"
+        session_tag = f"{random.randint(100, 999)}"
+        if any(base_name.endswith(f"_{i}") for i in range(10)):
+            self.node_name = f"{base_name}_{session_tag}"
+        elif f"_{session_tag}" not in base_name and "inst_" not in base_name:
+            self.node_name = f"{base_name}_{session_tag}"
+        else:
+            self.node_name = base_name
+
         self.token = token
         self.chain = chain
         self.challenge_id = challenge_id
         self.worker_id = None
         self.running = False
         self.mobile = mobile
-        self.threads = threads or (os.cpu_count() or 4)
         self.hw = HybridHardwareDetector()
+
+        total_cores = os.cpu_count() or 4
+        calculated_threads = max(1, int(round(total_cores * (self.power / 100.0))))
+        self.threads = threads or calculated_threads
+
         self.kangaroo_round = 0
         self.stats = {
             "ranges_completed": 0,
@@ -149,13 +164,15 @@ class HybridFarmWorker:
     def print_banner(self):
         is_mobile = self.mobile or (MOBILE_MAX_STEPS > 0)
         hw_desc = self.hw.get_hardware_description()
+        total_cores = os.cpu_count() or 4
         print("\n" + "=" * 74)
-        print("  🧩 PuzzleRadar v4.0 — Minerador Híbrido Universal (GPU & CPU)")
+        print("  🧩 PuzzleRadar v5.3 — Minerador Híbrido Universal (GPU & CPU)")
         print(f"  🎯 Alvo: [{self.chain}] {self.challenge_id} | Algoritmo: Pollard's Kangaroo O(√N)")
         print("=" * 74)
         print(f"  Worker ID  : {self.node_name}")
         print(f"  Servidor   : {self.api_url}")
         print(f"  Hardware   : ⚡ {hw_desc}")
+        print(f"  Potência   : ⚡ {self.power}% ({self.threads}/{total_cores} núcleos ativos)")
         print(f"  Aceleração : {'CUDA Nativo NVIDIA' if self.hw.binary_path else 'Motor Híbrido Multi-Thread (AMD/Intel/CPU)'}")
         print(f"  Modo       : {'MOBILE (lotes curtos)' if is_mobile else 'CONTINUO (Alto Rendimento)'}")
         print("=" * 74 + "\n")
@@ -187,7 +204,9 @@ class HybridFarmWorker:
                     "chain": self.chain,
                     "challenge_id": self.challenge_id,
                     "hardware": self.hw.get_hardware_description(),
-                    "gpuModel": self.hw.gpu_name
+                    "gpuModel": self.hw.gpu_name,
+                    "power": self.power,
+                    "threads": self.threads
                 },
                 timeout=10
             )
@@ -219,6 +238,8 @@ class HybridFarmWorker:
                     "progress": progress,
                     "chain": self.chain,
                     "challenge_id": self.challenge_id,
+                    "power": self.power,
+                    "threads": self.threads,
                     "status": f"MINING_{self.chain}_{self.challenge_id}"
                 },
                 timeout=5
@@ -295,6 +316,14 @@ class HybridFarmWorker:
                             "stepDistanceHex": f"0x{curr_dist:x}",
                             "isTame": (self.kangaroo_round % 2 == 0)
                         })
+
+                # Calibrador de intensidade da máquina (controle térmico e de uso de CPU)
+                if self.power <= 25:
+                    time.sleep(0.04)
+                elif self.power <= 50:
+                    time.sleep(0.02)
+                elif self.power <= 75:
+                    time.sleep(0.005)
 
         elapsed = max(time.time() - start_time, 0.001)
         kps = int(real_steps / elapsed)
@@ -404,7 +433,27 @@ if __name__ == "__main__":
     parser.add_argument("--allow-cpu", action="store_true",       help="Compatibilidade legacy")
     parser.add_argument("--mobile",    action="store_true",       help="Modo mobile: sessões curtas")
     parser.add_argument("--threads",   type=int, default=None,    help="Número de threads CPU")
+    parser.add_argument("--power",     type=int, choices=[25, 50, 75, 100], default=None, help="Potência da máquina (25, 50, 75 ou 100%%)")
     args = parser.parse_args()
+
+    power = args.power
+    if power is None:
+        if sys.stdin and sys.stdin.isatty():
+            try:
+                print("\n⚡ ======================================================================")
+                print("   Escolha a Potência / Intensidade de Mineração deste Computador:")
+                print("   [1] Leve / Silencioso   (~25% CPU) - Permite trabalhar e navegar fluido")
+                print("   [2] Moderado            (~50% CPU) - Bom equilíbrio de rendimento")
+                print("   [3] Intenso             (~75% CPU) - Alta velocidade de varredura")
+                print("   [4] Força Máxima 🚀     (100% CPU) - Força total do hardware [Padrão]")
+                print("   ======================================================================")
+                choice = input("👉 Digite sua opção [1, 2, 3 ou 4] (Pressione Enter para Máxima 100%): ").strip()
+                power_map = {"1": 25, "2": 50, "3": 75, "4": 100, "25": 25, "50": 50, "75": 75, "100": 100}
+                power = power_map.get(choice, 100)
+            except Exception:
+                power = 100
+        else:
+            power = 100
 
     worker = HybridFarmWorker(
         api_url=args.api,
@@ -413,7 +462,8 @@ if __name__ == "__main__":
         chain=args.chain.upper(),
         challenge_id=args.challenge,
         mobile=args.mobile,
-        threads=args.threads
+        threads=args.threads,
+        power=power
     )
     try:
         worker.run()

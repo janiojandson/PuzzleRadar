@@ -738,11 +738,14 @@ function renderFarmNodes(workers) {
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
               <span class="font-bold text-white text-sm font-mono truncate" title="${w.name}">${w.name}</span>
             </div>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase shrink-0">ONLINE</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">⚡ ${w.power || 100}%</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">ONLINE</span>
+            </div>
           </div>
 
-          <!-- Active Target Challenge Info -->
-          <div class="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
+          <!-- Active Target Challenge & Operator Info -->
+          <div class="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1.5">
             <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between">
               <span>Alvo em Mineração:</span>
               <span class="px-2 py-0.5 rounded text-[9px] font-extrabold border ${chainColor}">${chain}</span>
@@ -750,6 +753,10 @@ function renderFarmNodes(workers) {
             <div class="font-mono text-xs font-bold text-cyan-300 flex items-center gap-1.5 truncate">
               <i data-lucide="crosshair" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
               <span class="truncate" title="${challenge}">${challenge}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono truncate pt-0.5 border-t border-white/5 flex items-center justify-between">
+              <span>Identificador / Conta:</span>
+              <span class="text-slate-200 font-bold truncate">${w.userToken ? (currentUser?.workerToken === w.userToken ? 'Sua Conta (Você)' : w.userToken.slice(0, 14) + '...') : (w.name || 'Conexão Direta')}</span>
             </div>
           </div>
 
@@ -760,8 +767,8 @@ function renderFarmNodes(workers) {
               <div class="font-bold text-emerald-400">${w.hashrateFormatted}</div>
             </div>
             <div class="p-2 rounded bg-white/5">
-              <div class="text-slate-400 text-[10px]">Hardware</div>
-              <div class="font-bold text-slate-200 truncate" title="${w.hardware}">${w.hardware}</div>
+              <div class="text-slate-400 text-[10px]">Hardware / Threads</div>
+              <div class="font-bold text-slate-200 truncate" title="${w.hardware}">${w.threads ? w.threads + ' Th • ' : ''}${w.hardware}</div>
             </div>
           </div>
 
@@ -2246,22 +2253,28 @@ function showToast(message) {
 function copyTerminalOneLiner() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/terminal_worker.py\n!python terminal_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  copyTextToClipboard(code, `📋 Código Terminal para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const code = `pip install -q requests ecdsa base58 pycryptodome && curl -sSL -O ${origin}/solver/terminal_worker.py && python terminal_worker.py --api="${origin}"${token} --name="${name}" --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(code, `📋 Comando Terminal (${power}%) para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
 }
 
 function copyKaggleOneLiner() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/terminal_worker.py\n!python terminal_worker.py --api="${origin}"${token} --threads=4 --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  copyTextToClipboard(code, `📋 Código Kaggle para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const code = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -sSL -O ${origin}/solver/terminal_worker.py\n!python terminal_worker.py --api="${origin}"${token} --name="${name}_kaggle" --threads=4 --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  copyTextToClipboard(code, `📋 Código Kaggle Dual-GPU (${power}%) copiado!`);
 }
 
 function copyLinuxCli() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
-  const token = currentUser?.workerToken ? ` --token=${currentUser.workerToken}` : '';
-  const code = `curl -sSL ${origin}/install-worker.sh | bash -s --${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  copyTextToClipboard(code, `Comando Linux para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const token = currentUser?.workerToken ? `&token=${currentUser.workerToken}` : '';
+  const code = `curl -sSL "${origin}/start.sh?worker=${encodeURIComponent(name)}&power=${power}${token}" | bash`;
+  copyTextToClipboard(code, `Comando Linux / WSL (${power}%) copiado!`);
 }
 
 function copyCudaKeyhunt() {
@@ -2273,17 +2286,20 @@ function copyCudaKeyhunt() {
 
 function copyLocalWorkerCommand() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
-  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const cmd = `py -3.12 solver/terminal_worker.py --api="${origin}"${token} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
-  copyTextToClipboard(cmd, `Comando Terminal para [${currentActiveChain}] ${currentActiveChallenge} copiado!`);
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const token = currentUser?.workerToken ? `&token=${currentUser.workerToken}` : '';
+  const cmd = `irm ${origin}/start.ps1?worker=${encodeURIComponent(name)}&power=${power}${token} | iex`;
+  copyTextToClipboard(cmd, `Comando PowerShell 1-Clique (${power}%) copiado!`);
 }
 
 function downloadWindowsWorkerBat() {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken || 'pzk_admin_master_gpu_token';
-  const username = currentUser?.username || 'miner-local';
-  const workerName = `pc-${username}-${Math.floor(1000 + Math.random() * 9000)}`;
-  const url = `${origin}/api/workers/download-bat?token=${encodeURIComponent(token)}&chain=${encodeURIComponent(currentActiveChain)}&challenge=${encodeURIComponent(currentActiveChallenge)}&name=${encodeURIComponent(workerName)}&api=${encodeURIComponent(origin)}`;
+  const username = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const workerName = `${username}_win_${Math.floor(1000 + Math.random() * 9000)}`;
+  const url = `${origin}/api/workers/download-bat?token=${encodeURIComponent(token)}&chain=${encodeURIComponent(currentActiveChain)}&challenge=${encodeURIComponent(currentActiveChallenge)}&name=${encodeURIComponent(workerName)}&power=${power}&api=${encodeURIComponent(origin)}`;
   
   const link = document.createElement('a');
   link.href = url;
@@ -2292,13 +2308,15 @@ function downloadWindowsWorkerBat() {
   link.click();
   document.body.removeChild(link);
 
-  showToast(`📥 Minerador Windows (.bat) baixado com Token e ID [${workerName}]!`);
+  showToast(`📥 Minerador Windows (.bat) baixado com Potência ${power}% e ID [${workerName}]!`);
 }
 
 function generateTerminalTargetCommand(num) {
   const origin = window.location.origin.includes('http') ? window.location.origin : 'https://puzzleradar-production.up.railway.app';
   const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
-  const cmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -s -O ${origin}/solver/terminal_worker.py\n!python terminal_worker.py --api="${origin}"${token} --chain="BTC" --challenge="BTC_1000_P${num}"`;
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const cmd = `pip install -q requests ecdsa base58 pycryptodome && curl -sSL -O ${origin}/solver/terminal_worker.py && python terminal_worker.py --api="${origin}"${token} --name="${name}" --power=${power} --chain="BTC" --challenge="BTC_1000_P${num}"`;
   copyTextToClipboard(cmd, `Comando Terminal para o Puzzle #${num} copiado!`);
 }
 
@@ -2490,16 +2508,68 @@ async function testGoogleSheetsConnection(btnElement) {
 }
 
 // ─── SCRIPTS REATIVOS & VALIDAÇÃO DINÂMICA DE WORKER ───
+let currentWorkerPower = 100;
+
+function getActiveWorkerNickname() {
+  const inputEl = document.getElementById('fleetWorkerNickname') ||
+                  document.getElementById('webMinerNickname') ||
+                  document.getElementById('workerValidatorInput');
+  return (inputEl && inputEl.value.trim()) || (currentUser?.username) || 'MeuMinerador_01';
+}
+
+function setWorkerPower(pct) {
+  currentWorkerPower = parseInt(pct, 10) || 100;
+  
+  // Atualiza estilo de todos os seletores de potência (.btn-power)
+  document.querySelectorAll('.btn-power').forEach(btn => {
+    const btnPower = parseInt(btn.getAttribute('data-power'), 10);
+    if (btnPower === currentWorkerPower) {
+      btn.className = 'btn-power px-2 py-1.5 rounded-lg text-xs font-bold border transition text-center bg-amber-500/20 border-amber-500/50 text-amber-300 font-extrabold shadow-sm';
+    } else {
+      btn.className = 'btn-power px-2 py-1.5 rounded-lg text-xs font-bold border transition text-center bg-white/5 border-white/10 text-slate-400 font-normal hover:text-white';
+    }
+  });
+
+  const powerLabels = {
+    25: '25% (Leve / Silencioso)',
+    50: '50% (Moderado)',
+    75: '75% (Intenso)',
+    100: '100% (Força Máxima 🚀)'
+  };
+  const labelText = powerLabels[currentWorkerPower] || `${currentWorkerPower}%`;
+
+  const pLabel = document.getElementById('powerLevelLabel');
+  if (pLabel) pLabel.innerText = labelText;
+
+  const fBadge = document.getElementById('fleetPowerBadge');
+  if (fBadge) fBadge.innerText = labelText;
+
+  updateDynamicScriptCommands();
+  showToast(`⚡ Potência do minerador configurada para ${currentWorkerPower}%`);
+}
+
 function updateDynamicScriptCommands(workerName) {
-  const name = String(workerName || '').trim() || 'MeuMinerador_01';
+  const name = String(workerName || getActiveWorkerNickname() || '').trim() || 'MeuMinerador_01';
+  const power = currentWorkerPower || 100;
   const host = window.location.host || 'puzzleradar-production.up.railway.app';
   const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+
+  // Sincroniza inputs de nickname na tela
+  ['webMinerNickname', 'fleetWorkerNickname', 'workerValidatorInput'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== name && document.activeElement !== el) {
+      el.value = name;
+    }
+  });
 
   // Atualiza blocos de comando
-  const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
-  const bashCmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
-  const colabCmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}" | bash`;
+  const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)}&power=${power} | iex`;
+  const bashCmd = `curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
+  const colabCmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
+  const pythonCmd = `pip install -q requests ecdsa base58 pycryptodome && curl -sSL -O ${baseUrl}/solver/terminal_worker.py && python terminal_worker.py --api="${baseUrl}"${token} --name="${name}" --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
+  const kaggleCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -sSL -O ${baseUrl}/solver/terminal_worker.py\n!python terminal_worker.py --api="${baseUrl}"${token} --name="${name}_kaggle" --threads=4 --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
 
   const psEl = document.getElementById('quickPowerShellCmd');
   if (psEl) psEl.innerText = psCmd;
@@ -2509,6 +2579,24 @@ function updateDynamicScriptCommands(workerName) {
 
   const colabEl = document.getElementById('quickColabCmd');
   if (colabEl) colabEl.innerText = colabCmd;
+
+  const termDirectEl = document.getElementById('terminalDirectCodeBox');
+  if (termDirectEl) termDirectEl.value = pythonCmd;
+
+  const localDirectEl = document.getElementById('localDirectCodeBox');
+  if (localDirectEl) localDirectEl.value = psCmd;
+
+  const termOneLinerEl = document.getElementById('terminalOneLinerCode');
+  if (termOneLinerEl) termOneLinerEl.value = pythonCmd;
+
+  const kaggleOneLinerEl = document.getElementById('kaggleOneLinerCode');
+  if (kaggleOneLinerEl) kaggleOneLinerEl.value = kaggleCmd;
+
+  const localBatEl = document.getElementById('localBatCodeBox');
+  if (localBatEl) localBatEl.value = psCmd;
+
+  const linuxCliEl = document.getElementById('linuxCliCode');
+  if (linuxCliEl) linuxCliEl.value = bashCmd;
 
   // Atualiza prévia do pool.conf
   const poolConfPreview = document.getElementById('livePoolConfPreview');
@@ -2528,19 +2616,19 @@ function updateDynamicScriptCommands(workerName) {
 }
 
 function copyDynamicScriptCmd(type, btnElement) {
-  const inputEl = document.getElementById('webMinerNickname') || document.getElementById('workerValidatorInput');
-  const name = (inputEl && inputEl.value.trim()) || 'MeuMinerador_01';
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
   const host = window.location.host || 'puzzleradar-production.up.railway.app';
   const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
 
   let cmd = '';
   if (type === 'powershell') {
-    cmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)} | iex`;
+    cmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)}&power=${power} | iex`;
   } else if (type === 'bash') {
-    cmd = `curl -sSL ${baseUrl}/start.sh?worker=${encodeURIComponent(name)} | bash`;
+    cmd = `curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
   } else if (type === 'colab') {
-    cmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}" | bash`;
+    cmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
   }
 
   if (cmd) {
@@ -2646,6 +2734,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const workerValInput = document.getElementById('workerValidatorInput');
   if (workerValInput) {
     workerValInput.addEventListener('input', (e) => {
+      updateDynamicScriptCommands(e.target.value);
+    });
+  }
+
+  const fleetNickInput = document.getElementById('fleetWorkerNickname');
+  if (fleetNickInput) {
+    fleetNickInput.addEventListener('input', (e) => {
       updateDynamicScriptCommands(e.target.value);
     });
   }

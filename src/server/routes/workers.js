@@ -32,6 +32,7 @@ router.get('/download-bat', (req, res) => {
   const challenge = req.query.challenge || 'BTC_1000_P71';
   const name = req.query.name || `worker-win-${crypto.randomBytes(3).toString('hex')}`;
   const origin = req.query.api || 'https://puzzleradar-production.up.railway.app';
+  const power = req.query.power ? parseInt(req.query.power, 10) : 100;
 
   const batContent = `@echo off
 title PuzzleRadar Local Worker Node - [${chain}] ${challenge}
@@ -39,6 +40,7 @@ echo =======================================================================
 echo   [+] PuzzleRadar - Minerador Local de GPU/CPU (Windows)
 echo   [+] Minerador ID: ${name}
 echo   [+] Token: ${token}
+echo   [+] Potencia Selecionada: ${power}%%
 echo   [+] Alvo: [${chain}] ${challenge}
 echo   [+] Servidor API: ${origin}
 echo =======================================================================
@@ -57,18 +59,18 @@ if not exist solver\\terminal_worker.py (
     curl -sSL --retry 3 "${origin}/solver/terminal_worker.py" -o terminal_worker.py
 )
 
-echo [3/3] Iniciando processamento e conexao ao Cluster Central...
+echo [3/3] Iniciando processamento com ${power}%% de potencia no Cluster Central...
 echo.
 
 if exist solver\\terminal_worker.py (
-    py -3.12 solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    py -3.12 solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --power=${power} --chain="${chain}" --challenge="${challenge}"
     if errorlevel 1 (
-        python solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+        python solver/terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --power=${power} --chain="${chain}" --challenge="${challenge}"
     )
 ) else (
-    py -3.12 terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+    py -3.12 terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --power=${power} --chain="${chain}" --challenge="${challenge}"
     if errorlevel 1 (
-        python terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --chain="${chain}" --challenge="${challenge}"
+        python terminal_worker.py --api="${origin}" --token="${token}" --name="${name}" --power=${power} --chain="${chain}" --challenge="${challenge}"
     )
 )
 
@@ -311,6 +313,8 @@ router.get('/active', async (req, res) => {
           shares: worker.shares || 0,
           completedChunks: worker.completedChunks || 0,
           userToken: worker.userToken || null,
+          power: worker.power || 100,
+          threads: worker.threads || null,
           currentTask: worker.currentTask || null,
           lastSeenAgoSeconds: Math.floor((now - worker.lastSeen) / 1000)
         });
@@ -341,6 +345,8 @@ router.get('/active', async (req, res) => {
                 status: pWorker.status || 'MINING_POOL',
                 progress: pWorker.progress || 100,
                 totalKeysChecked: pWorker.totalKeysChecked || ((pWorker.shares || 1) * 1000000),
+                power: pWorker.power || 100,
+                threads: pWorker.threads || null,
                 currentTask: pWorker.currentTask || null,
                 lastSeenAgoSeconds: Math.floor((now - lastSeenTime) / 1000)
               });
@@ -366,10 +372,22 @@ router.get('/active', async (req, res) => {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { token, name, hardware, gpuModel, cpuModel, chain, challenge_id, challengeId, instanceId: clientInstanceId } = req.body;
+    const { token, name, hardware, gpuModel, cpuModel, chain, challenge_id, challengeId, instanceId: clientInstanceId, power, threads } = req.body;
     
-    // Suporta múltiplas instâncias (ex: 7 Colabs) usando o mesmo token de usuário
-    const nodeInstanceId = clientInstanceId || (name ? `${token || 'wrk'}_${name}` : `${token || 'wrk'}_${crypto.randomBytes(4).toString('hex')}`);
+    // Suporta múltiplas instâncias simultâneas (ex: 3 a 20 Colabs/Terminais)
+    let nodeInstanceId = clientInstanceId;
+    if (!nodeInstanceId) {
+      const randSuffix = crypto.randomBytes(3).toString('hex');
+      nodeInstanceId = name ? `${token || 'wrk'}_${name}_${randSuffix}` : `${token || 'wrk'}_node_${randSuffix}`;
+    } else {
+      // Se já houver um worker ativo nos últimos 60s com este ID, adiciona sufixo para não sobrescrever
+      if (activeWorkersMap.has(nodeInstanceId)) {
+        const existing = activeWorkersMap.get(nodeInstanceId);
+        if (Date.now() - existing.lastSeen < 60000 && existing.name !== name) {
+          nodeInstanceId = `${nodeInstanceId}_${crypto.randomBytes(2).toString('hex')}`;
+        }
+      }
+    }
 
     const workerRecord = {
       id: nodeInstanceId,
@@ -382,6 +400,8 @@ router.post('/register', async (req, res) => {
       challengeId: challenge_id || challengeId || 'BTC_1000_P71',
       keysPerSecond: 0,
       totalKeysChecked: 0,
+      power: power || 100,
+      threads: threads || null,
       status: 'IDLE',
       progress: 0,
       lastSeen: Date.now()
@@ -529,6 +549,8 @@ router.post('/:id/heartbeat', async (req, res) => {
 
     if (chain) worker.chain = chain.toUpperCase();
     if (challenge_id || challengeId) worker.challengeId = challenge_id || challengeId;
+    if (req.body.power) worker.power = Number(req.body.power) || worker.power || 100;
+    if (req.body.threads) worker.threads = Number(req.body.threads) || worker.threads;
     worker.keysPerSecond = Number(keysPerSecond) || worker.keysPerSecond || 0;
     worker.status = status || 'RUNNING';
     worker.progress = progress || 0;
