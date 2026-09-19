@@ -8,17 +8,33 @@ const PUZZLE_CODE = "71";
 const SECRET_TOKEN = "puzzleradar_super_secret_jwt_key_2026_production";
 
 /**
+ * Função utilitária para exibir alertas com segurança (funciona tanto dentro do editor quanto na planilha)
+ */
+function showAlert(msg) {
+  try {
+    SpreadsheetApp.getUi().alert(msg);
+  } catch (e) {
+    Logger.log(msg);
+    try {
+      SpreadsheetApp.getActiveSpreadsheet().toast(msg.split('\n')[0], "PuzzleRadar", 6);
+    } catch (_) {}
+  }
+}
+
+/**
  * Cria menu personalizado na interface do Google Sheets ao abrir
  */
 function onOpen() {
-  const ui = SpreadsheetApp.getUi();
-  ui.createMenu("🧩 PuzzleRadar")
-    .addItem("⚡ Reinstalar e Restaurar Todas as Abas (v5.3)", "reinstalarTudo")
-    .addSeparator()
-    .addItem("🔄 Sincronizar Pool ao Vivo (btcpuzzle.info)", "sincronizarMetricasPoolLive")
-    .addItem("📜 Exibir Regras de Rateio (85% / 15%)", "popularContratoRegrasRateio")
-    .addItem("📊 Atualizar Tabela de Benchmarks de GPU", "popularTabelaBenchmarksGPU")
-    .addToUi();
+  try {
+    const ui = SpreadsheetApp.getUi();
+    ui.createMenu("🧩 PuzzleRadar")
+      .addItem("⚡ Reinstalar e Restaurar Todas as Abas (v5.3)", "reinstalarTudo")
+      .addSeparator()
+      .addItem("🔄 Sincronizar Pool ao Vivo (btcpuzzle.info)", "sincronizarMetricasPoolLive")
+      .addItem("📜 Exibir Regras de Rateio (85% / 15%)", "popularContratoRegrasRateio")
+      .addItem("📊 Atualizar Tabela de Benchmarks de GPU", "popularTabelaBenchmarksGPU")
+      .addToUi();
+  } catch (_) {}
 }
 
 /**
@@ -50,7 +66,6 @@ function doPost(e) {
       const cleanHw = contents.hardwareType || "GPU / Cluster";
       const cleanContact = contents.contactInfo || "—";
 
-      // Verifica se o minerador já existe para atualizar
       let foundRow = -1;
       const data = sheetCad.getDataRange().getValues();
       for (let i = 1; i < data.length; i++) {
@@ -61,13 +76,11 @@ function doPost(e) {
       }
 
       if (foundRow > 0) {
-        // Atualiza carteira e contato existente
         sheetCad.getRange(foundRow, 3).setValue("'" + cleanWallet);
         sheetCad.getRange(foundRow, 4).setValue(cleanHw);
         sheetCad.getRange(foundRow, 5).setValue(cleanContact);
         sheetCad.getRange(foundRow, 6).setValue("ATIVO");
       } else {
-        // Insere nova linha no topo
         sheetCad.insertRowBefore(2);
         sheetCad.getRange(2, 1, 1, headersCad.length).setValues([[
           new Date(),
@@ -215,7 +228,7 @@ function reinstalarTudo() {
   // 5. Aba Benchmarks_GPU
   popularTabelaBenchmarksGPU();
 
-  SpreadsheetApp.getUi().alert("🎉 [PuzzleRadar v5.3] Todas as abas foram instaladas e formatadas com sucesso!\n\n1. Ranges_Varredura\n2. Cadastros_Mineradores\n3. Contrato_Rateio_Regras\n4. Status_Pool_Live\n5. Benchmarks_GPU");
+  showAlert("🎉 [PuzzleRadar v5.3] Todas as abas foram instaladas e formatadas com sucesso!\n\n1. Ranges_Varredura\n2. Cadastros_Mineradores\n3. Contrato_Rateio_Regras\n4. Status_Pool_Live\n5. Benchmarks_GPU");
 }
 
 /**
@@ -271,9 +284,9 @@ function sincronizarMetricasPoolLive() {
     sheetStats.appendRow(["Fatias Globais btcpuzzle.info", data.scannedRanges || "N/A", "Fatias completadas mundialmente"]);
     sheetStats.appendRow(["Porcentagem da Pool Oficial", (data.completionPercent || 0) + "%", "Progresso da pool central"]);
 
-    SpreadsheetApp.getUi().alert("✅ Métricas da Pool Oficial sincronizadas com sucesso!");
+    showAlert("✅ Métricas da Pool Oficial sincronizadas com sucesso!");
   } catch (e) {
-    SpreadsheetApp.getUi().alert("❌ Erro ao consultar API oficial: " + e.message);
+    showAlert("❌ Erro ao consultar API oficial: " + e.message);
   }
 }
 
