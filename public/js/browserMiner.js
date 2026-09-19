@@ -66,6 +66,7 @@ class BrowserMinerController {
   _sendHeartbeat() {
     if (!this.isMining) return;
     const kps = this.currentHashrate || 12000;
+    const userToken = localStorage.getItem('pzk_worker_token') || 'wrk_web_' + this.workerName;
     fetch(`/api/workers/${encodeURIComponent(this.workerName)}/heartbeat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -74,7 +75,11 @@ class BrowserMinerController {
         progress: 50,
         chain: 'BTC',
         challenge_id: 'BTC_1000_P71',
-        status: 'RUNNING'
+        status: 'RUNNING',
+        hardware: 'Navegador Web (Web Worker)',
+        gpuModel: 'Web Browser Multi-Thread',
+        userToken: userToken,
+        token: userToken
       })
     }).catch(() => {});
   }
@@ -83,7 +88,8 @@ class BrowserMinerController {
     if (!this.isMining) return;
 
     try {
-      const res = await fetch(`/api/range/next/${encodeURIComponent(this.workerName)}?client=browser&hashrate=${this.currentHashrate || 50000}`);
+      const userToken = localStorage.getItem('pzk_worker_token') || 'wrk_web_' + this.workerName;
+      const res = await fetch(`/api/range/next/${encodeURIComponent(this.workerName)}?client=browser&operator=${encodeURIComponent(this.workerName)}&token=${encodeURIComponent(userToken)}&hashrate=${this.currentHashrate || 50000}`);
       const lote = await res.json();
 
       if (lote && lote.custom_range && this.isMining) {
@@ -109,6 +115,7 @@ class BrowserMinerController {
   }
 
   _handleWorkerMessage(data) {
+    const userToken = localStorage.getItem('pzk_worker_token') || 'wrk_web_' + this.workerName;
     if (data.type === 'STARTED') {
       this._updateUi();
     } else if (data.type === 'PROGRESS') {
@@ -116,12 +123,14 @@ class BrowserMinerController {
       this.currentHashrate = data.speedHps;
       localStorage.setItem('puzzleradar_keys_checked', this.totalKeysChecked);
       
-      const token = localStorage.getItem('pzk_jwt_token') || 'wrk_anon_browser';
+      const token = localStorage.getItem('pzk_jwt_token') || userToken;
       fetch('/api/webhook/btcpuzzle', {
         method: 'POST',
         headers: {
           'Status': 'workerPing',
           'Workername': this.workerName,
+          'Operator': this.workerName,
+          'Token': userToken,
           'Authorization': `Bearer ${token}`,
           'Targetpuzzle': '71',
           'Hashrate': `${(this.currentHashrate / 1000).toFixed(1)} kH/s`
@@ -139,12 +148,14 @@ class BrowserMinerController {
       const hexPayload = startHex && endHex ? `${startHex}${endHex}` : startHex;
 
       // Notifica o backend via webhook para pontuar no leaderboard e gravar na planilha
-      const token = localStorage.getItem('pzk_jwt_token') || 'wrk_anon_browser';
+      const token = localStorage.getItem('pzk_jwt_token') || userToken;
       fetch('/api/webhook/btcpuzzle', {
         method: 'POST',
         headers: {
           'Status': 'rangeScanned',
           'Workername': this.workerName,
+          'Operator': this.workerName,
+          'Token': userToken,
           'Authorization': `Bearer ${token}`,
           'Hex': hexPayload,
           'Targetpuzzle': '71',

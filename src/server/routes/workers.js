@@ -308,6 +308,9 @@ router.get('/active', async (req, res) => {
           status: worker.status || 'ONLINE',
           progress: worker.progress || 0,
           totalKeysChecked: worker.totalKeysChecked || 0,
+          shares: worker.shares || 0,
+          completedChunks: worker.completedChunks || 0,
+          userToken: worker.userToken || null,
           currentTask: worker.currentTask || null,
           lastSeenAgoSeconds: Math.floor((now - worker.lastSeen) / 1000)
         });

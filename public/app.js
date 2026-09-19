@@ -234,6 +234,10 @@ function switchTab(tabId) {
     fetchAdminUsers();
   }
 
+  if (tabId === 'tab-farm') {
+    fetchFleetData();
+  }
+
   if (window.lucide) window.lucide.createIcons();
 }
 
@@ -660,91 +664,132 @@ function setMultiChainTarget(chain, challengeId, title, prize) {
   showToast(`🎯 Alvo [${chain}] ${challengeId} selecionado! Comando Terminal específico copiado.`);
 }
 
-// ─── FLEET MANAGEMENT ───
+// ─── FLEET & FARM MANAGEMENT ───
+let allFleetWorkers = [];
+
 async function fetchFleetData() {
   try {
     const res = await fetch('/api/workers/active');
     const data = await res.json();
 
-    const count = data.activeCount || 0;
+    const count = data.activeCount || (data.workers ? data.workers.length : 0);
     const hashrate = data.totalHashrateFormatted || '0 H/s';
     setInner('headerHashrate', hashrate);
     setInner('dashGlobalHashrate', hashrate);
     setInner('dashActiveNodes', `${count} Ativos`);
 
-    const container = document.getElementById('fleetNodesList');
-    if (!container) return;
+    setInner('farmTotalNodes', `${count} Nós`);
+    setInner('farmTotalHashrate', hashrate);
 
-    const workers = data.workers || [];
-    if (workers.length === 0) {
-      container.innerHTML = `
-        <div class="glass-panel rounded-xl p-8 border border-dashed border-white/10 text-center col-span-full">
-          <i data-lucide="server" class="w-8 h-8 text-slate-500 mx-auto mb-3"></i>
-          <p class="text-sm text-slate-400">Nenhum nó Terminal minerando no momento.</p>
-          <p class="text-xs text-slate-500 mt-1">Copie o comando acima e execute no Google Terminal para conectar nós GPU!</p>
-        </div>`;
-    } else {
-      container.innerHTML = workers.map(w => {
-        const chain = w.chain || 'BTC';
-        const challenge = w.challengeId || 'BTC_1000_P71';
-        const chainColor = chain === 'ETH'
-          ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-          : chain === 'SOL'
-            ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-            : 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+    allFleetWorkers = data.workers || [];
 
-        const progressPercent = Math.min(100, Math.max(0, w.progress || 0));
+    const totalKeys = allFleetWorkers.reduce((acc, w) => acc + (w.totalKeysChecked || 0), 0);
+    setInner('farmTotalKeys', Number(totalKeys).toLocaleString('pt-BR'));
 
-        return `
-          <div class="glass-panel p-4 rounded-xl space-y-3 border border-emerald-500/20 hover:border-emerald-500/40 transition">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span class="font-bold text-white text-sm font-mono">${w.name}</span>
-              </div>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase">ONLINE</span>
+    renderFarmNodes(allFleetWorkers);
+  } catch (_) {}
+}
+
+function filterFarmNodes() {
+  const query = (document.getElementById('farmSearchInput')?.value || '').toLowerCase().trim();
+  if (!query) {
+    renderFarmNodes(allFleetWorkers);
+    return;
+  }
+  const filtered = allFleetWorkers.filter(w => {
+    return (w.name && w.name.toLowerCase().includes(query)) ||
+           (w.id && w.id.toLowerCase().includes(query)) ||
+           (w.hardware && w.hardware.toLowerCase().includes(query)) ||
+           (w.challengeId && w.challengeId.toLowerCase().includes(query)) ||
+           (w.userToken && w.userToken.toLowerCase().includes(query));
+  });
+  renderFarmNodes(filtered);
+}
+
+function renderFarmNodes(workers) {
+  const container = document.getElementById('fleetNodesList');
+  if (!container) return;
+
+  if (workers.length === 0) {
+    container.innerHTML = `
+      <div class="glass-panel rounded-xl p-8 border border-dashed border-white/10 text-center col-span-full">
+        <i data-lucide="server" class="w-8 h-8 text-slate-500 mx-auto mb-3"></i>
+        <p class="text-sm text-slate-400">Nenhum nó minerando no momento.</p>
+        <p class="text-xs text-slate-500 mt-1">Inicie nós no Google Colab, Terminal Windows (start.ps1), Linux (start.sh) ou Browser Miner!</p>
+      </div>`;
+  } else {
+    container.innerHTML = workers.map(w => {
+      const chain = w.chain || 'BTC';
+      const challenge = w.challengeId || 'BTC_1000_P71';
+      const chainColor = chain === 'ETH'
+        ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+        : chain === 'SOL'
+          ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+          : 'bg-amber-500/15 text-amber-300 border-amber-500/30';
+
+      const progressPercent = Math.min(100, Math.max(0, w.progress || 0));
+      const sharesCount = w.shares || 0;
+      const keysCheckedFormatted = Number(w.totalKeysChecked || 0).toLocaleString('pt-BR');
+
+      return `
+        <div class="glass-panel p-4 rounded-xl space-y-3 border border-emerald-500/20 hover:border-emerald-500/40 transition">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 truncate">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+              <span class="font-bold text-white text-sm font-mono truncate" title="${w.name}">${w.name}</span>
             </div>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 uppercase shrink-0">ONLINE</span>
+          </div>
 
-            <!-- Active Target Challenge Info -->
-            <div class="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
-              <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                <span>Alvo em Mineração:</span>
-                <span class="px-2 py-0.5 rounded text-[9px] font-extrabold border ${chainColor}">${chain}</span>
-              </div>
-              <div class="font-mono text-xs font-bold text-cyan-300 flex items-center gap-1.5 truncate">
-                <i data-lucide="crosshair" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
-                <span class="truncate" title="${challenge}">${challenge}</span>
-              </div>
+          <!-- Active Target Challenge Info -->
+          <div class="p-2.5 rounded-lg bg-black/40 border border-white/5 space-y-1">
+            <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between">
+              <span>Alvo em Mineração:</span>
+              <span class="px-2 py-0.5 rounded text-[9px] font-extrabold border ${chainColor}">${chain}</span>
             </div>
-
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-              <div class="p-2 rounded bg-white/5">
-                <div class="text-slate-400 text-[10px]">Hashrate</div>
-                <div class="font-bold text-emerald-400">${w.hashrateFormatted}</div>
-              </div>
-              <div class="p-2 rounded bg-white/5">
-                <div class="text-slate-400 text-[10px]">Hardware</div>
-                <div class="font-bold text-slate-200 truncate" title="${w.hardware}">${w.hardware}</div>
-              </div>
-            </div>
-
-            <!-- Progress Bar of current chunk -->
-            <div class="space-y-1">
-              <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                <span>Fatia Atual</span>
-                <span>${progressPercent > 0 ? progressPercent + '%' : 'Varrendo...'}</span>
-              </div>
-              <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-300" style="width: ${Math.max(5, progressPercent)}%"></div>
-              </div>
+            <div class="font-mono text-xs font-bold text-cyan-300 flex items-center gap-1.5 truncate">
+              <i data-lucide="crosshair" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+              <span class="truncate" title="${challenge}">${challenge}</span>
             </div>
           </div>
-        `;
-      }).join('');
-    }
-    if (window.lucide) window.lucide.createIcons();
-  } catch (_) {}
+
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div class="p-2 rounded bg-white/5">
+              <div class="text-slate-400 text-[10px]">Hashrate</div>
+              <div class="font-bold text-emerald-400">${w.hashrateFormatted}</div>
+            </div>
+            <div class="p-2 rounded bg-white/5">
+              <div class="text-slate-400 text-[10px]">Hardware</div>
+              <div class="font-bold text-slate-200 truncate" title="${w.hardware}">${w.hardware}</div>
+            </div>
+          </div>
+
+          <!-- Production Info: Shares & Keys -->
+          <div class="grid grid-cols-2 gap-2 text-[11px] font-mono p-2 rounded-lg bg-black/30 border border-white/5">
+            <div class="text-slate-400 truncate">
+              <span>Shares:</span> <strong class="text-amber-300">${sharesCount}</strong>
+            </div>
+            <div class="text-right text-slate-400 truncate">
+              <span>Chaves:</span> <strong class="text-slate-200">${keysCheckedFormatted}</strong>
+            </div>
+          </div>
+
+          <!-- Progress Bar of current chunk -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+              <span>Fatia Atual</span>
+              <span>${progressPercent > 0 ? progressPercent + '%' : 'Varrendo...'}</span>
+            </div>
+            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full transition-all duration-300" style="width: ${Math.max(5, progressPercent)}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  if (window.lucide) window.lucide.createIcons();
 }
 
 async function generateTerminalToken() {
@@ -1089,17 +1134,23 @@ async function fetchPoolStats() {
     if (tbody) {
       const operators = data.operators || [];
       if (operators.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-6 text-slate-500 text-xs">Nenhum operador com shares registradas no momento. Inicie um nó para pontuar na pool.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-6 text-slate-500 text-xs">Nenhum operador com shares registradas no momento. Inicie um nó para pontuar na pool.</td></tr>`;
       } else {
         tbody.innerHTML = operators.map(op => {
-          const isSub = op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE';
-          const subBadge = isSub
-            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 PARTICIPANTE ATIVO</span>'
-            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">🔁 REVERTIDO AOS ATIVOS</span>';
+          const isQual = op.isQualifiedForPayout;
+          const qualBadge = isQual
+            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 QUALIFICADO (ATIVO)</span>'
+            : (op.qualificationStatus === 'IN_PRODUCTION'
+              ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🟡 EM PRODUÇÃO</span>'
+              : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">🔴 NÃO PARTICIPANTE</span>');
 
           const anonId = op.operatorToken && op.operatorToken.length > 12
             ? `${op.operatorToken.substring(0, 8)}...${op.operatorToken.slice(-4)}`
             : op.operatorToken || 'wrk_anon';
+
+          const minProductionDisplay = op.minProductionMet
+            ? `<span class="text-emerald-400 font-bold">${op.shares || 0} / 10 Sh ✅</span>`
+            : `<span class="text-amber-400 font-semibold">${op.shares || 0} / 10 Sh ⏳</span>`;
 
           return `
             <tr class="hover:bg-white/5 transition font-mono text-[11px]">
@@ -1107,14 +1158,18 @@ async function fetchPoolStats() {
                 <div class="text-white font-bold">${op.operatorName}</div>
                 <div class="text-[10px] text-cyan-400 font-mono">${anonId}</div>
               </td>
-              <td class="py-3 px-3">${subBadge}</td>
+              <td class="py-3 px-3">
+                <div>${qualBadge}</div>
+                <div class="text-[9px] text-slate-400 mt-0.5">${op.qualificationDesc || ''}</div>
+              </td>
+              <td class="py-3 px-3">${minProductionDisplay}</td>
               <td class="py-3 px-3 font-bold text-cyan-300">${op.activeNodesCount} ${op.activeNodesCount === 1 ? 'nó ativo' : 'nós ativos'}</td>
               <td class="py-3 px-3 text-slate-300">${Number(op.completedChunks || 0).toLocaleString()} fatias</td>
               <td class="py-3 px-3 text-emerald-400 font-bold">${op.totalHashrateFormatted || '0 H/s'}</td>
               <td class="py-3 px-3 font-bold text-amber-300">${Number(op.shares || 0).toLocaleString()} Shares</td>
-              <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-400' : 'text-slate-500'}">${isSub ? op.sharePercent : '0.00%'}</td>
-              <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-300' : 'text-slate-500'} font-mono">
-                ${isSub ? `~$${Number(op.projectedPayoutUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD` : '<span class="text-emerald-400 text-[10px]">Retornado aos Ativos</span>'}
+              <td class="py-3 px-3 font-bold ${isQual ? 'text-emerald-400' : 'text-slate-500'}">${isQual ? op.sharePercent : '0.00%'}</td>
+              <td class="py-3 px-3 font-bold ${isQual ? 'text-emerald-300' : 'text-slate-500'} font-mono">
+                ${isQual ? `~$${Number(op.projectedPayoutUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD` : '<span class="text-emerald-400/80 text-[10px]">Retornado aos Ativos</span>'}
               </td>
               <td class="py-3 px-3 text-right text-slate-400">${op.lastSeen ? new Date(op.lastSeen).toLocaleTimeString() : '-'}</td>
             </tr>

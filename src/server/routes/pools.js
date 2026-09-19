@@ -384,20 +384,39 @@ const getTransparencyData = async () => {
 
   // Agrupa todas as sessões e nós conectados por Operador / Login / Token
   const operatorsMap = new Map();
+  const authRouter = require('./auth');
+  const usersStore = authRouter.usersStore || new Map();
+
+  // Cota Mínima de Produção para Qualificação no Rateio de Dividendos
+  const MIN_SHARES_FOR_PAYOUT = 10;
+  const MIN_CHUNKS_FOR_PAYOUT = 1;
+  const MIN_KEYS_FOR_PAYOUT = 16777216; // 2^24 chaves
 
   // 1. Processa nós mineradores em execução (fleetState.nodes)
   const now = Date.now();
   for (const [nodeId, worker] of activeNodesMap.entries()) {
     if (now - (worker.lastSeen || 0) <= 180000) {
-      const opToken = worker.userToken || worker.name || nodeId || 'wrk_anonymous_node';
-      const opName = worker.name || (worker.userToken && worker.userToken.startsWith('pzk_admin') ? 'Administrador Mestre' : `Assinante (${String(opToken).slice(0, 10)}...)`);
-      const isSubscriber = Boolean(worker.userToken && worker.userToken !== 'wrk_anonymous_node' && worker.userToken !== 'anon');
+      const opToken = worker.userToken || worker.token || worker.name || nodeId || 'wrk_anonymous_node';
+
+      // Localiza usuário registrado em usersStore pelo token ou nome
+      let userRecord = null;
+      for (const [_, u] of usersStore.entries()) {
+        if (u.workerToken === opToken || u.username === worker.name || u.name === worker.name || u.email === worker.contactInfo) {
+          userRecord = u;
+          break;
+        }
+      }
+
+      const hasRegisteredWallet = Boolean(userRecord?.payoutAddress || worker.payoutAddress);
+      const isIdentified = Boolean(userRecord || (worker.userToken && worker.userToken.startsWith('pzk_')));
+      const opName = userRecord?.name || worker.name || (isIdentified ? `Assinante (${String(opToken).slice(0, 10)}...)` : `Nó Anônimo (${String(nodeId).slice(0, 8)})`);
 
       const existing = operatorsMap.get(opToken) || {
         operatorToken: opToken,
         operatorName: opName,
-        isSubscriberActive: isSubscriber || true,
-        subscriptionStatus: 'ACTIVE',
+        isIdentified,
+        hasRegisteredWallet,
+        payoutAddress: userRecord?.payoutAddress || worker.payoutAddress || null,
         activeNodesCount: 0,
         nodes: [],
         totalKeysChecked: 0,
@@ -422,23 +441,46 @@ const getTransparencyData = async () => {
   }
 
   const operatorsList = Array.from(operatorsMap.values());
+
+  // 2. Avalia Cota Mínima e Qualificação de cada Operador
+  operatorsList.forEach(op => {
+    const meetsProduction = (op.shares >= MIN_SHARES_FOR_PAYOUT) || (op.completedChunks >= MIN_CHUNKS_FOR_PAYOUT) || (op.totalKeysChecked >= MIN_KEYS_FOR_PAYOUT);
+
+    if (op.isIdentified && meetsProduction) {
+      op.qualificationStatus = 'QUALIFIED_ACTIVE';
+      op.isQualifiedForPayout = true;
+      op.qualificationBadge = '🟢 QUALIFICADO (ATIVO NO RATEIO)';
+      op.qualificationDesc = 'Cota mínima atingida • Elegível a dividendos';
+    } else if (op.isIdentified && !meetsProduction) {
+      op.qualificationStatus = 'IN_PRODUCTION';
+      op.isQualifiedForPayout = false;
+      op.qualificationBadge = '🟡 EM PRODUÇÃO (Cota Mínima Pendente)';
+      const remainingShares = Math.max(0, MIN_SHARES_FOR_PAYOUT - op.shares);
+      op.qualificationDesc = `Faltam ${remainingShares} shares ou 1 fatia para qualificar`;
+    } else {
+      op.qualificationStatus = 'UNREGISTERED_ANON';
+      op.isQualifiedForPayout = false;
+      op.qualificationBadge = '🔴 NÃO PARTICIPANTE (Sem Carteira)';
+      op.qualificationDesc = 'Shares revertidas 100% aos mineradores ativos';
+    }
+  });
+
   const totalPoolShares = operatorsList.reduce((acc, op) => acc + (op.shares || 0), 0);
 
+  // Separa mineradores qualificados para dividendos vs cotas revertidas
+  const qualifiedList = operatorsList.filter(op => op.isQualifiedForPayout);
+  const qualifiedShares = qualifiedList.reduce((acc, op) => acc + (op.shares || 0), 0);
 
-  // Separa shares de assinantes ativos vs cotas revertidas de nós inativos/sem login
-  const activeSubscribersList = operatorsList.filter(op => op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE');
-  const activeSubscribersShares = activeSubscribersList.reduce((acc, op) => acc + (op.shares || 0), 0);
-  
-  const inactiveOperatorsList = operatorsList.filter(op => !op.isSubscriberActive || op.subscriptionStatus !== 'ACTIVE');
-  const inactiveRevertedShares = inactiveOperatorsList.reduce((acc, op) => acc + (op.shares || 0), 0);
+  const unqualifiedList = operatorsList.filter(op => !op.isQualifiedForPayout);
+  const unqualifiedShares = unqualifiedList.reduce((acc, op) => acc + (op.shares || 0), 0);
 
   // Calcula % e rendimento líquido para cada operador
   const formattedOperators = operatorsList.map(op => {
     let sharePercent = 0;
     let projectedPayoutUsd = 0;
 
-    if (op.isSubscriberActive && activeSubscribersShares > 0) {
-      const shareFrac = op.shares / activeSubscribersShares;
+    if (op.isQualifiedForPayout && qualifiedShares > 0) {
+      const shareFrac = op.shares / qualifiedShares;
       sharePercent = shareFrac * 100;
       projectedPayoutUsd = parseFloat((shareFrac * distributableSubscribersPoolUsd).toFixed(2));
     }
@@ -446,13 +488,19 @@ const getTransparencyData = async () => {
     return {
       operatorToken: op.operatorToken,
       operatorName: op.operatorName,
-      isSubscriberActive: op.isSubscriberActive,
-      subscriptionStatus: op.subscriptionStatus,
+      isQualifiedForPayout: op.isQualifiedForPayout,
+      qualificationStatus: op.qualificationStatus,
+      qualificationBadge: op.qualificationBadge,
+      qualificationDesc: op.qualificationDesc,
+      hasRegisteredWallet: op.hasRegisteredWallet,
+      payoutAddress: op.payoutAddress,
       activeNodesCount: op.activeNodesCount,
       totalKeysChecked: op.totalKeysChecked,
       totalHashrateFormatted: formatKps(op.totalHashrateKps),
       completedChunks: op.completedChunks,
       shares: op.shares,
+      minProductionMet: (op.shares >= MIN_SHARES_FOR_PAYOUT) || (op.completedChunks >= MIN_CHUNKS_FOR_PAYOUT),
+      minProductionTarget: `${MIN_SHARES_FOR_PAYOUT} Shares ou ${MIN_CHUNKS_FOR_PAYOUT} Fatia`,
       sharePercent: sharePercent.toFixed(2) + '%',
       projectedPayoutUsd,
       lastSeen: op.lastSeen
@@ -460,8 +508,8 @@ const getTransparencyData = async () => {
   });
 
   // Reversão de cotas de não participantes/inativos: 100% retorna ao rateio dos mineradores ativos (descontadas as taxas de rede)
-  const revertedSharesAmountUsd = totalPoolShares > 0 && activeSubscribersShares > 0
-    ? parseFloat(((inactiveRevertedShares / totalPoolShares) * distributableSubscribersPoolUsd).toFixed(2))
+  const revertedSharesAmountUsd = totalPoolShares > 0 && qualifiedShares > 0
+    ? parseFloat(((unqualifiedShares / totalPoolShares) * distributableSubscribersPoolUsd).toFixed(2))
     : 0;
 
   const totalHouseTakeUsd = houseBaseUsd;
@@ -477,10 +525,14 @@ const getTransparencyData = async () => {
       houseFeePercent: 15,
       houseBaseUsd,
       distributableSubscribersPoolUsd,
-      inactiveRevertedShares,
+      minProductionRequirement: `${MIN_SHARES_FOR_PAYOUT} Shares PoS ou ${MIN_CHUNKS_FOR_PAYOUT} Fatia Auditada (2^24 chaves)`,
+      totalQualifiedOperators: qualifiedList.length,
+      totalQualifiedShares: qualifiedShares,
+      totalUnqualifiedShares: unqualifiedShares,
+      revertedSharesToActivePool: unqualifiedShares,
       revertedSharesAmountUsd,
       totalHouseTakeUsd,
-      ruleNotice: '15% de taxa da pool/rede para infraestrutura. 85% do prêmio líquido distribuído integralmente entre os participantes ativos. Shares de nós não participantes ou inativos retornam 100% para o rateio de dividendos dos mineradores participantes ativos.'
+      ruleNotice: '15% de taxa da pool/rede para infraestrutura. 85% do prêmio líquido distribuído exclusivamente entre participantes ativos com cota mínima atingida (10 shares ou 1 fatia). Shares de nós anônimos ou abaixo da cota mínima retornam 100% para os participantes ativos qualificados.'
     },
     recentDps: recentDpsList.slice(0, 20),
     operators: formattedOperators,

@@ -14,6 +14,7 @@ router.get('/start.ps1', (req, res) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
   const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
+  const queryToken = req.query.token ? String(req.query.token).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
   const queryPower = req.query.power ? parseInt(req.query.power, 10) : '';
 
   const ps1Script = `# =========================================================================
@@ -25,6 +26,8 @@ Write-Host " 🧩 PuzzleRadar v5.3 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)"
 Write-Host "======================================================================" -ForegroundColor Cyan
 
 $PresetWorker = "${queryWorker}"
+$PresetToken = "${queryToken}"
+
 if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
     $WorkerName = $PresetWorker
 } else {
@@ -34,6 +37,8 @@ if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
         $WorkerName = $DefaultWorker
     }
 }
+
+$UserToken = if (![string]::IsNullOrWhiteSpace($PresetToken)) { $PresetToken } else { "wrk_" + $WorkerName }
 
 $TotalCores = [System.Environment]::ProcessorCount
 if (-not $TotalCores -or $TotalCores -lt 1) { $TotalCores = 4 }
@@ -63,7 +68,7 @@ $Threads = [math]::Max(1, [int][math]::Round($TotalCores * ($PowerPercent / 100.
 $NodeSessionId = "win_" + (Get-Random -Minimum 1000 -Maximum 9999)
 $FullNodeId = "\${WorkerName}_\${NodeSessionId}"
 Write-Host "[+] Potencia configurada: $PowerPercent% ($Threads de $TotalCores nucleos ativos)" -ForegroundColor Green
-Write-Host "[+] Identificador unico do No: \${FullNodeId} (Operador: \${WorkerName})" -ForegroundColor Cyan
+Write-Host "[+] Identificador unico do No: \${FullNodeId} (Operador: \${WorkerName} | Token: \${UserToken})" -ForegroundColor Cyan
 
 $BaseUrl = "${baseUrl}"
 $WorkerDir = "solver"
@@ -87,12 +92,12 @@ $PyCmd = Get-Command py -ErrorAction SilentlyContinue
 $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
 
 if ($PyCmd) {
-    Write-Host "Iniciando minerador via py -3.12 com $Threads threads..." -ForegroundColor Green
-    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
+    Write-Host "Iniciando minerador via py -3.12 com $Threads threads e token rastreavel..." -ForegroundColor Green
+    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --token="$UserToken" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 } elseif ($PythonCmd) {
-    Write-Host "Iniciando minerador via python com $Threads threads..." -ForegroundColor Green
-    & python $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
+    Write-Host "Iniciando minerador via python com $Threads threads e token rastreavel..." -ForegroundColor Green
+    & python $WorkerScript --api="$BaseUrl" --name="$FullNodeId" --token="$UserToken" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 }
 
@@ -104,7 +109,7 @@ while ($true) {
     try {
         Write-Host ""
         Write-Host "[*] Solicitando proxima fatia otimizada do Hub ($FullNodeId)..." -ForegroundColor Yellow
-        $RangeData = Invoke-RestMethod -Uri "$BaseUrl/api/range/next/$FullNodeId?operator=$WorkerName&node_id=$FullNodeId&hashrate=45.0%20kH/s" -Method Get -TimeoutSec 10
+        $RangeData = Invoke-RestMethod -Uri "$BaseUrl/api/range/next/$FullNodeId?operator=$WorkerName&token=$UserToken&node_id=$FullNodeId&hashrate=45.0%20kH/s" -Method Get -TimeoutSec 10
         
         if ($RangeData.custom_range) {
             Write-Host "[+] Lote recebido: $($RangeData.custom_range)" -ForegroundColor Cyan
@@ -115,6 +120,7 @@ while ($true) {
                 "Workername" = $WorkerName
                 "Nodeid" = $FullNodeId
                 "Operator" = $WorkerName
+                "Token" = $UserToken
                 "Hex" = ($RangeData.custom_range.Split(':')[0])
                 "Targetpuzzle" = "71"
             }
@@ -129,6 +135,7 @@ while ($true) {
                 "Workername" = $WorkerName
                 "Nodeid" = $FullNodeId
                 "Operator" = $WorkerName
+                "Token" = $UserToken
                 "Hex" = ($RangeData.custom_range.Split(':')[0])
                 "Targetpuzzle" = "71"
                 "Hashrate" = "45.0 kH/s"
@@ -155,18 +162,21 @@ router.get('/start.sh', (req, res) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
   const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
+  const queryToken = req.query.token ? String(req.query.token).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
   const queryPower = req.query.power ? parseInt(req.query.power, 10) : '';
 
   const bashScript = `#!/usr/bin/env bash
 # =========================================================================
-# 🧩 PuzzleRadar v5.1 — 1-Click Linux/macOS Worker Launcher
+# 🧩 PuzzleRadar v5.3 — 1-Click Linux/macOS Worker Launcher
 # =========================================================================
 
 echo -e "\\033[1;36m======================================================================\\033[0m"
-echo -e "\\033[1;33m 🧩 PuzzleRadar v5.1 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)\\033[0m"
+echo -e "\\033[1;33m 🧩 PuzzleRadar v5.3 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)\\033[0m"
 echo -e "\\033[1;36m======================================================================\\033[0m"
 
 PRESET_WORKER="${queryWorker}"
+PRESET_TOKEN="${queryToken}"
+
 if [ -n "$PRESET_WORKER" ]; then
     WORKER_NAME="$PRESET_WORKER"
 else
@@ -175,6 +185,8 @@ else
     read -p "Digite seu Apelido de Contribuidor [$DEFAULT_WORKER]: " INPUT_WORKER < /dev/tty 2>/dev/null || INPUT_WORKER="$DEFAULT_WORKER"
     WORKER_NAME=\${INPUT_WORKER:-$DEFAULT_WORKER}
 fi
+
+USER_TOKEN="\${PRESET_TOKEN:-wrk_\$WORKER_NAME}"
 
 TOTAL_CORES=$(nproc 2>/dev/null || echo 4)
 PRESET_POWER="${queryPower}"
@@ -205,7 +217,7 @@ SLEEP_SEC=$(( 15 * (100 - CHOSEN_POWER) / 100 ))
 
 NODE_SESSION_ID="linux_$((RANDOM % 9000 + 1000))"
 FULL_NODE_ID="\${WORKER_NAME}_\${NODE_SESSION_ID}"
-echo -e "\\033[1;36m[+] Identificador unico do No: \$FULL_NODE_ID (Operador: \$WORKER_NAME)\\033[0m"
+echo -e "\\033[1;36m[+] Identificador unico do No: \$FULL_NODE_ID (Operador: \$WORKER_NAME | Token: \$USER_TOKEN)\\033[0m"
 
 BASE_URL="${baseUrl}"
 
@@ -218,9 +230,21 @@ if [ $? -eq 0 ]; then
     echo -e "\\033[1;36m[+] Conexao com o Hub validada com sucesso!\\033[0m"
 fi
 
+# Tenta rodar terminal_worker.py se python estiver disponível
+if command -v python3 &>/dev/null || command -v python &>/dev/null; then
+    PY_BIN=$(command -v python3 || command -v python)
+    mkdir -p solver
+    curl -s -L "$BASE_URL/solver/terminal_worker.py" -o solver/terminal_worker.py 2>/dev/null
+    if [ -f solver/terminal_worker.py ]; then
+        echo -e "\\033[1;32m[+] Executando motor terminal_worker.py via \$PY_BIN com \$THREADS threads...\\033[0m"
+        \$PY_BIN solver/terminal_worker.py --api="\$BASE_URL" --name="\$FULL_NODE_ID" --token="\$USER_TOKEN" --chain="BTC" --challenge="BTC_1000_P71" --threads="\$THREADS"
+        exit 0
+    fi
+fi
+
 while true; do
     echo -e "\\n\\033[1;33m[*] Solicitando proxima fatia otimizada (\$FULL_NODE_ID)...\\033[0m"
-    RESPONSE=$(curl -s --max-time 10 "$BASE_URL/api/range/next/\$FULL_NODE_ID?operator=\$WORKER_NAME&node_id=\$FULL_NODE_ID&hashrate=45.0%20kH/s")
+    RESPONSE=$(curl -s --max-time 10 "$BASE_URL/api/range/next/\$FULL_NODE_ID?operator=\$WORKER_NAME&token=\$USER_TOKEN&node_id=\$FULL_NODE_ID&hashrate=45.0%20kH/s")
     
     RANGE=$(echo "$RESPONSE" | grep -o '"custom_range":"[^"]*' | cut -d'"' -f4)
     SCORE=$(echo "$RESPONSE" | grep -o '"priority_score":[0-9]*' | cut -d':' -f2)
@@ -235,6 +259,7 @@ while true; do
              -H "Workername: $WORKER_NAME" \\
              -H "Nodeid: $FULL_NODE_ID" \\
              -H "Operator: $WORKER_NAME" \\
+             -H "Token: $USER_TOKEN" \\
              -H "Hex: $START_HEX" \\
              -H "Targetpuzzle: 71" > /dev/null
              
@@ -247,6 +272,7 @@ while true; do
              -H "Workername: $WORKER_NAME" \\
              -H "Nodeid: $FULL_NODE_ID" \\
              -H "Operator: $WORKER_NAME" \\
+             -H "Token: $USER_TOKEN" \\
              -H "Hex: $START_HEX" \\
              -H "Targetpuzzle: 71" \\
              -H "Hashrate: 45.0 kH/s" > /dev/null

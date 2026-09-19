@@ -194,6 +194,11 @@
           <span class="truncate">Terminal & Worker Nodes</span>
         </button>
 
+        <button onclick="switchTab('tab-farm')" id="btn-tab-farm" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="server" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="truncate">Nós Ativos na Fazenda</span>
+        </button>
+
         <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="database" class="w-4 h-4 text-blue-400 shrink-0"></i>
           <span class="truncate">Ranges & Pruning</span>
@@ -1604,7 +1609,8 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
               <thead>
                 <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
                   <th class="py-3 px-3">Operador / Login</th>
-                  <th class="py-3 px-3">Status Participação</th>
+                  <th class="py-3 px-3">Qualificação de Rateio</th>
+                  <th class="py-3 px-3">Cota Mínima</th>
                   <th class="py-3 px-3">Nós Ativos</th>
                   <th class="py-3 px-3">Fatias Concluídas</th>
                   <th class="py-3 px-3">Hashrate Agregado</th>
@@ -1782,11 +1788,92 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
           </div>
         </div>
 
-        <!-- Connected Nodes Grid -->
+        <!-- Redirecionamento para a Aba Dedicada da Fazenda -->
+        <div class="p-4 rounded-xl bg-cypher-950 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">🚜</div>
+            <div>
+              <h4 class="text-sm font-bold text-white">Monitoramento de Máquinas & Nós Conectados</h4>
+              <p class="text-xs text-slate-400">Todos os nós mineradores ativos foram organizados exclusivamente na aba dedicada <strong>Nós Ativos na Fazenda</strong> com telemetria ao vivo.</p>
+            </div>
+          </div>
+          <button onclick="switchTab('tab-farm')" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-extrabold transition flex items-center justify-center gap-1.5 shrink-0 shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+            <i data-lucide="server" class="w-3.5 h-3.5"></i> Abrir Nós Ativos na Fazenda
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB FARM: NÓS ATIVOS NA FAZENDA (EXCLUSIVA) ==================== -->
+    <section id="tab-farm" class="tab-content hidden space-y-6">
+      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-6">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-2 max-w-3xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Telemetria em Tempo Real • Cluster de Mineração Rastreável</span>
+            </div>
+            <h2 class="text-3xl font-extrabold text-white">Nós Ativos na Fazenda</h2>
+            <p class="text-sm text-slate-300">
+              Acompanhamento detalhado e exclusivo de todas as instâncias e máquinas em processamento ativo (Google Colab, Terminais Windows, Linux, Clusters em Nuvem e Navegador). Cada nó opera em fatias atômicas únicas com rastreabilidade total.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="fetchFleetData()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 transition flex items-center gap-2">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Atualizar Agora</span>
+            </button>
+            <button onclick="switchTab('tab-connect')" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 text-black text-xs font-extrabold transition flex items-center gap-1.5 shadow-lg shadow-emerald-500/20">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Conectar Novo Nó</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards da Fazenda -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="glass-panel p-4 rounded-xl border border-emerald-500/20 space-y-1">
+            <div class="text-[11px] text-slate-400 uppercase font-mono">Nós Conectados</div>
+            <div id="farmTotalNodes" class="text-2xl font-extrabold text-emerald-400 font-mono">0 Nós</div>
+            <div class="text-[10px] text-slate-500">Instâncias online no cluster</div>
+          </div>
+          <div class="glass-panel p-4 rounded-xl border border-cyan-500/20 space-y-1">
+            <div class="text-[11px] text-slate-400 uppercase font-mono">Hashrate Agregado</div>
+            <div id="farmTotalHashrate" class="text-2xl font-extrabold text-cyan-300 font-mono">0 H/s</div>
+            <div class="text-[10px] text-slate-500">Potência somada da frota</div>
+          </div>
+          <div class="glass-panel p-4 rounded-xl border border-amber-500/20 space-y-1">
+            <div class="text-[11px] text-slate-400 uppercase font-mono">Chaves Verificadas</div>
+            <div id="farmTotalKeys" class="text-2xl font-extrabold text-amber-400 font-mono">0</div>
+            <div class="text-[10px] text-slate-500">Chaves testadas contra os alvos</div>
+          </div>
+          <div class="glass-panel p-4 rounded-xl border border-purple-500/20 space-y-1">
+            <div class="text-[11px] text-slate-400 uppercase font-mono">Status da Central</div>
+            <div class="text-2xl font-extrabold text-emerald-400 font-mono flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>100% ONLINE</span>
+            </div>
+            <div class="text-[10px] text-slate-500">Hub Coordenador Ativo</div>
+          </div>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div class="p-3 rounded-xl bg-black/40 border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="relative w-full sm:w-80">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input type="text" id="farmSearchInput" oninput="filterFarmNodes()" placeholder="Filtrar nós por nome, login ou hardware..." class="w-full pl-9 pr-3 py-1.5 rounded-lg bg-cypher-900 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400">
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-400 font-mono">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Atualização contínua a cada 6 segundos</span>
+          </div>
+        </div>
+
+        <!-- Grid de Nós Ativos na Fazenda (Exclusivo desta Aba) -->
         <div class="space-y-3">
-          <h3 class="font-bold text-lg text-white">Nós Ativos na Fazenda</h3>
           <div id="fleetNodesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Populated by JS -->
+            <!-- Populated exclusively by JS -->
           </div>
         </div>
       </div>
