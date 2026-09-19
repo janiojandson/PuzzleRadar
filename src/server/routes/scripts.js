@@ -149,19 +149,6 @@ if [ $? -eq 0 ]; then
     echo -e "\\033[1;36m[+] Conexao com o Hub validada com sucesso!\\033[0m"
 fi
 
-# Detecta se Python está disponível (ex: Google Colab, Linux, WSL) para rodar motor acelerado
-if command -v python3 &>/dev/null; then
-    echo -e "\\033[1;32m[+] Ambiente Python3 detectado. Baixando motor de busca acelerado terminal_worker.py...\\033[0m"
-    curl -sSL "$BASE_URL/solver/terminal_worker.py" -o terminal_worker.py
-    python3 terminal_worker.py --api="$BASE_URL" --name="$WORKER_NAME" --chain="BTC" --challenge="BTC_1000_P71"
-    exit 0
-elif command -v python &>/dev/null; then
-    echo -e "\\033[1;32m[+] Ambiente Python detectado. Baixando motor de busca acelerado terminal_worker.py...\\033[0m"
-    curl -sSL "$BASE_URL/solver/terminal_worker.py" -o terminal_worker.py
-    python terminal_worker.py --api="$BASE_URL" --name="$WORKER_NAME" --chain="BTC" --challenge="BTC_1000_P71"
-    exit 0
-fi
-
 while true; do
     echo -e "\\n\\033[1;33m[*] Solicitando proxima fatia otimizada...\\033[0m"
     RESPONSE=$(curl -s --max-time 10 "$BASE_URL/api/range/next/$WORKER_NAME")
