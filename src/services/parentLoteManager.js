@@ -25,6 +25,8 @@ class ParentLoteManager {
     this.mode = 'OFFICIAL_POOL'; // 'OFFICIAL_POOL' ou 'AUTONOMOUS_AI'
     this.activeMicroLotes = new Map(); // startHex -> { workerId, startBig, endBig, startHex, endHex, allocatedAt }
     this.reclaimQueue = []; // Fila de reciclagem de micro-lotes abandonados
+    this.currentCollectiveChunk = null; // Fatia Ativa Coletiva onde todos os nós somam forças
+    this.currentChunkNumber = 1;
   }
 
   /**
@@ -178,61 +180,160 @@ class ParentLoteManager {
   }
 
   /**
-   * Marca um micro-lote como concluído com sucesso, liberando da auditoria de abandono
+   * Inicializa ou re-sincroniza a Fatia Ativa Coletiva contígua atual
    */
-  markMicroLoteCompleted(hex) {
-    if (!hex) return;
-    const cleanHex = String(hex).replace(/^0x/i, '').slice(0, 18).padStart(18, '0');
-    this.activeMicroLotes.delete(cleanHex);
-    this.reclaimQueue = this.reclaimQueue.filter(item => item.startHex !== cleanHex);
+  _initCollectiveChunk() {
+    if (!this.currentParent) return null;
+    const startBig = this.currentParent.parentStartBig + this.currentParent.allocatedOffset;
+    const endBig = startBig + STEP_CPU;
+    const startHex = startBig.toString(16).padStart(18, '0');
+    const endHex = endBig.toString(16).padStart(18, '0');
+
+    this.currentCollectiveChunk = {
+      chunkNumber: this.currentChunkNumber || 1,
+      startBig,
+      endBig,
+      startHex,
+      endHex,
+      targetKeys: STEP_CPU, // ~16,777,216 chaves
+      keysCompleted: 0n,
+      participatingWorkers: new Set(),
+      participatingContributions: new Map(),
+      startedAt: Date.now(),
+      lastActivityAt: Date.now()
+    };
+    return this.currentCollectiveChunk;
   }
 
   /**
-   * Obtém a próxima micro-fatia contígua de 2^24 chaves (~16.7M) para um minerador CPU/Navegador/Colab
+   * Marca progresso e chaves varridas na Fatia Ativa Coletiva.
+   * Quando o esforço somado atinge as 16.7M chaves (ou um nó conclui o lote),
+   * a fatia é finalizada, gravada na planilha e todo o cluster avança junto para a próxima!
+   */
+  markMicroLoteCompleted(hex, keysChecked = 0, workerId = null) {
+    if (!hex) return;
+    const cleanHex = String(hex).replace(/^0x/i, '').slice(0, 18).padStart(18, '0');
+
+    // Se ainda não houver fatia coletiva, inicializa
+    if (!this.currentCollectiveChunk && this.currentParent) {
+      this._initCollectiveChunk();
+    }
+
+    if (this.currentCollectiveChunk && this.currentCollectiveChunk.startHex === cleanHex) {
+      const addedKeys = BigInt(Math.max(1, Number(keysChecked) || Number(STEP_CPU)));
+      this.currentCollectiveChunk.keysCompleted += addedKeys;
+
+      if (workerId) {
+        this.currentCollectiveChunk.participatingWorkers.add(workerId);
+        const prev = this.currentCollectiveChunk.participatingContributions.get(workerId) || 0n;
+        this.currentCollectiveChunk.participatingContributions.set(workerId, prev + addedKeys);
+      }
+      this.currentCollectiveChunk.lastActivityAt = Date.now();
+
+      const pct = Math.min(100, (Number(this.currentCollectiveChunk.keysCompleted) / Number(this.currentCollectiveChunk.targetKeys)) * 100).toFixed(1);
+      console.log(`⚡ [ParentLoteManager] Fatia #${this.currentCollectiveChunk.chunkNumber}: +${addedKeys} chaves por "${workerId || 'Nó'}" | Progresso: ${pct}% (${this.currentCollectiveChunk.participatingWorkers.size} nós somando forças)`);
+
+      // Se a soma das forças atingiu o total de chaves do chunk (ou um nó concluiu o lote integralmente)
+      if (this.currentCollectiveChunk.keysCompleted >= this.currentCollectiveChunk.targetKeys || Number(keysChecked) >= Number(STEP_CPU)) {
+        this.advanceToNextCollectiveChunk();
+      }
+    }
+  }
+
+  /**
+   * Finaliza a fatia coletiva atual e avança todo o cluster em uníssono para a próxima fatia contígua
+   */
+  advanceToNextCollectiveChunk() {
+    if (!this.currentCollectiveChunk || !this.currentParent) return;
+
+    const finishedChunk = this.currentCollectiveChunk;
+    const nodesCount = Math.max(1, finishedChunk.participatingWorkers.size);
+    const nodesList = Array.from(finishedChunk.participatingWorkers).join(', ') || 'PuzzleRadar_Fleet';
+
+    console.log(`\n🎉🎉 [ParentLoteManager] FATIA COLETIVA #${finishedChunk.chunkNumber} CONCLUÍDA COM SUCESSO!`);
+    console.log(`   ↳ Range: 0x${finishedChunk.startHex} ➔ 0x${finishedChunk.endHex} (~16.8M chaves)`);
+    console.log(`   ↳ Força Somada de ${nodesCount} nós: [${nodesList}]`);
+    console.log(`   ↳ Gravando na Planilha Google Sheets e avançando o cluster para a próxima fatia...\n`);
+
+    // Registra na planilha Google Sheets oficial com o carimbo do esforço coletivo somado
+    try {
+      appendRangesToSheet(undefined, [{
+        chain: 'BTC',
+        challengeId: 'BTC_1000_P71',
+        puzzleId: 'BTC_1000_P71',
+        chunkIndex: finishedChunk.chunkNumber,
+        chunkLabel: `Fatia Coletiva #${finishedChunk.chunkNumber}`,
+        rangeStart: finishedChunk.startHex,
+        rangeEnd: finishedChunk.endHex,
+        workerName: `Cluster (${nodesCount} nós somados)`
+      }], 'PuzzleRadar_Cluster', {
+        status: `🎯 FATIA CONCLUÍDA COLETIVAMENTE (${nodesCount} nós)`,
+        hashrate: `${nodesCount} Nós Ativos Somados`
+      }).catch(() => {});
+    } catch (_) {}
+
+    // Avança o offset na fatia pai
+    this.currentParent.allocatedOffset += STEP_CPU;
+    this.currentChunkNumber = (this.currentChunkNumber || 1) + 1;
+
+    // Inicializa a próxima fatia coletiva contígua
+    const newStartBig = this.currentParent.parentStartBig + this.currentParent.allocatedOffset;
+    const newEndBig = newStartBig + STEP_CPU;
+    const newStartHex = newStartBig.toString(16).padStart(18, '0');
+    const newEndHex = newEndBig.toString(16).padStart(18, '0');
+
+    this.currentCollectiveChunk = {
+      chunkNumber: this.currentChunkNumber,
+      startBig: newStartBig,
+      endBig: newEndBig,
+      startHex: newStartHex,
+      endHex: newEndHex,
+      targetKeys: STEP_CPU,
+      keysCompleted: 0n,
+      participatingWorkers: new Set(),
+      participatingContributions: new Map(),
+      startedAt: Date.now(),
+      lastActivityAt: Date.now()
+    };
+  }
+
+  /**
+   * Obtém a Fatia Ativa Coletiva contígua de 2^24 chaves (~16.7M).
+   * TODOS os nós que solicitam trabalho recebem a MESMA fatia ativa para concentrarem
+   * 100% de sua força de hashrate juntos até concluí-la!
    */
   async getNextMicroLote(workerId) {
     if (!this.currentParent || (Date.now() - this.currentParent.createdAt > this.cacheTtlMs)) {
       await this.fetchParentRangeFromOfficialPool();
     }
 
-    // 1. Limpeza preventiva de fatias de workers que possam ter fechado o navegador/sessão
-    this.reclaimAbandonedMicroLotes();
-
-    let startBig, endBig, startHex, endHex;
-
-    // 2. Prioridade 1: Se houver fatias abandonadas na fila, entrega primeiro para garantir que a fileira não fique com lacunas
-    if (this.reclaimQueue.length > 0) {
-      const recycled = this.reclaimQueue.shift();
-      startBig = recycled.startBig;
-      endBig = recycled.endBig;
-      startHex = recycled.startHex;
-      endHex = recycled.endHex;
-    } else {
-      // 3. Prioridade 2: Avança o ponteiro contíguo sequencial
-      startBig = this.currentParent.parentStartBig + this.currentParent.allocatedOffset;
-      endBig = startBig + STEP_CPU;
-      this.currentParent.allocatedOffset += STEP_CPU;
-
-      startHex = startBig.toString(16).padStart(18, '0');
-      endHex = endBig.toString(16).padStart(18, '0');
+    if (!this.currentCollectiveChunk) {
+      this._initCollectiveChunk();
     }
 
-    // Registra na tabela de fatias ativas com timestamp
-    this.activeMicroLotes.set(startHex, {
-      workerId,
-      startBig,
-      endBig,
-      startHex,
-      endHex,
-      allocatedAt: Date.now()
-    });
+    // Registra o nó solicitante como participante ativo da fatia coletiva
+    if (workerId) {
+      this.currentCollectiveChunk.participatingWorkers.add(workerId);
+      if (!this.currentCollectiveChunk.participatingContributions.has(workerId)) {
+        this.currentCollectiveChunk.participatingContributions.set(workerId, 0n);
+      }
+    }
+    this.currentCollectiveChunk.lastActivityAt = Date.now();
+
+    const chunk = this.currentCollectiveChunk;
+    const progressPercent = Math.min(100, (Number(chunk.keysCompleted) / Number(chunk.targetKeys)) * 100).toFixed(1);
 
     return {
       workerId,
       parentHex: this.currentParent.hex,
-      startHex,
-      endHex,
+      chunkNumber: chunk.chunkNumber,
+      startHex: chunk.startHex,
+      endHex: chunk.endHex,
       stepSize: STEP_CPU.toString(),
+      keysCompleted: Number(chunk.keysCompleted),
+      totalKeys: Number(STEP_CPU),
+      progressPercent,
+      activeNodesCount: chunk.participatingWorkers.size,
       targets: this.currentParent.targetHash160s,
       puzzleTargetAddress: this.currentParent.targetAddress,
       powAddresses: this.currentParent.powAddresses
@@ -346,7 +447,10 @@ class ParentLoteManager {
   async requestNewOfficialSlice() {
     this.currentParent = null;
     this.collectedPowKeys.clear();
+    this.currentCollectiveChunk = null;
+    this.currentChunkNumber = 1;
     await this.fetchParentRangeFromOfficialPool();
+    this._initCollectiveChunk();
     return this.getStatus();
   }
 
@@ -424,6 +528,16 @@ class ParentLoteManager {
         keyHex: key ? `${key.substring(0, 10)}...${key.slice(-6)}` : null,
         found: true
       })),
+      collectiveChunk: this.currentCollectiveChunk ? {
+        chunkNumber: this.currentCollectiveChunk.chunkNumber,
+        startHex: this.currentCollectiveChunk.startHex,
+        endHex: this.currentCollectiveChunk.endHex,
+        targetKeys: Number(this.currentCollectiveChunk.targetKeys),
+        keysCompleted: Number(this.currentCollectiveChunk.keysCompleted),
+        progressPercent: Math.min(100, (Number(this.currentCollectiveChunk.keysCompleted) / Number(this.currentCollectiveChunk.targetKeys)) * 100).toFixed(1),
+        activeNodesCount: this.currentCollectiveChunk.participatingWorkers.size,
+        participatingWorkers: Array.from(this.currentCollectiveChunk.participatingWorkers)
+      } : null,
       microLotesAllocated: currentAllocated,
       statusLabel: powCount >= totalPow
         ? '🎯 6/6 PoW OFICIAIS & 60/60 MARCOS (SUBMETIDO PUT)'

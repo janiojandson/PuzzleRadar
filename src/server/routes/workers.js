@@ -621,6 +621,13 @@ router.post('/:id/result', async (req, res) => {
       await markChunkScanned(puzzleId, chunkIndex);
     }
 
+    // Registra esforço coletivo na Fatia Ativa Coletiva e avança quando concluída
+    try {
+      if (rangeStart) {
+        parentLoteManager.markMicroLoteCompleted(rangeStart, keysChecked, id);
+      }
+    } catch (_) {}
+
     // Grava no Google Sheets & Webhook em tempo real
     const targetChain = req.body.chain || (puzzleId && puzzleId.startsWith('ETH') ? 'ETH' : puzzleId && puzzleId.startsWith('SOL') ? 'SOL' : 'BTC');
     const targetChallengeId = puzzleId || 'BTC_1000_P71';

@@ -58,6 +58,9 @@ while True:
             data = json.loads(resp.read().decode())
         
         custom_range = data.get("custom_range", "")
+        chunk_num = data.get("chunkNumber", total_lotes + 1)
+        active_nodes = data.get("activeNodesCount", 1)
+
         if not custom_range or ":" not in custom_range:
             time.sleep(5)
             continue
@@ -69,14 +72,14 @@ while True:
         
         total_lotes += 1
         total_chaves += chaves_no_lote
-        print(f"🎯 [Fatia #{total_lotes}] 0x{start_hex} ➔ 0x{end_hex} (~{chaves_no_lote/1e6:.1f}M chaves)")
+        print(f"🎯 [Fatia Coletiva #{chunk_num}] 0x{start_hex} ➔ 0x{end_hex} (~{chaves_no_lote/1e6:.1f}M chaves | {active_nodes} nós somados)")
 
         # 2. Processamento proporcional à potência escolhida
         time.sleep(intervalo_sono)
         hashrate = int(chaves_no_lote / max(intervalo_sono, 0.001))
         hashrate_str = f"{hashrate / 1e3:.1f} kH/s"
 
-        # 3. Reporta a conclusão da fatia registrando o nó e o operador
+        # 3. Reporta a contribuição e soma forças na fatia coletiva
         payload = json.dumps({
             "workerName": OPERATOR_NAME,
             "operator": OPERATOR_NAME,
@@ -97,7 +100,14 @@ while True:
         )
         
         with urllib.request.urlopen(post_req, timeout=10) as post_resp:
-            print(f"   ↳ ✅ Sincronizado como {NODE_ID}! Velocidade: {hashrate_str} | Total: {total_chaves:,} chaves.")
+            resp_data = json.loads(post_resp.read().decode())
+            col_info = resp_data.get("collectiveChunk") or {}
+            c_pct = col_info.get("progressPercent", "100.0")
+            c_nodes = col_info.get("activeNodesCount", active_nodes)
+            c_num = col_info.get("chunkNumber", chunk_num)
+            print(f"   ↳ ⚡ Força somada! Fatia #{chunk_num} ({c_pct}% concluída com {c_nodes} nós) | Hashrate: {hashrate_str} | Total: {total_chaves:,} chaves.")
+            if float(c_pct) >= 100.0 or c_num > chunk_num:
+                print(f"   ↳ 🏆 FATIA COLETIVA #{chunk_num} CONCLUÍDA! Todo o cluster avança junto para a próxima fatia!\n")
 
     except KeyboardInterrupt:
         print(f"\n⏹️ Pausado pelo operador. Total concluído: {total_lotes} fatias.")

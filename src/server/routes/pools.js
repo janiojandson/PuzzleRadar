@@ -289,10 +289,24 @@ router.post('/submit-chunk', async (req, res) => {
       await markChunkScanned(challengeId, chunkIndex);
     }
 
-    // Libera micro-lote no parentLoteManager para confirmar varredura da fatia
+    // Registra esforço coletivo na Fatia Ativa Coletiva e avança quando atingir 100%
+    let collectiveChunkInfo = null;
     try {
       const { parentLoteManager } = require('../../services/parentLoteManager');
-      if (startHex) parentLoteManager.markMicroLoteCompleted(startHex);
+      const nodeId = req.body.nodeId || req.body.node_id || workerName;
+      if (startHex) {
+        parentLoteManager.markMicroLoteCompleted(startHex, keysChecked, nodeId);
+      }
+      if (parentLoteManager.currentCollectiveChunk) {
+        const c = parentLoteManager.currentCollectiveChunk;
+        collectiveChunkInfo = {
+          chunkNumber: c.chunkNumber,
+          startHex: c.startHex,
+          endHex: c.endHex,
+          progressPercent: Math.min(100, (Number(c.keysCompleted) / Number(c.targetKeys)) * 100).toFixed(1),
+          activeNodesCount: c.participatingWorkers.size
+        };
+      }
     } catch (_) {}
 
     // Registra/atualiza worker ativo no activeWorkersMap para telemetria e velocidade somada
@@ -360,8 +374,9 @@ router.post('/submit-chunk', async (req, res) => {
       proofOfShareValid: binomialCheck.isValid,
       binomialAudit: binomialCheck,
       chunkIndex,
+      collectiveChunk: collectiveChunkInfo,
       status: binomialCheck.isValid ? 'COMPLETED' : 'FLAGGED_LOW_SHARES',
-      message: 'Chunk validado e registrado no buffer de auditoria do cluster.'
+      message: 'Chunk validado e computado para o esforço coletivo do cluster.'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

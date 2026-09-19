@@ -93,7 +93,12 @@ router.get('/next/:worker_id', async (req, res) => {
       return res.json({
         custom_range: `${microLote.startHex}:${microLote.endHex}`,
         pool_conf_line: `custom_range=${microLote.startHex}:${microLote.endHex}`,
-        lote_id: `lote_p71_micro_${microLote.startHex.slice(0, 8)}`,
+        lote_id: `lote_p71_fatia_${microLote.chunkNumber || 1}_${microLote.startHex.slice(0, 8)}`,
+        chunkNumber: microLote.chunkNumber || 1,
+        keysCompleted: microLote.keysCompleted || 0,
+        totalKeys: microLote.totalKeys || 16777216,
+        progressPercent: microLote.progressPercent || '0.0',
+        activeNodesCount: microLote.activeNodesCount || 1,
         puzzle: 71,
         parentHex: microLote.parentHex,
         targets: microLote.targets,

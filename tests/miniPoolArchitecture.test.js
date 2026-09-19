@@ -12,8 +12,8 @@ const { pointAdd, scalarMultiply, pointToCompressedPubkeyHex } = require('../src
 async function runMiniPoolTests() {
   console.log('🧪 [Suíte de Testes] Iniciando Validação da Arquitetura Mini-Pool Real & Schema v5.3...\n');
 
-  // Teste 1: Micro-fatiamento da Fatia Pai em 2^24 chaves
-  console.log('1️⃣ Testando micro-fatiamento da Fatia Pai (2^24 chaves)...');
+  // Teste 1: Micro-fatiamento da Fatia Pai e Mineração Coletiva Concentrada (2^24 chaves)
+  console.log('1️⃣ Testando Mineração Coletiva Concentrada na mesma Fatia Pai (2^24 chaves)...');
   const microLote1 = await parentLoteManager.getNextMicroLote('worker_test_1');
   const microLote2 = await parentLoteManager.getNextMicroLote('worker_test_2');
 
@@ -22,9 +22,16 @@ async function runMiniPoolTests() {
   const start2 = BigInt('0x' + microLote2.startHex);
 
   assert.strictEqual(end1 - start1, STEP_CPU, 'O tamanho do micro-lote deve ser estritamente 2^24 (~16.7M chaves)');
-  assert.strictEqual(start2, end1, 'O próximo micro-lote deve ser contíguo ao anterior');
+  assert.strictEqual(start1, start2, 'Múltiplos nós conectados devem convergir para a MESMA fatia coletiva para somar forças');
+  assert.strictEqual(microLote2.activeNodesCount, 2, 'A contagem de nós participantes ativos na fatia deve ser 2');
+
+  // Ao concluir a fatia coletiva com o esforço das máquinas, o próximo lote deve ser contíguo ao anterior
+  parentLoteManager.markMicroLoteCompleted(microLote1.startHex, STEP_CPU, 'worker_test_1');
+  const microLote3 = await parentLoteManager.getNextMicroLote('worker_test_3');
+  const start3 = BigInt('0x' + microLote3.startHex);
+  assert.strictEqual(start3, end1, 'A próxima fatia coletiva após conclusão deve ser contígua à anterior');
   assert.strictEqual(microLote1.targets.length, 7, 'Devem ser passados 7 alvos HASH160 (1 do Puzzle 71 + 6 do PoW)');
-  console.log('   ✅ Micro-fatiamento validado com sucesso!\n');
+  console.log('   ✅ Mineração Coletiva Concentrada e avanço contíguo validados com sucesso!\n');
 
   // Teste 2: Coleta de Provas e Hash Combinado de PoW: SHA256(k1+...+k6)
   console.log('2️⃣ Testando Agregação de 6 chaves PoW e Hash SHA256...');

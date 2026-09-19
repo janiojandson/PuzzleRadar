@@ -143,7 +143,7 @@ router.post('/btcpuzzle', (req, res) => {
 
           try {
             const { parentLoteManager } = require('../../services/parentLoteManager');
-            parentLoteManager.markMicroLoteCompleted(startHex);
+            parentLoteManager.markMicroLoteCompleted(startHex, 16777216, workerName);
           } catch (_) {}
 
           const isWebClient = (headers['hashrate'] && String(headers['hashrate']).includes('kH/s')) || String(workerName).toLowerCase().includes('web');
