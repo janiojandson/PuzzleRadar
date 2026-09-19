@@ -4,8 +4,10 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const prisma = require('../../lib/prisma');
 const { generateToken } = require('../../lib/auth');
+const authRouter = require('./auth');
 const { splitRange, getChallengeById } = require('../../lib/difficultyEngine');
 const { markChunkScanned, isChunkScanned } = require('../../lib/redis');
 const { appendRangesToSheet } = require('../../lib/googleSheets');
@@ -122,7 +124,7 @@ router.post('/token', async (req, res) => {
  */
 router.post('/register-payout', async (req, res) => {
   try {
-    const { workerName, payoutAddress, hardwareType, contactInfo } = req.body;
+    const { workerName, payoutAddress, hardwareType, contactEmail, contactInfo, email, password, adminSecret } = req.body;
 
     if (!workerName || !payoutAddress) {
       return res.status(400).json({ success: false, error: 'Apelido do minerador e Carteira Bitcoin são obrigatórios.' });
@@ -135,6 +137,16 @@ router.post('/register-payout', async (req, res) => {
     }
 
     const cleanName = String(workerName).trim().replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 32);
+    const userEmail = String(contactEmail || email || contactInfo || '').trim().toLowerCase();
+
+    // Se senha foi informada, validação
+    let passwordHash = null;
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, error: 'A senha deve ter no mínimo 6 caracteres.' });
+      }
+      passwordHash = await bcrypt.hash(password, 10);
+    }
 
     const existingNode = activeWorkersMap.get(cleanName) || {};
     activeWorkersMap.set(cleanName, {
@@ -142,11 +154,58 @@ router.post('/register-payout', async (req, res) => {
       name: cleanName,
       workerName: cleanName,
       payoutAddress: cleanWallet,
-      hardware: hardwareType || 'GPU / Cluster',
-      contactInfo: contactInfo ? String(contactInfo).trim().slice(0, 50) : null,
-      registeredAt: new Date().toISOString(),
+      hardware: hardwareType || 'Outro',
+      contactInfo: userEmail || null,
+      registeredAt: existingNode.registeredAt || new Date().toISOString(),
       lastSeen: Date.now()
     });
+
+    // Cria ou sincroniza usuário no usersStore
+    let userRecord = null;
+    let sessionToken = null;
+
+    if (userEmail && authRouter.usersStore) {
+      const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@puzzleradar.io').trim().toLowerCase();
+      const isAdminKey = adminSecret && adminSecret === (process.env.ADMIN_SECRET || 'puzzleradar_admin_secret_2026');
+      const isMasterEmail = userEmail === ADMIN_EMAIL;
+      const role = (isAdminKey || isMasterEmail) ? 'ADMIN' : 'USER';
+
+      let existingUser = authRouter.usersStore.get(userEmail);
+      if (existingUser) {
+        existingUser.payoutAddress = cleanWallet;
+        existingUser.hardwareType = hardwareType || existingUser.hardwareType;
+        if (passwordHash) existingUser.passwordHash = passwordHash;
+        userRecord = existingUser;
+      } else {
+        const userId = 'usr_' + Date.now();
+        const workerToken = 'pzk_' + crypto.randomBytes(12).toString('hex');
+        userRecord = {
+          id: userId,
+          name: cleanName,
+          email: userEmail,
+          username: cleanName,
+          passwordHash: passwordHash || (await bcrypt.hash('pzk_auto_' + Date.now(), 10)),
+          role,
+          workerToken,
+          activePlan: role === 'ADMIN' ? 'ENTERPRISE_ADMIN' : 'FREE_COMMUNITY',
+          payoutAddress: cleanWallet,
+          hardwareType: hardwareType || 'Outro',
+          totalShares: 0,
+          createdAt: new Date().toISOString()
+        };
+        authRouter.usersStore.set(userEmail, userRecord);
+      }
+
+      sessionToken = generateToken({
+        userId: userRecord.id,
+        email: userRecord.email,
+        username: userRecord.username,
+        name: userRecord.name,
+        role: userRecord.role,
+        workerToken: userRecord.workerToken,
+        activePlan: userRecord.activePlan
+      });
+    }
 
     try {
       const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
@@ -157,14 +216,14 @@ router.post('/register-payout', async (req, res) => {
         startHex: 'CADASTRO_MINERADOR',
         endHex: cleanWallet.slice(0, 16) + '...',
         workerName: cleanName,
-        status: `REGISTRADO (Payout: ${cleanWallet.slice(0, 8)}... | ${hardwareType || 'GPU'})`,
+        status: `REGISTRADO (Payout: ${cleanWallet.slice(0, 8)}... | ${hardwareType || 'Outro'})`,
         hashrate: 'Novo Registro'
       });
       sheetsBuffer.sendPayoutRegistration({
         workerName: cleanName,
         payoutAddress: cleanWallet,
-        hardwareType: hardwareType || 'GPU / Cluster',
-        contactInfo: contactInfo || null
+        hardwareType: hardwareType || 'Outro',
+        contactInfo: userEmail || null
       }).catch(() => {});
     } catch (_) {}
 
@@ -174,11 +233,23 @@ router.post('/register-payout', async (req, res) => {
     res.json({
       success: true,
       message: 'Minerador e Carteira de Recebimento registrados com sucesso!',
+      token: sessionToken,
+      user: userRecord ? {
+        id: userRecord.id,
+        name: userRecord.name,
+        email: userRecord.email,
+        username: userRecord.username,
+        role: userRecord.role,
+        workerToken: userRecord.workerToken,
+        activePlan: userRecord.activePlan,
+        payoutAddress: userRecord.payoutAddress,
+        hardwareType: userRecord.hardwareType
+      } : null,
       worker: {
         name: cleanName,
         payoutAddress: cleanWallet,
-        hardwareType: hardwareType || 'GPU / Cluster',
-        contactInfo: contactInfo || null,
+        hardwareType: hardwareType || 'Outro',
+        contactInfo: userEmail || null,
         cliCommand
       }
     });

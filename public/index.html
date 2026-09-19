@@ -125,7 +125,7 @@
         <button onclick="openAuthModal('login')" class="px-3.5 py-2 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/15 text-white transition border border-white/10 shrink-0 whitespace-nowrap">
           Entrar
         </button>
-        <button onclick="openAuthModal('register')" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black transition shadow-lg shadow-emerald-500/20 shrink-0 whitespace-nowrap">
+        <button onclick="goToCadastroMinerador()" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black transition shadow-lg shadow-emerald-500/20 shrink-0 whitespace-nowrap">
           Cadastrar Grátis
         </button>
       </div>
@@ -149,52 +149,88 @@
     </div>
   </header>
 
-  <!-- Navigation Tabs -->
-  <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar flex-nowrap">
-    <button onclick="switchTab('tab-presell')" id="btn-tab-presell" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-bold flex items-center gap-2 transition bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 text-white border border-amber-500/40 hover:border-emerald-400 shadow-sm shadow-amber-500/10">
-      <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-      <span>🌟 Apresentação & Presell</span>
-    </button>
-    <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30">
-      <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-400"></i>
-      <span>Central de Comando (Ao Vivo)</span>
-    </button>
-    <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
-      <span>Puzzle 1000 BTC (160 Carteiras)</span>
-    </button>
-    <button onclick="switchTab('tab-analyst')" id="btn-tab-analyst" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-      <span>Radar IA (Heurística Keyspace)</span>
-    </button>
-    <button onclick="switchTab('tab-pool')" id="btn-tab-pool" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
-      <span>Mural PoS & DPs</span>
-    </button>
-    <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="cloud" class="w-4 h-4 text-emerald-400"></i>
-      <span>Terminal & Worker Nodes</span>
-    </button>
-    <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="database" class="w-4 h-4 text-blue-400"></i>
-      <span>Ranges & Space Pruning</span>
-    </button>
-    <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i>
-      <span>Benchmark Real Criptográfico</span>
-    </button>
-    <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
-      <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-      <span>Leaderboard</span>
-    </button>
-    <button onclick="switchTab('tab-connect')" id="btn-tab-connect" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30 animate-pulse">
-      <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
-      <span>1-Click Mineração</span>
-    </button>
-  </nav>
+  <!-- Layout Principal com Barra de Navegação Vertical no Lado Esquerdo (de cima para baixo) -->
+  <div class="flex-1 w-full max-w-[1750px] mx-auto px-4 lg:px-6 py-6 flex flex-col md:flex-row gap-6 items-start">
 
-  <!-- Main Container -->
-  <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+    <!-- Sidebar de Navegação Vertical (Lado Esquerdo, de Cima para Baixo) -->
+    <aside class="w-full md:w-64 lg:w-72 shrink-0 md:sticky md:top-20 z-30">
+      <nav class="glass-panel rounded-2xl p-3 border border-white/10 flex flex-col gap-1.5 shadow-2xl bg-cypher-950/90 backdrop-blur-xl">
+        <div class="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between border-b border-white/5 mb-1">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="compass" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Navegação do Hub</span>
+          </span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Hub Online"></span>
+        </div>
+
+        <!-- Botões de Navegação (de Cima para Baixo) -->
+        <button onclick="switchTab('tab-presell')" id="btn-tab-presell" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 text-white border border-amber-500/40 hover:border-emerald-400 shadow-sm shadow-amber-500/10">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span class="truncate">🌟 Apresentação & Presell</span>
+        </button>
+
+        <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span class="truncate">Central de Comando</span>
+        </button>
+
+        <button onclick="switchTab('tab-connect')" id="btn-tab-connect" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30">
+          <i data-lucide="zap" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="truncate">⚡ 1-Click Mineração</span>
+        </button>
+
+        <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="award" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span class="truncate">Puzzle 1000 BTC (160 Alvos)</span>
+        </button>
+
+        <button onclick="switchTab('tab-analyst')" id="btn-tab-analyst" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span class="truncate">Radar IA (Heurística)</span>
+        </button>
+
+        <button onclick="switchTab('tab-pool')" id="btn-tab-pool" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="users" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="truncate">Mural PoS & DPs</span>
+        </button>
+
+        <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="cloud" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="truncate">Terminal & Worker Nodes</span>
+        </button>
+
+        <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="database" class="w-4 h-4 text-blue-400 shrink-0"></i>
+          <span class="truncate">Ranges & Pruning</span>
+        </button>
+
+        <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+          <span class="truncate">Benchmark Real</span>
+        </button>
+
+        <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
+          <i data-lucide="trophy" class="w-4 h-4 text-amber-400 shrink-0"></i>
+          <span class="truncate">Leaderboard</span>
+        </button>
+
+        <!-- Botão Admin -->
+        <button onclick="switchTab('tab-admin')" id="btn-tab-admin" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition text-purple-300 hover:bg-purple-500/10 border border-purple-500/30">
+          <i data-lucide="shield-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
+          <span class="truncate">🛡️ Gestão de Usuários (Admin)</span>
+        </button>
+
+        <div class="pt-3 mt-1.5 border-t border-white/10 space-y-2">
+          <button onclick="goToCadastroMinerador()" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
+            <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+            <span>Cadastrar Carteira</span>
+          </button>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Container (Lado Direito) -->
+    <main class="flex-1 min-w-0 w-full space-y-6">
 
     <!-- ==================== TAB PRESELL: APRESENTAÇÃO OFICIAL & CONTRATO DA COMUNIDADE ==================== -->
     <section id="tab-presell" class="tab-content hidden space-y-8">
@@ -379,7 +415,11 @@
             <div class="space-y-1.5">
               <label class="text-slate-300 font-bold block">2. Carteira Bitcoin para Recebimento (Payout BTC):</label>
               <input type="text" id="regPayoutAddress" required placeholder="Ex: bc1q... ou 1..." class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-amber-300 font-bold focus:outline-none focus:border-amber-400" />
-              <span class="text-[10px] text-slate-500 block">Endereço Bitcoin próprio (Legado 1..., SegWit 3... ou Native SegWit bc1q...).</span>
+              <!-- AVISO: Endereço Bitcoin não poderá ser alterado -->
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 flex items-start gap-2 font-sans mt-1">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400 shrink-0 mt-0.5"></i>
+                <span class="leading-relaxed"><strong>Aviso Importante:</strong> O endereço do Bitcoin <u>NÃO poderá ser alterado</u> após o cadastro para garantir a segurança dos pagamentos e evitar fraudes.</span>
+              </div>
             </div>
           </div>
 
@@ -393,20 +433,37 @@
                 <option value="Servidor Nuvem (Vast.ai / RunPod / AWS)">Servidor Nuvem (Vast.ai / RunPod / AWS)</option>
                 <option value="Processador CPU (Intel / AMD Ryzen)">Processador CPU (Intel / AMD Ryzen)</option>
                 <option value="Navegador Web (1-Click Mining)">Navegador Web (1-Click Mining)</option>
+                <option value="Outro">Outro</option>
               </select>
             </div>
 
-            <!-- Contato Opcional -->
+            <!-- Contato E-mail (Telegram retirado) -->
             <div class="space-y-1.5">
-              <label class="text-slate-300 font-bold block">4. Contato Opcional (Telegram / E-mail):</label>
-              <input type="text" id="regContactInfo" placeholder="Ex: @seutelegram ou seu@email.com" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-300 focus:outline-none focus:border-emerald-400" />
-              <span class="text-[10px] text-slate-500 block">Para notificação prioritária imediata no momento do rateio do prêmio.</span>
+              <label class="text-slate-300 font-bold block">4. Contato E-mail:</label>
+              <input type="email" id="regContactEmail" required placeholder="seu-email@exemplo.com" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-300 focus:outline-none focus:border-emerald-400" />
+              <span class="text-[10px] text-slate-500 block">E-mail para login, notificações prioritárias e premiações.</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Senha -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">5. Senha:</label>
+              <input type="password" id="regPassword" required minlength="6" placeholder="Digite sua senha (mínimo 6 caracteres)" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-200 focus:outline-none focus:border-emerald-400" />
+              <span class="text-[10px] text-slate-500 block">Mínimo de 6 caracteres para segurança da sua conta.</span>
+            </div>
+
+            <!-- Repetir Senha -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">6. Repetir Senha:</label>
+              <input type="password" id="regPasswordConfirm" required minlength="6" placeholder="Repita a mesma senha digitada ao lado" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-200 focus:outline-none focus:border-emerald-400" />
+              <span class="text-[10px] text-slate-500 block">As senhas devem ser exatamente iguais.</span>
             </div>
           </div>
 
           <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 hover:from-emerald-400 text-black font-black text-sm transition shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2">
             <i data-lucide="check-circle" class="w-4 h-4"></i>
-            <span>Salvar Cadastro & Gerar Comando Personalizado de Mineração</span>
+            <span>Salvar Cadastro & Começar Mineração</span>
           </button>
         </form>
 
@@ -2063,7 +2120,100 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
       </div>
     </section>
 
+    <!-- ==================== TAB ADMIN: GESTÃO COMPLETA DE USUÁRIOS & MINERADORES ==================== -->
+    <section id="tab-admin" class="tab-content hidden space-y-6">
+      <div class="glass-panel rounded-3xl p-6 lg:p-8 border border-purple-500/30 bg-gradient-to-br from-cypher-950 via-purple-950/20 to-cypher-900 shadow-2xl relative overflow-hidden">
+        
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+              <i data-lucide="shield-alert" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-xl font-black text-white">Painel Administrativo — Gestão de Usuários</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase tracking-wider">Acesso Master</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Visualize, edite dados, altere permissões (USER / ADMIN) e gerencie exclusões de operadores e mineradores da pool.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="fetchAdminUsers()" class="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-xs border border-white/10 transition flex items-center gap-1.5">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Atualizar</span>
+            </button>
+            <button onclick="openAdminCreateUserModal()" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-600/30 flex items-center gap-1.5">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>+ Novo Usuário</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Indicadores Rápidos -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div class="p-4 rounded-2xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400 font-medium">Total de Usuários</div>
+            <div class="text-2xl font-black text-white font-mono mt-1" id="adminStatTotalUsers">0</div>
+          </div>
+          <div class="p-4 rounded-2xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400 font-medium">Administradores</div>
+            <div class="text-2xl font-black text-purple-400 font-mono mt-1" id="adminStatAdmins">0</div>
+          </div>
+          <div class="p-4 rounded-2xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400 font-medium">Carteiras BTC Cadastradas</div>
+            <div class="text-2xl font-black text-amber-400 font-mono mt-1" id="adminStatBtcWallets">0</div>
+          </div>
+          <div class="p-4 rounded-2xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400 font-medium">Nós Conectados</div>
+            <div class="text-2xl font-black text-emerald-400 font-mono mt-1" id="adminStatOnlineNodes">0</div>
+          </div>
+        </div>
+
+        <!-- Aviso para quando não estiver logado como admin -->
+        <div id="adminAccessDeniedBanner" class="hidden mt-6 p-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center space-y-3">
+          <div class="text-amber-300 font-bold text-sm">🔒 Acesso Restrito a Administradores</div>
+          <p class="text-xs text-slate-400 max-w-lg mx-auto">Você precisa estar conectado com uma conta de Administrador (ex: admin@puzzleradar.io) para visualizar, editar ou excluir usuários.</p>
+          <button onclick="openAuthModal('login')" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition">Fazer Login como Admin</button>
+        </div>
+
+        <!-- Tabela de Usuários -->
+        <div id="adminUsersTableContainer" class="mt-6 space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="relative w-full sm:w-80">
+              <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
+              <input type="text" id="adminUserSearchInput" oninput="filterAdminUsersTable()" placeholder="Filtrar por nome, e-mail ou carteira..." class="w-full pl-9 pr-4 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-purple-500" />
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono" id="adminUserTableCount">Carregando usuários...</div>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
+            <table class="w-full text-left text-xs text-slate-300 font-sans">
+              <thead class="bg-white/5 text-[11px] uppercase tracking-wider text-slate-400 font-mono border-b border-white/10">
+                <tr>
+                  <th class="py-3 px-4">Usuário / Nome</th>
+                  <th class="py-3 px-4">E-mail</th>
+                  <th class="py-3 px-4">Função</th>
+                  <th class="py-3 px-4">Carteira Bitcoin (Payout)</th>
+                  <th class="py-3 px-4">Hardware</th>
+                  <th class="py-3 px-4">Cadastro</th>
+                  <th class="py-3 px-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody" class="divide-y divide-white/5 font-mono">
+                <tr>
+                  <td colspan="7" class="py-8 text-center text-slate-500 font-sans">Carregando dados dos usuários...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
   </main>
+</div>
 
   <!-- Floating Advisor Chat Modal -->
   <div id="advisorChatModal" class="fixed bottom-20 right-6 w-96 max-w-[calc(100vw-2rem)] h-[560px] glass-panel-glow rounded-2xl shadow-2xl z-50 flex flex-col hidden border border-amber-500/30 overflow-hidden">
@@ -2199,6 +2349,148 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
   <button onclick="toggleAdvisorChat()" class="fixed bottom-6 right-6 w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-emerald-500 hover:scale-105 text-black font-extrabold shadow-2xl shadow-amber-500/30 flex items-center justify-center transition-all z-40">
     <i data-lucide="message-square" class="w-6 h-6"></i>
   </button>
+
+  <!-- ==================== MODAL DE EDIÇÃO DE USUÁRIO (ADMIN) ==================== -->
+  <div id="modalEditUser" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel-glow max-w-md w-full p-6 rounded-3xl border border-purple-500/40 bg-cypher-950 space-y-4 font-mono text-xs relative">
+      <button onclick="closeAdminEditModal()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+          <i data-lucide="user-cog" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-black text-white">Editar Usuário / Minerador</h3>
+          <p class="text-[10px] text-slate-400 font-sans">Atualize permissões, carteira ou credenciais</p>
+        </div>
+      </div>
+
+      <form onsubmit="submitAdminEditUser(event)" class="space-y-3 font-sans">
+        <input type="hidden" id="adminEditUserId" />
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Nome / Apelido:</label>
+          <input type="text" id="adminEditUserName" required class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">E-mail de Acesso:</label>
+          <input type="email" id="adminEditUserEmail" required class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Função / Permissão (Role):</label>
+          <select id="adminEditUserRole" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-purple-300 font-bold focus:outline-none focus:border-purple-500 font-mono">
+            <option value="USER">USER (Minerador / Operador Padrão)</option>
+            <option value="ADMIN">ADMIN (Acesso Total ao Sistema & Usuários)</option>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Carteira Bitcoin para Rateio (Payout):</label>
+          <input type="text" id="adminEditUserPayout" placeholder="bc1q... ou 1..." class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-amber-300 focus:outline-none focus:border-amber-400 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Tipo de Equipamento / Hardware:</label>
+          <select id="adminEditUserHardware" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono">
+            <option value="GPU Nvidia RTX 4090 / 4080 / 3090">GPU Dedicada High-End (RTX 4090 / 4080 / 3090)</option>
+            <option value="GPU Nvidia RTX 3060 / 2060 / Série GTX">GPU Intermediária (RTX 3060 / 2060 / Série GTX)</option>
+            <option value="Servidor Nuvem (Vast.ai / RunPod / AWS)">Servidor Nuvem (Vast.ai / RunPod / AWS)</option>
+            <option value="Processador CPU (Intel / AMD Ryzen)">Processador CPU (Intel / AMD Ryzen)</option>
+            <option value="Navegador Web (1-Click Mining)">Navegador Web (1-Click Mining)</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Redefinir Senha (opcional):</label>
+          <input type="password" id="adminEditUserPassword" placeholder="Deixe em branco para manter a senha atual" minlength="6" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+          <button type="button" onclick="closeAdminEditModal()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-semibold transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-600/30">
+            Salvar Alterações
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE CRIAÇÃO DE USUÁRIO (ADMIN) ==================== -->
+  <div id="modalCreateUser" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel-glow max-w-md w-full p-6 rounded-3xl border border-purple-500/40 bg-cypher-950 space-y-4 font-mono text-xs relative">
+      <button onclick="closeAdminCreateModal()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-3 border-b border-white/10 pb-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-300">
+          <i data-lucide="user-plus" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-sm font-black text-white">Cadastrar Novo Usuário / Admin</h3>
+          <p class="text-[10px] text-slate-400 font-sans">Cadastre mineradores ou novos administradores</p>
+        </div>
+      </div>
+
+      <form onsubmit="submitAdminCreateUser(event)" class="space-y-3 font-sans">
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Nome / Apelido:</label>
+          <input type="text" id="adminCreateUserName" required placeholder="Ex: Admin_Operador_SP" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">E-mail de Acesso:</label>
+          <input type="email" id="adminCreateUserEmail" required placeholder="admin@exemplo.com" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Senha (mínimo 6 caracteres):</label>
+          <input type="password" id="adminCreateUserPassword" required minlength="6" placeholder="••••••••" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Função / Permissão (Role):</label>
+          <select id="adminCreateUserRole" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-purple-300 font-bold focus:outline-none focus:border-purple-500 font-mono">
+            <option value="USER">USER (Minerador / Operador Padrão)</option>
+            <option value="ADMIN">ADMIN (Acesso Total ao Sistema & Usuários)</option>
+          </select>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Carteira Bitcoin para Payout (opcional):</label>
+          <input type="text" id="adminCreateUserPayout" placeholder="bc1q... ou 1..." class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-amber-300 focus:outline-none focus:border-amber-400 font-mono" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold text-slate-300">Tipo de Equipamento / Hardware:</label>
+          <select id="adminCreateUserHardware" class="w-full px-3 py-2 rounded-xl bg-black/60 border border-white/10 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono">
+            <option value="GPU Nvidia RTX 4090 / 4080 / 3090">GPU Dedicada High-End (RTX 4090 / 4080 / 3090)</option>
+            <option value="GPU Nvidia RTX 3060 / 2060 / Série GTX">GPU Intermediária (RTX 3060 / 2060 / Série GTX)</option>
+            <option value="Servidor Nuvem (Vast.ai / RunPod / AWS)">Servidor Nuvem (Vast.ai / RunPod / AWS)</option>
+            <option value="Processador CPU (Intel / AMD Ryzen)">Processador CPU (Intel / AMD Ryzen)</option>
+            <option value="Navegador Web (1-Click Mining)">Navegador Web (1-Click Mining)</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+          <button type="button" onclick="closeAdminCreateModal()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-semibold transition">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-600/30">
+            Criar Conta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <footer class="glass-panel border-t border-white/5 px-4 lg:px-8 py-4 text-center text-xs text-slate-500">
     🧩 PuzzleRadar v5.1 — Coordenador Autônomo & 1-Click Mining | Puzzle #71 — 7.1 BTC

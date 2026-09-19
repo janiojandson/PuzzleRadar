@@ -216,12 +216,22 @@ function switchTab(tabId) {
   if (activeEl) activeEl.classList.remove('hidden');
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.className = 'tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-medium flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5';
+    btn.className = 'tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent';
   });
 
   const activeBtn = document.getElementById(`btn-${tabId}`);
   if (activeBtn) {
-    activeBtn.className = 'tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30';
+    if (tabId === 'tab-presell' || tabId === 'btn-tab-presell') {
+      activeBtn.className = 'tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 text-white border border-amber-500/40 hover:border-emerald-400 shadow-sm shadow-amber-500/10';
+    } else if (tabId === 'tab-admin') {
+      activeBtn.className = 'tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/10';
+    } else {
+      activeBtn.className = 'tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition bg-amber-500/15 text-amber-300 border border-amber-500/30';
+    }
+  }
+
+  if (tabId === 'tab-admin') {
+    fetchAdminUsers();
   }
 
   if (window.lucide) window.lucide.createIcons();
@@ -1350,15 +1360,40 @@ function toggleAdvisorChat() {
 }
 
 // ─── CADASTRO DE MINERADOR & CARTEIRA BITCOIN (PAYOUT PROFILE) ───
+function goToCadastroMinerador() {
+  switchTab('tab-presell');
+  setTimeout(() => {
+    const el = document.getElementById('cadastro-minerador');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      document.getElementById('regWorkerName')?.focus();
+    }
+  }, 100);
+}
+
 async function handleMinerPayoutRegister(e) {
   if (e) e.preventDefault();
   const workerName = document.getElementById('regWorkerName')?.value?.trim();
   const payoutAddress = document.getElementById('regPayoutAddress')?.value?.trim();
-  const hardwareType = document.getElementById('regHardwareType')?.value;
-  const contactInfo = document.getElementById('regContactInfo')?.value?.trim();
+  const hardwareType = document.getElementById('regHardwareType')?.value || 'Outro';
+  const contactEmail = document.getElementById('regContactEmail')?.value?.trim();
+  const password = document.getElementById('regPassword')?.value;
+  const passwordConfirm = document.getElementById('regPasswordConfirm')?.value;
 
-  if (!workerName || !payoutAddress) {
-    alert('Por favor, preencha o Apelido do minerador e a Carteira Bitcoin.');
+  if (!workerName || !payoutAddress || !contactEmail || !password || !passwordConfirm) {
+    alert('Por favor, preencha todos os campos obrigatórios: Nome da Máquina, Carteira Bitcoin, E-mail e Senha.');
+    return;
+  }
+
+  if (password.length < 6) {
+    alert('A senha deve ter no mínimo 6 caracteres.');
+    document.getElementById('regPassword')?.focus();
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    alert('As senhas não coincidem. Por favor, confirme a senha corretamente.');
+    document.getElementById('regPasswordConfirm')?.focus();
     return;
   }
 
@@ -1376,7 +1411,8 @@ async function handleMinerPayoutRegister(e) {
         workerName,
         payoutAddress,
         hardwareType,
-        contactInfo
+        contactEmail,
+        password
       })
     });
 
@@ -1386,8 +1422,14 @@ async function handleMinerPayoutRegister(e) {
       localStorage.setItem('puzzleradar_payout_address', payoutAddress);
       localStorage.setItem('puzzleradar_hardware_type', hardwareType);
 
+      if (data.token && data.user) {
+        localStorage.setItem('pzk_jwt_token', data.token);
+        currentUser = data.user;
+        updateAuthUI();
+      }
+
       const cmdEl = document.getElementById('payoutGeneratedCliCommand');
-      if (cmdEl) {
+      if (cmdEl && data.worker?.cliCommand) {
         cmdEl.innerText = data.worker.cliCommand;
       }
 
@@ -1398,12 +1440,294 @@ async function handleMinerPayoutRegister(e) {
       if (webInput) webInput.value = workerName;
       if (window.browserMiner) window.browserMiner.setNickname(workerName);
 
-      alert(`✅ Sucesso! Carteira ${payoutAddress} vinculada com sucesso ao minerador ${workerName}. Seus blocos minerados estão oficialmente registrados para o rateio dos 7.10 BTC.`);
+      alert(`✅ Conta criada com sucesso!\n\nCarteira vinculada: ${payoutAddress}\nHardware: ${hardwareType}\nE-mail: ${contactEmail}\n\n⚠️ Lembrete: O endereço da carteira Bitcoin não poderá ser alterado por motivos de segurança.`);
     } else {
       alert(`⚠️ Erro ao registrar: ${data.error || 'Falha desconhecida'}`);
     }
   } catch (err) {
     alert(`⚠️ Erro de conexão com o servidor: ${err.message}`);
+  }
+}
+
+// ─── ADMIN USER MANAGEMENT (PAINEL ADMINISTRATIVO) ───
+let adminUsersList = [];
+
+async function fetchAdminUsers() {
+  const token = localStorage.getItem('pzk_jwt_token');
+  const banner = document.getElementById('adminAccessDeniedBanner');
+  const tableBox = document.getElementById('adminUsersTableContainer');
+  const tbody = document.getElementById('adminUsersTableBody');
+
+  if (!token) {
+    if (banner) banner.classList.remove('hidden');
+    if (tableBox) tableBox.classList.add('hidden');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/users', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!res.ok) {
+      if (banner) banner.classList.remove('hidden');
+      if (tableBox) tableBox.classList.add('hidden');
+      return;
+    }
+
+    const data = await res.json();
+    if (banner) banner.classList.add('hidden');
+    if (tableBox) tableBox.classList.remove('hidden');
+
+    adminUsersList = data.users || [];
+
+    // Atualiza contadores
+    const statTotal = document.getElementById('adminStatTotalUsers');
+    const statAdmins = document.getElementById('adminStatAdmins');
+    const statBtc = document.getElementById('adminStatBtcWallets');
+    const statNodes = document.getElementById('adminStatOnlineNodes');
+    const countEl = document.getElementById('adminUserTableCount');
+
+    if (statTotal) statTotal.innerText = adminUsersList.length;
+    if (statAdmins) statAdmins.innerText = adminUsersList.filter(u => u.role === 'ADMIN').length;
+    if (statBtc) statBtc.innerText = adminUsersList.filter(u => u.payoutAddress).length;
+    if (statNodes) statNodes.innerText = adminUsersList.filter(u => u.hardwareType && u.hardwareType !== 'Outro').length;
+    if (countEl) countEl.innerText = `Exibindo ${adminUsersList.length} usuário(s)`;
+
+    renderAdminUsersTable(adminUsersList);
+  } catch (err) {
+    console.error('Erro ao buscar usuários admin:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-red-400 font-sans">Erro ao carregar usuários: ${err.message}</td></tr>`;
+    }
+  }
+}
+
+function renderAdminUsersTable(users) {
+  const tbody = document.getElementById('adminUsersTableBody');
+  if (!tbody) return;
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-500 font-sans">Nenhum usuário encontrado.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => {
+    const isAdmin = u.role === 'ADMIN';
+    const roleBadge = isAdmin
+      ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">ADMIN</span>`
+      : `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">USER</span>`;
+
+    const payoutDisp = u.payoutAddress
+      ? `<div class="flex items-center gap-1.5 text-amber-300 text-[11px]">
+           <span title="${u.payoutAddress}">${u.payoutAddress.slice(0, 8)}...${u.payoutAddress.slice(-6)}</span>
+           <button onclick="navigator.clipboard.writeText('${u.payoutAddress}'); alert('Carteira copiada!');" class="p-0.5 hover:text-white text-slate-400" title="Copiar Carteira"><i data-lucide="copy" class="w-3 h-3"></i></button>
+         </div>`
+      : `<span class="text-slate-600 italic">Sem Carteira</span>`;
+
+    const createdStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : '—';
+    const safeName = (u.name || u.username || 'Minerador').replace(/'/g, "\\'");
+    const safeEmail = (u.email || '').replace(/'/g, "\\'");
+
+    return `
+      <tr class="hover:bg-white/5 transition">
+        <td class="py-3 px-4">
+          <div class="font-bold text-white">${u.name || u.username || 'Minerador'}</div>
+          <div class="text-[10px] text-slate-500">ID: ${u.id}</div>
+        </td>
+        <td class="py-3 px-4 text-slate-300">${u.email || '—'}</td>
+        <td class="py-3 px-4">${roleBadge}</td>
+        <td class="py-3 px-4">${payoutDisp}</td>
+        <td class="py-3 px-4 text-slate-400 text-[11px]">${u.hardwareType || 'Outro'}</td>
+        <td class="py-3 px-4 text-slate-500 text-[11px]">${createdStr}</td>
+        <td class="py-3 px-4 text-right whitespace-nowrap">
+          <button onclick="openAdminEditModal('${u.id}')" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 text-[11px] font-semibold transition mr-1.5 inline-flex items-center gap-1">
+            <i data-lucide="edit-3" class="w-3 h-3"></i>
+            <span>Editar</span>
+          </button>
+          <button onclick="deleteAdminUser('${u.id}', '${safeName}', '${safeEmail}')" class="px-2.5 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[11px] font-semibold border border-red-500/40 transition inline-flex items-center gap-1">
+            <i data-lucide="trash-2" class="w-3 h-3"></i>
+            <span>Excluir</span>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function filterAdminUsersTable() {
+  const query = document.getElementById('adminUserSearchInput')?.value?.toLowerCase()?.trim() || '';
+  if (!query) {
+    renderAdminUsersTable(adminUsersList);
+    const countEl = document.getElementById('adminUserTableCount');
+    if (countEl) countEl.innerText = `Exibindo ${adminUsersList.length} usuário(s)`;
+    return;
+  }
+
+  const filtered = adminUsersList.filter(u => {
+    return (u.name && u.name.toLowerCase().includes(query)) ||
+           (u.email && u.email.toLowerCase().includes(query)) ||
+           (u.username && u.username.toLowerCase().includes(query)) ||
+           (u.payoutAddress && u.payoutAddress.toLowerCase().includes(query)) ||
+           (u.role && u.role.toLowerCase().includes(query)) ||
+           (u.hardwareType && u.hardwareType.toLowerCase().includes(query));
+  });
+
+  renderAdminUsersTable(filtered);
+  const countEl = document.getElementById('adminUserTableCount');
+  if (countEl) countEl.innerText = `Filtrados ${filtered.length} de ${adminUsersList.length} usuário(s)`;
+}
+
+function openAdminEditModal(userId) {
+  const user = adminUsersList.find(u => u.id === userId);
+  if (!user) return alert('Usuário não encontrado.');
+
+  document.getElementById('adminEditUserId').value = user.id;
+  document.getElementById('adminEditUserName').value = user.name || user.username || '';
+  document.getElementById('adminEditUserEmail').value = user.email || '';
+  document.getElementById('adminEditUserRole').value = user.role || 'USER';
+  document.getElementById('adminEditUserPayout').value = user.payoutAddress || '';
+  document.getElementById('adminEditUserHardware').value = user.hardwareType || 'Outro';
+  document.getElementById('adminEditUserPassword').value = '';
+
+  const modal = document.getElementById('modalEditUser');
+  if (modal) modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeAdminEditModal() {
+  const modal = document.getElementById('modalEditUser');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function submitAdminEditUser(e) {
+  if (e) e.preventDefault();
+  const token = localStorage.getItem('pzk_jwt_token');
+  if (!token) return alert('Sessão expirada. Faça login novamente.');
+
+  const id = document.getElementById('adminEditUserId').value;
+  const name = document.getElementById('adminEditUserName').value.trim();
+  const email = document.getElementById('adminEditUserEmail').value.trim().toLowerCase();
+  const role = document.getElementById('adminEditUserRole').value;
+  const payoutAddress = document.getElementById('adminEditUserPayout').value.trim();
+  const hardwareType = document.getElementById('adminEditUserHardware').value;
+  const password = document.getElementById('adminEditUserPassword').value;
+
+  const payload = { name, email, role, payoutAddress, hardwareType };
+  if (password && password.length >= 6) payload.password = password;
+
+  try {
+    const res = await fetch(`/api/auth/users/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      closeAdminEditModal();
+      alert('✅ Usuário atualizado com sucesso!');
+      fetchAdminUsers();
+    } else {
+      alert(`⚠️ Erro ao atualizar: ${data.error || 'Falha na requisição'}`);
+    }
+  } catch (err) {
+    alert(`Erro de conexão: ${err.message}`);
+  }
+}
+
+async function deleteAdminUser(id, name, email) {
+  if (!confirm(`⚠️ Tem certeza de que deseja EXCLUIR o usuário "${name}" (${email})?\n\nEsta ação não poderá ser desfeita.`)) {
+    return;
+  }
+
+  const token = localStorage.getItem('pzk_jwt_token');
+  if (!token) return alert('Sessão expirada. Faça login novamente.');
+
+  try {
+    const res = await fetch(`/api/auth/users/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(`✅ ${data.message || 'Usuário excluído com sucesso!'}`);
+      fetchAdminUsers();
+    } else {
+      alert(`⚠️ Não foi possível excluir: ${data.error || 'Erro desconhecido'}`);
+    }
+  } catch (err) {
+    alert(`Erro de conexão: ${err.message}`);
+  }
+}
+
+function openAdminCreateUserModal() {
+  document.getElementById('adminCreateUserName').value = '';
+  document.getElementById('adminCreateUserEmail').value = '';
+  document.getElementById('adminCreateUserPassword').value = '';
+  document.getElementById('adminCreateUserRole').value = 'USER';
+  document.getElementById('adminCreateUserPayout').value = '';
+  document.getElementById('adminCreateUserHardware').value = 'Outro';
+
+  const modal = document.getElementById('modalCreateUser');
+  if (modal) modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeAdminCreateModal() {
+  const modal = document.getElementById('modalCreateUser');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function submitAdminCreateUser(e) {
+  if (e) e.preventDefault();
+  const token = localStorage.getItem('pzk_jwt_token');
+  const name = document.getElementById('adminCreateUserName').value.trim();
+  const email = document.getElementById('adminCreateUserEmail').value.trim().toLowerCase();
+  const password = document.getElementById('adminCreateUserPassword').value;
+  const role = document.getElementById('adminCreateUserRole').value;
+  const payoutAddress = document.getElementById('adminCreateUserPayout').value.trim();
+  const hardwareType = document.getElementById('adminCreateUserHardware').value;
+
+  if (password.length < 6) return alert('A senha deve ter no mínimo 6 caracteres.');
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        role,
+        payoutAddress: payoutAddress || undefined,
+        hardwareType
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      closeAdminCreateModal();
+      alert(`✅ Usuário "${name}" cadastrado com sucesso com permissão ${role}!`);
+      fetchAdminUsers();
+    } else {
+      alert(`⚠️ Erro ao criar usuário: ${data.error || 'Falha na requisição'}`);
+    }
+  } catch (err) {
+    alert(`Erro de conexão: ${err.message}`);
   }
 }
 

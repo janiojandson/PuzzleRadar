@@ -50,6 +50,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Este e-mail já está cadastrado.', code: 'EMAIL_EXISTS' });
     }
 
+    const isAdminKey = req.body.adminSecret && req.body.adminSecret === (process.env.ADMIN_SECRET || 'puzzleradar_admin_secret_2026');
+    const isMasterEmail = cleanEmail === ADMIN_EMAIL;
+    const role = (isAdminKey || isMasterEmail || (req.body.role === 'ADMIN' && req.user?.role === 'ADMIN')) ? 'ADMIN' : 'USER';
+
     const passwordHash = await bcrypt.hash(password, 10);
     const userId = 'usr_' + Date.now();
     const workerToken = 'pzk_' + crypto.randomBytes(12).toString('hex');
@@ -60,9 +64,11 @@ router.post('/register', async (req, res) => {
       email: cleanEmail,
       username: username || cleanEmail.split('@')[0],
       passwordHash,
-      role: 'USER',
+      role,
       workerToken,
-      activePlan: 'FREE_COMMUNITY',
+      activePlan: role === 'ADMIN' ? 'ENTERPRISE_ADMIN' : 'FREE_COMMUNITY',
+      payoutAddress: req.body.payoutAddress || null,
+      hardwareType: req.body.hardwareType || req.body.gpuModel || 'Padrão',
       gpuModel: gpuModel || 'Google Colab Tesla T4',
       hasGpu: Boolean(hasGpu),
       totalShares: 0,
@@ -173,5 +179,130 @@ router.get('/me', requireAuth, (req, res) => {
     }
   });
 });
+
+/**
+ * GET /api/auth/users — Lista todos os usuários cadastrados (Apenas ADMIN)
+ */
+router.get('/users', requireAuth, (req, res) => {
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Acesso restrito ao administrador.', code: 'FORBIDDEN' });
+  }
+
+  const usersList = Array.from(usersStore.values()).map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    username: u.username,
+    role: u.role,
+    workerToken: u.workerToken,
+    payoutAddress: u.payoutAddress || null,
+    hardwareType: u.hardwareType || u.gpuModel || 'Padrão',
+    activePlan: u.activePlan || 'FREE_COMMUNITY',
+    totalShares: u.totalShares || 0,
+    createdAt: u.createdAt
+  }));
+
+  res.json({
+    success: true,
+    total: usersList.length,
+    users: usersList
+  });
+});
+
+/**
+ * PUT /api/auth/users/:id — Edita um usuário cadastrado (Apenas ADMIN)
+ */
+router.put('/users/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Acesso restrito ao administrador.', code: 'FORBIDDEN' });
+  }
+
+  const { id } = req.params;
+  const { name, email, role, payoutAddress, hardwareType, activePlan, password } = req.body;
+
+  let targetUser = null;
+  let targetKey = null;
+
+  for (const [key, u] of usersStore.entries()) {
+    if (u.id === id) {
+      targetUser = u;
+      targetKey = key;
+      break;
+    }
+  }
+
+  if (!targetUser) {
+    return res.status(404).json({ error: 'Usuário não encontrado.', code: 'USER_NOT_FOUND' });
+  }
+
+  if (name) targetUser.name = String(name).trim();
+  if (role && (role === 'USER' || role === 'ADMIN')) targetUser.role = role;
+  if (payoutAddress) targetUser.payoutAddress = String(payoutAddress).trim();
+  if (hardwareType) targetUser.hardwareType = String(hardwareType).trim();
+  if (activePlan) targetUser.activePlan = String(activePlan).trim();
+  if (password && password.length >= 6) {
+    targetUser.passwordHash = await bcrypt.hash(password, 10);
+  }
+
+  if (email && email.trim().toLowerCase() !== targetKey) {
+    const newEmail = email.trim().toLowerCase();
+    targetUser.email = newEmail;
+    targetUser.username = newEmail.split('@')[0];
+    usersStore.delete(targetKey);
+    usersStore.set(newEmail, targetUser);
+  }
+
+  res.json({
+    success: true,
+    message: 'Usuário atualizado com sucesso.',
+    user: {
+      id: targetUser.id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: targetUser.role,
+      payoutAddress: targetUser.payoutAddress,
+      hardwareType: targetUser.hardwareType
+    }
+  });
+});
+
+/**
+ * DELETE /api/auth/users/:id — Exclui um usuário (Apenas ADMIN)
+ */
+router.delete('/users/:id', requireAuth, (req, res) => {
+  if (req.user.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Acesso restrito ao administrador.', code: 'FORBIDDEN' });
+  }
+
+  const { id } = req.params;
+
+  let targetKey = null;
+  let targetUser = null;
+
+  for (const [key, u] of usersStore.entries()) {
+    if (u.id === id) {
+      targetKey = key;
+      targetUser = u;
+      break;
+    }
+  }
+
+  if (!targetKey) {
+    return res.status(404).json({ error: 'Usuário não encontrado.', code: 'USER_NOT_FOUND' });
+  }
+
+  if (targetUser.email === ADMIN_EMAIL && targetUser.role === 'ADMIN') {
+    return res.status(400).json({ error: 'Não é permitido excluir o Administrador Master.', code: 'CANNOT_DELETE_MASTER_ADMIN' });
+  }
+
+  usersStore.delete(targetKey);
+
+  res.json({
+    success: true,
+    message: `Usuário ${targetUser.name} (${targetUser.email}) excluído com sucesso.`
+  });
+});
+
+router.usersStore = usersStore;
 
 module.exports = router;
