@@ -22,9 +22,30 @@ router.get('/next/:worker_id', async (req, res) => {
     const isBrowser = req.query.client === 'browser' || req.headers['x-client'] === 'browser';
 
     const { parentLoteManager } = require('../../services/parentLoteManager');
+    const puzzle = parseInt(req.query.puzzle || '71', 10);
 
-    if (isBrowser) {
+    // Para o Puzzle 71 (fatia ativa da API oficial btcpuzzle.info),
+    // distribui SEMPRE as micro-fatias contíguas da Fatia Pai Oficial ativa
+    // para TODOS os nós (Browser, Colab, Terminal, PowerShell), concentrando
+    // o cluster na descoberta das 6 chaves PoW!
+    if (puzzle === 71 && req.query.mode !== 'legacy_grid') {
       const microLote = await parentLoteManager.getNextMicroLote(worker_id);
+
+      // Registra worker ativo no Google Sheets Buffer de forma assíncrona
+      try {
+        const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+        sheetsBuffer.enqueueChunkLog({
+          timestamp: new Date().toISOString(),
+          chain: 'BTC',
+          challenge_id: 'BTC_1000_P71',
+          startHex: microLote.startHex,
+          endHex: microLote.endHex,
+          workerName: worker_id,
+          status: isBrowser ? 'ONLINE_BROWSER' : 'ONLINE_TERMINAL',
+          hashrate: hashrate || (isBrowser ? '50 kH/s' : '1.0 GH/s')
+        });
+      } catch (_) {}
+
       return res.json({
         custom_range: `${microLote.startHex}:${microLote.endHex}`,
         pool_conf_line: `custom_range=${microLote.startHex}:${microLote.endHex}`,
