@@ -392,14 +392,9 @@ function render1000Table(puzzles) {
               <i data-lucide="crosshair" class="w-3 h-3"></i>
               <span>${isTarget ? 'Alvo Ativo' : 'Atacar'}</span>
             </button>
-            <button onclick="trainPuzzleInLab(${p.num})" title="Treinar / Calibrar no Laboratório Sandbox" class="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-black font-semibold text-[10px] transition whitespace-nowrap flex items-center gap-1">
-              <i data-lucide="flask-conical" class="w-3 h-3"></i>
-              <span>Treinar</span>
-            </button>
             <button onclick="downloadBatForPuzzle(${p.num})" title="Baixar script .bat Windows configurado para este Puzzle" class="p-1 rounded-lg bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition">
               <i data-lucide="download" class="w-3 h-3"></i>
             </button>
-
           </div>
         </td>
       </tr>`;
@@ -1052,7 +1047,8 @@ async function fetchPoolStats() {
       setInner('poolPrizeTotalDisplay', `$${Number(data.financialSummary.poolTotalPrizeUsd || 461500).toLocaleString()} USD`);
       setInner('poolHouseBaseDisplay', `$${Number(data.financialSummary.houseBaseUsd || 69225).toLocaleString()} USD`);
       setInner('poolDistributableDisplay', `$${Number(data.financialSummary.distributableSubscribersPoolUsd || 392275).toLocaleString()} USD`);
-      setInner('poolRevertedDisplay', `$${Number(data.financialSummary.revertedSharesAmountUsd || 0).toLocaleString()} USD`);
+      const reverted = data.financialSummary.inactiveRevertedShares || 0;
+      setInner('poolRevertedDisplay', `${Number(reverted).toLocaleString()} Shares (+100% aos Ativos)`);
     }
 
     if (data.bufferStats) {
@@ -1098,8 +1094,8 @@ async function fetchPoolStats() {
         tbody.innerHTML = operators.map(op => {
           const isSub = op.isSubscriberActive && op.subscriptionStatus === 'ACTIVE';
           const subBadge = isSub
-            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 ASSINATURA ATIVA</span>'
-            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">🔴 INATIVO (Revertido à Casa)</span>';
+            ? '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🟢 PARTICIPANTE ATIVO</span>'
+            : '<span class="px-2 py-0.5 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">🔁 REVERTIDO AOS ATIVOS</span>';
 
           const anonId = op.operatorToken && op.operatorToken.length > 12
             ? `${op.operatorToken.substring(0, 8)}...${op.operatorToken.slice(-4)}`
@@ -1118,7 +1114,7 @@ async function fetchPoolStats() {
               <td class="py-3 px-3 font-bold text-amber-300">${Number(op.shares || 0).toLocaleString()} Shares</td>
               <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-400' : 'text-slate-500'}">${isSub ? op.sharePercent : '0.00%'}</td>
               <td class="py-3 px-3 font-bold ${isSub ? 'text-emerald-300' : 'text-slate-500'} font-mono">
-                ${isSub ? `~$${Number(op.projectedPayoutUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD` : '<span class="text-purple-400 text-[10px]">Revertido ao Tesouro</span>'}
+                ${isSub ? `~$${Number(op.projectedPayoutUsd || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD` : '<span class="text-emerald-400 text-[10px]">Retornado aos Ativos</span>'}
               </td>
               <td class="py-3 px-3 text-right text-slate-400">${op.lastSeen ? new Date(op.lastSeen).toLocaleTimeString() : '-'}</td>
             </tr>
@@ -1130,50 +1126,8 @@ async function fetchPoolStats() {
 }
 
 async function fetchRescueHistory() {
-  try {
-    const res = await fetch('/api/secure-rescue/history');
-    const data = await res.json();
-    if (!data.success) return;
-
-    if (data.vaults) {
-      if (data.vaults.BTC) setInner('displayVaultBtc', data.vaults.BTC);
-      if (data.vaults.ETH) setInner('displayVaultEth', data.vaults.ETH);
-      if (data.vaults.SOL) setInner('displayVaultSol', data.vaults.SOL);
-    }
-
-    const container = document.getElementById('confirmedRescuesContainer');
-    if (!container) return;
-
-    const rescues = data.rescues || [];
-    if (rescues.length === 0) {
-      container.innerHTML = `
-        <div class="flex items-center gap-3 text-slate-400">
-          <i data-lucide="shield" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span>Nenhum resgate pendente. O túnel privado de resgate automático está armado e pronto para disparar a transferência imediata assim que qualquer nó da frota encontrar uma chave autêntica.</span>
-        </div>`;
-    } else {
-      container.innerHTML = rescues.map(r => `
-        <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 space-y-1.5 font-mono text-[11px] mb-2">
-          <div class="flex items-center justify-between">
-            <span class="text-emerald-300 font-bold flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>✅ RESGATE PRIVADO EXECUTADO COM SUCESSO</span>
-            </span>
-            <span class="text-slate-400">${new Date(r.timestamp).toLocaleString()}</span>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-300">
-            <div><span class="text-slate-500">Desafio:</span> <strong class="text-white">${r.challengeId} (${r.chain})</strong></div>
-            <div><span class="text-slate-500">Protocolo:</span> <span class="text-cyan-300">${r.protectionProtocol}</span></div>
-            <div class="truncate"><span class="text-slate-500">Origem:</span> ${r.targetAddress}</div>
-            <div class="truncate"><span class="text-slate-500">Destino (Vault):</span> <span class="text-emerald-400 font-bold">${r.destinationAddress}</span></div>
-            <div class="col-span-full truncate"><span class="text-slate-500">Tx Hash / Bundle:</span> <span class="text-amber-400">${r.txHash}</span></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    if (window.lucide) window.lucide.createIcons();
-  } catch (_) {}
+  // Painel de Cold Vault e Relays de Resgate descontinuado por solicitação de segurança/privacidade
+  return;
 }
 
 function calculateSubscriberYield() {
@@ -1193,15 +1147,15 @@ function calculateSubscriberYield() {
     totalPrizeUSD = 2700;
   }
 
-  // Dedução da Taxa da Casa (15%) ➔ Pool Líquida dos Assinantes (85%)
+  // Dedução da Taxa da Casa/Rede (15%) ➔ Pool Líquida dos Participantes Ativos (85%)
   const distributablePoolUSD = totalPrizeUSD * 0.85;
 
-  // Participação estimada assumindo pool de 200 GH/s de nós ativos
+  // Participação estimada assumindo pool de 200 GH/s de nós ativos (shares de inativos retornam 100% aos ativos)
   const assumedPoolPower = 200;
   const shareRatio = Math.min(1, ghRate / assumedPoolPower);
   const estimatedLiquidReward = distributablePoolUSD * shareRatio;
 
-  setInner('calcEstimatedReward', `~$${Math.round(estimatedLiquidReward).toLocaleString()} USD (85% Pool • ${(shareRatio * 100).toFixed(1)}%)`);
+  setInner('calcEstimatedReward', `~$${Math.round(estimatedLiquidReward).toLocaleString()} USD (85% Líquido • ${(shareRatio * 100).toFixed(1)}% Pool)`);
 }
 
 // ─── ANALYST FEED ───
@@ -1328,15 +1282,11 @@ function copyText(text) {
 }
 
 // Inicializações periódicas a cada 4 segundos
-setInterval(fetchAnalystFeed, 10000);
-setInterval(fetchRescueHistory, 10000);
 setInterval(fetchPoolStats, 4000);
 setInterval(fetchLiveRangesData, 4000);
 
 // Polling inicial de carga
 setTimeout(() => {
-  fetchAnalystFeed();
-  fetchRescueHistory();
   fetchPoolStats();
   fetchLiveRangesData();
   calculateSubscriberYield();
@@ -2327,118 +2277,7 @@ async function triggerSimulatedWorkerStep() {
   }
 }
 
-// ─── LEARNING LAB SANDBOX BENCHMARK & ANÁLISE IA ───
-async function runSandboxBenchmark() {
-  const select = document.getElementById('sandboxPuzzleSelect');
-  const scenarioId = select ? select.value : '30';
-  const btn = document.getElementById('runBenchmarkBtn');
-  const statusEl = document.getElementById('sandboxStatus');
-  const offsetEl = document.getElementById('sandboxOffset');
-  const logsContainer = document.getElementById('sandboxLogs');
-
-  if (btn) btn.disabled = true;
-  if (statusEl) {
-    statusEl.innerText = 'Executando...';
-    statusEl.className = 'text-amber-400 animate-pulse font-bold';
-  }
-
-  if (logsContainer) {
-    logsContainer.innerHTML = `<div class="text-cyan-400">> [INICIANDO] Calibrando hardware contra o cenário ${scenarioId}...</div>`;
-  }
-
-  try {
-    const res = await fetch('/api/sandbox/benchmark', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ puzzleNumber: scenarioId, hardware: 'GPU NVIDIA (Benchmark Local)' })
-    });
-    const data = await res.json();
-
-    if (data.success && data.logs) {
-      if (logsContainer) {
-        logsContainer.innerHTML = '';
-        data.logs.forEach((log, idx) => {
-          setTimeout(() => {
-            const row = document.createElement('div');
-            row.className = log.includes('KEY_INTERSECTION') || log.includes('KEY_RECOVERED') || log.includes('APROVADO') || log.includes('ENTROPY_REDUCTION')
-              ? 'text-emerald-400 font-bold'
-              : log.includes('RESULT') || log.includes('ADDRESS MATCH')
-                ? 'text-amber-300 font-extrabold'
-                : 'text-slate-300';
-            row.innerText = `> ${log}`;
-            logsContainer.appendChild(row);
-            const terminal = document.getElementById('sandboxTerminal');
-            if (terminal) terminal.scrollTop = terminal.scrollHeight;
-          }, idx * 180);
-        });
-      }
-
-      setTimeout(() => {
-        if (statusEl) {
-          statusEl.innerText = '✅ 100% Calibrado';
-          statusEl.className = 'text-emerald-400 font-bold';
-        }
-        if (offsetEl) offsetEl.innerText = `${data.targetAddress ? data.targetAddress.substring(0, 10) + '...' : 'Concluído'} (${data.executionTimeMs} ms)`;
-        if (btn) btn.disabled = false;
-        showToast(`🎯 Calibração do cenário "${data.scenarioName || scenarioId}" concluída com sucesso!`);
-        appendTerminalLog('SYSTEM', `🎯 [SANDBOX CALIBRADO] ${data.scenarioName || scenarioId} validado (${data.hashrate || '18.00 GH/s'})`);
-      }, (data.logs.length + 1) * 180);
-    } else {
-      if (statusEl) {
-        statusEl.innerText = '⚠️ Erro';
-        statusEl.className = 'text-red-400';
-      }
-      if (btn) btn.disabled = false;
-    }
-  } catch (err) {
-    if (statusEl) {
-      statusEl.innerText = '⚠️ Erro de Conexão';
-      statusEl.className = 'text-red-400';
-    }
-    if (btn) btn.disabled = false;
-    appendTerminalLog('COLLISION_ALERT', `⚠️ Erro no Sandbox Benchmark: ${err.message}`);
-  }
-}
-
-async function consultAiOnSandboxScenario() {
-  const select = document.getElementById('sandboxPuzzleSelect');
-  const scenarioId = select ? select.value : '30';
-  const provider = document.getElementById('advisorProviderSelect')?.value || 'gemini';
-  const box = document.getElementById('sandboxAiAnalysisBox');
-  const titleEl = document.getElementById('sandboxAiTitle');
-  const modelTagEl = document.getElementById('sandboxAiModelTag');
-  const contentEl = document.getElementById('sandboxAiContent');
-  const btn = document.getElementById('consultSandboxAiBtn');
-
-  if (box) box.classList.remove('hidden');
-  if (btn) btn.disabled = true;
-  if (contentEl) contentEl.innerHTML = '<div class="text-amber-400 animate-pulse">⏳ Consultando a IA sobre a formulação matemática e calibragem do cenário selecionado...</div>';
-
-  try {
-    const res = await fetch('/api/sandbox/ai-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scenarioId, provider })
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      if (titleEl) titleEl.innerText = `Parecer Criptográfico: ${data.scenario}`;
-      if (modelTagEl) modelTagEl.innerText = data.model || (provider === 'nexus' ? 'Nexus Cérebro 2.0' : 'Google Gemini 2.0');
-      if (contentEl) {
-        // Formata quebras de linha e markdown simples
-        contentEl.innerHTML = data.analysis.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      }
-      showToast('🧠 Parecer do Consultor IA gerado com sucesso!');
-    } else {
-      if (contentEl) contentEl.innerText = '⚠️ Não foi possível obter o parecer: ' + (data.error || 'Erro desconhecido');
-    }
-  } catch (err) {
-    if (contentEl) contentEl.innerText = '⚠️ Erro de conexão com o Consultor IA: ' + err.message;
-  } finally {
-    if (btn) btn.disabled = false;
-  }
-}
+// Sandbox Benchmark e Consultor IA descontinuados por solicitação do usuário.
 
 // ─── PINNED DISCOVERY BANNER (FIXO ATÉ O ADMIN DESCARTAR) ───
 function showDiscoveryBanner(title, detailsHtml) {
@@ -2547,16 +2386,7 @@ function downloadBatForPuzzle(num) {
   showToast(`📥 Script start-worker-puzzle-${num}.bat baixado!`);
 }
 
-function trainPuzzleInLab(num) {
-  switchTab('tab-sandbox');
-  const select = document.getElementById('sandboxPuzzleSelect');
-  if (select) {
-    // Procura opção correspondente ou seta
-    const opt = Array.from(select.options).find(o => o.value == num);
-    if (opt) select.value = num;
-  }
-  showToast(`🧪 Puzzle #${num} carregado no Learning Lab Sandbox.`);
-}
+
 
 // ─── GOOGLE SHEETS & POOL DIAGNOSTIC HELPERS ───
 async function testGoogleSheetsConnection(btnElement) {
@@ -2771,64 +2601,6 @@ setInterval(loadKangarooStats, 5000);
 setInterval(checkPoolConnectionDiagnostics, 15000);
 setTimeout(loadKangarooStats, 800);
 setTimeout(checkPoolConnectionDiagnostics, 1200);
-
-// ─── SANDBOX BENCHMARK REAL CRIPTOGRÁFICO ───
-async function runSandboxBenchmark() {
-  const select = document.getElementById('sandboxPuzzleSelect');
-  const puzzleChoice = select ? select.value : '20';
-  const logsEl = document.getElementById('sandboxLogs');
-  const statusEl = document.getElementById('sandboxStatus');
-  const offsetEl = document.getElementById('sandboxOffset');
-
-  if (statusEl) statusEl.innerText = 'Executando Benchmark Real...';
-  if (logsEl) {
-    logsEl.innerHTML = `
-      <div class="text-cyan-300 font-bold">> [BENCHMARK] Iniciando calibração real de hardware local...</div>
-      <div class="text-slate-400">> [SETUP] Algoritmo: Exaustão secp256k1 (Web Worker / Loop Local JS)</div>
-    `;
-  }
-
-  const puzzleBitMap = {
-    '1': { bits: 1, rangeStart: 1n, rangeEnd: 1n, targetPriv: 1n },
-    '5': { bits: 5, rangeStart: 16n, rangeEnd: 31n, targetPriv: 21n },
-    '10': { bits: 10, rangeStart: 512n, rangeEnd: 1023n, targetPriv: 514n },
-    '20': { bits: 20, rangeStart: 524288n, rangeEnd: 1048575n, targetPriv: 863317n },
-    '30': { bits: 30, rangeStart: 536870912n, rangeEnd: 1073741823n, targetPriv: 1033129316n },
-    '32': { bits: 32, rangeStart: 2147483648n, rangeEnd: 4294967295n, targetPriv: 3093472814n }
-  };
-
-  const puzzleConfig = puzzleBitMap[puzzleChoice] || puzzleBitMap['20'];
-
-  const startTime = performance.now();
-  let keysChecked = 0;
-  const maxBenchmarkKeys = Math.min(Number(puzzleConfig.rangeEnd - puzzleConfig.rangeStart + 1n), 1000000);
-  const startKey = puzzleConfig.rangeStart;
-
-  for (let i = 0; i < maxBenchmarkKeys; i++) {
-    keysChecked++;
-    const currentKey = startKey + BigInt(i);
-    if (currentKey === puzzleConfig.targetPriv) {
-      break;
-    }
-  }
-
-  const endTime = performance.now();
-  const elapsedMs = Math.max(1, endTime - startTime);
-  const keysPerSec = Math.round((keysChecked / (elapsedMs / 1000)));
-  const khs = (keysPerSec / 1000).toFixed(2);
-
-  if (logsEl) {
-    logsEl.innerHTML += `
-      <div class="text-emerald-400 font-bold">> [RESULTADO] Benchmark concluído!</div>
-      <div class="text-white font-mono">> Chaves testadas: ${keysChecked.toLocaleString('pt-BR')} chaves em ${elapsedMs.toFixed(2)} ms</div>
-      <div class="text-amber-300 font-extrabold">> Taxa Efetiva de Hardware: ${khs} kH/s (${keysPerSec.toLocaleString('pt-BR')} H/s)</div>
-      <div class="text-cyan-300">> Puzzle Calibrado: #${puzzleConfig.bits} (${puzzleConfig.bits} bits de espaço)</div>
-    `;
-  }
-
-  if (statusEl) statusEl.innerText = `Concluído (${khs} kH/s)`;
-  if (offsetEl) offsetEl.innerText = `${keysChecked} chaves`;
-}
 
 // Inicializa checagem de sessão
 checkAuthSession();

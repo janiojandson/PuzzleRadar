@@ -184,11 +184,6 @@
           <span class="truncate">Puzzle 1000 BTC (160 Alvos)</span>
         </button>
 
-        <button onclick="switchTab('tab-analyst')" id="btn-tab-analyst" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
-          <span class="truncate">Radar IA (Heurística)</span>
-        </button>
-
         <button onclick="switchTab('tab-pool')" id="btn-tab-pool" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="users" class="w-4 h-4 text-emerald-400 shrink-0"></i>
           <span class="truncate">Mural PoS & DPs</span>
@@ -202,11 +197,6 @@
         <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="database" class="w-4 h-4 text-blue-400 shrink-0"></i>
           <span class="truncate">Ranges & Pruning</span>
-        </button>
-
-        <button onclick="switchTab('tab-sandbox')" id="btn-tab-sandbox" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400 shrink-0"></i>
-          <span class="truncate">Benchmark Real</span>
         </button>
 
         <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
@@ -1473,33 +1463,6 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
       </div>
     </section>
 
-    <!-- ==================== TAB 2.5: RADAR DE INTELIGÊNCIA IA ==================== -->
-    <section id="tab-analyst" class="tab-content hidden space-y-6">
-      <div class="glass-panel rounded-2xl p-6 lg:p-8 space-y-6">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div class="space-y-2 max-w-3xl">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-              <span>Ingestão Automática com Google Gemini & Sentinel</span>
-            </div>
-            <h2 class="text-3xl font-extrabold text-white">Radar de Oportunidades Criptográficas IA</h2>
-            <p class="text-sm text-slate-300">
-              O motor analítico rastreia o mempool, repositórios de CTF e fóruns globais, extrai parâmetros criptográficos via Gemini e calcula o ranking de ROI diário antes de acionar a frota.
-            </p>
-          </div>
-
-          <button onclick="evaluateCustomChallenge()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-black font-extrabold text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
-            <i data-lucide="plus-circle" class="w-4 h-4"></i>
-            <span>Submeter Novo Enigma para IA</span>
-          </button>
-        </div>
-
-        <!-- Feed List Grid -->
-        <div id="analystFeedGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </section>
 
     <!-- ==================== TAB 2.8: MURAL DE TRANSPARÊNCIA DO POOL (PoS) ==================== -->
     <section id="tab-pool" class="tab-content hidden space-y-6">
@@ -1551,20 +1514,20 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
             <div id="poolDistributableDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">$392.275 USD</div>
             <div class="text-[10px] text-slate-400 font-mono">Distribuído por Shares PoS Auditadas</div>
           </div>
-          <div class="p-4 rounded-xl bg-cypher-950 border border-purple-500/30 space-y-1">
-            <div class="text-[10px] uppercase font-mono text-purple-300 flex items-center justify-between">
-              <span>Reversão Contas Inativas</span>
-              <span class="text-[10px] text-purple-400">100% à Casa</span>
+          <div class="p-4 rounded-xl bg-cypher-950 border border-emerald-500/30 space-y-1">
+            <div class="text-[10px] uppercase font-mono text-emerald-300 flex items-center justify-between">
+              <span>Retorno à Pool de Ativos</span>
+              <span class="text-[10px] text-emerald-400 font-bold">100% RATEADO</span>
             </div>
-            <div id="poolRevertedDisplay" class="text-xl font-extrabold text-purple-400 font-mono">$0.00 USD</div>
-            <div class="text-[10px] text-slate-500 font-mono">Nós sem assinatura ativa no mês</div>
+            <div id="poolRevertedDisplay" class="text-xl font-extrabold text-emerald-400 font-mono">100% Ativos</div>
+            <div class="text-[10px] text-slate-400 font-mono">Fatias de inativos voltam aos participantes ativos</div>
           </div>
         </div>
 
-        <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
-          <i data-lucide="info" class="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5"></i>
-          <p class="text-xs text-amber-200/90 leading-relaxed font-sans">
-            <strong>Regra de Rateio & Elegibilidade:</strong> Para receber o repasse proporcional do prêmio de 85%, o operador deve estar com a <strong>assinatura ativa no mês vigente</strong>. O trabalho e as shares de nós anônimos ou contas inativas são contabilizados na integridade da busca e 100% revertidos ao Tesouro da Casa para manutenção da infraestrutura e aceleração dos nós institucionais.
+        <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5"></i>
+          <p class="text-xs text-emerald-200/90 leading-relaxed font-sans">
+            <strong>Regra de Rateio & Dividendos:</strong> O prêmio líquido de 85% (descontadas apenas as taxas de rede on-chain) é dividido proporcionalmente de acordo com a participação e shares comprovadas de cada nó. Conforme a regra da comunidade, as fatias de nós inativos ou não participantes são <strong>100% revertidas e redistribuídas entre os mineradores participantes ativos</strong>, elevando os dividendos de quem mantém poder computacional na pool.
           </p>
         </div>
 
@@ -1572,17 +1535,18 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
         <div class="glass-panel-glow p-6 rounded-2xl border border-emerald-500/30 space-y-4">
           <div class="flex items-center gap-2 text-white font-bold text-base">
             <i data-lucide="calculator" class="w-5 h-5 text-emerald-400"></i>
-            <span>Calculadora do Assinante / Minerador (Projeção de Lucro Líquido - 85% Pool)</span>
+            <span>Calculadora do Participante / Minerador (Projeção de Dividendo Líquido - 85% Pool)</span>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label class="block text-xs text-slate-400 mb-1">Selecione seu Hardware / Potência:</label>
+              <select id="calcHardwareSelect" onchange="calculateSubscriberYield()" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
                 <option value="18">1x GPU Cloud Tesla T4 (18 GH/s)</option>
                 <option value="90">5x GPU Cluster T4 Farm (90 GH/s)</option>
                 <option value="42">1x NVIDIA RTX 4090 / RX 7900 (42 GH/s)</option>
                 <option value="210">5x Rig Multi-GPU (210 GH/s)</option>
                 <option value="3">1x PC / Laptop (AMD RX 580 / CPU Multi-Core ~3 MH/s)</option>
-
+              </select>
             </div>
             <div>
               <label class="block text-xs text-slate-400 mb-1">Desafio Alvo:</label>
@@ -1632,7 +1596,7 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
         <!-- Public Proof-of-Share Leaderboard Table (Grouped by Operator/Login) -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="font-bold text-white text-sm">Quadro de Dividendos e Shares dos Assinantes (Consolidado por Login)</h3>
+            <h3 class="font-bold text-white text-sm">Quadro de Dividendos e Shares dos Participantes (Consolidado por Login)</h3>
             <span class="text-xs text-slate-400 font-mono">Atualização em Tempo Real</span>
           </div>
           <div class="overflow-x-auto custom-scrollbar rounded-xl border border-white/10">
@@ -1640,7 +1604,7 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
               <thead>
                 <tr class="border-b border-white/10 text-slate-400 font-mono text-[11px] bg-white/5">
                   <th class="py-3 px-3">Operador / Login</th>
-                  <th class="py-3 px-3">Status Assinatura</th>
+                  <th class="py-3 px-3">Status Participação</th>
                   <th class="py-3 px-3">Nós Ativos</th>
                   <th class="py-3 px-3">Fatias Concluídas</th>
                   <th class="py-3 px-3">Hashrate Agregado</th>
@@ -1654,71 +1618,6 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
                 <!-- Populated by JS -->
               </tbody>
             </table>
-          </div>
-        </div>
-        <!-- Cold Vault & Confirmed Rescue Transfers Panel -->
-        <div class="space-y-4 pt-4 border-t border-white/10">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="font-bold text-white text-sm flex items-center gap-2">
-                <i data-lucide="lock" class="w-4 h-4 text-cyan-400"></i>
-                <span>Cofre Frio & Relays de Resgate Anti-MEV (Destinos Registrados)</span>
-              </h3>
-              <p class="text-[11px] text-slate-400 mt-0.5">Endereços de custódia imutáveis configurados para recebimento direto de chaves encontradas.</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>PROTEÇÃO ATIVA</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Vault Addresses Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="p-3.5 rounded-xl bg-cypher-950 border border-amber-500/20 space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-amber-400 font-bold flex items-center gap-1">
-                  <span>₿</span> Bitcoin Vault (Sparrow)
-                </span>
-                <span class="text-[10px] text-slate-500 font-mono">SegWit Native</span>
-              </div>
-              <div id="displayVaultBtc" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">bc1q4ea075c0ypxuw7w28j5cl8k7l6ga7qzsaxda56</div>
-            </div>
-
-            <div class="p-3.5 rounded-xl bg-cypher-950 border border-blue-500/20 space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-blue-400 font-bold flex items-center gap-1">
-                  <span>Ξ</span> Ethereum Vault
-                </span>
-                <span class="text-[10px] text-slate-500 font-mono">Flashbots Protect</span>
-              </div>
-              <div id="displayVaultEth" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">0xf5f3e4750c1bFa26677daD29FcdeaD6f71A742e0</div>
-            </div>
-
-            <div class="p-3.5 rounded-xl bg-cypher-950 border border-purple-500/20 space-y-1">
-              <div class="flex items-center justify-between text-xs">
-                <span class="text-purple-400 font-bold flex items-center gap-1">
-                  <span>◎</span> Solana Vault
-                </span>
-                <span class="text-[10px] text-slate-500 font-mono">Direct ed25519</span>
-              </div>
-              <div id="displayVaultSol" class="text-[11px] font-mono text-slate-200 break-all bg-black/40 p-2 rounded border border-white/5 select-all">FBx2SKLDLsdeLM8owxU8MNVPKAfJpLpmpHHRgiZDqBoi</div>
-            </div>
-          </div>
-
-          <!-- Confirmed Rescues & Transfers Stream -->
-          <div class="space-y-2">
-            <h4 class="font-bold text-white text-xs flex items-center gap-2">
-              <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-              <span>Histórico de Resgates e Transferências Confirmadas</span>
-            </h4>
-            <div id="confirmedRescuesContainer" class="p-4 rounded-xl bg-cypher-950 border border-white/5 text-xs text-slate-400">
-              <div class="flex items-center gap-3 text-slate-400">
-                <i data-lucide="shield" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                <span>Nenhum resgate pendente. O túnel privado de resgate automático está armado e pronto para disparar a transferência imediata assim que qualquer nó da frota encontrar uma chave autêntica.</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1920,102 +1819,6 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
           </div>
         </div>
 
-        <!-- Space Pruning Live Progress Widget (Multi-Desafios Dinâmico) -->
-        <div class="glass-panel p-5 rounded-2xl space-y-4 border border-blue-500/30 bg-cypher-950">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-2 text-xs font-mono">
-              <span class="text-blue-400 font-bold flex items-center gap-1.5">
-                <i data-lucide="crosshair" class="w-4 h-4 text-cyan-400"></i>
-                <span id="pruningChallengeTitleDisplay">Space Pruning Alvo Atual:</span>
-              </span>
-              <span id="pruningPercentDisplay" class="text-emerald-400 font-extrabold text-sm">0.00% podado</span>
-            </div>
-            
-            <div class="flex items-center gap-3 text-xs font-mono">
-              <div class="text-slate-400 text-[11px]">
-                Fatias Varridas: <strong id="pruningScannedCount" class="text-white">0</strong> / <span id="pruningTotalCount">1.000</span>
-              </div>
-              <select id="pruningChallengeSelect" onchange="changePruningChallenge(this.value)" class="px-3 py-1.5 rounded-lg bg-cypher-900 border border-white/10 text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-400">
-                <option value="BTC_1000_P71">BTC - Puzzle #71 (7.1 BTC)</option>
-                <option value="BTC_SATOSHI_NONCE_REUSE">BTC - Nonce Reuse (1.2 BTC)</option>
-                <option value="ETH_VANITY_32">ETH - Vanity 32-bit (0.5 ETH)</option>
-                <option value="SOL_VANITY_PREFIX_36">SOL - Vanity 36-bit (15 SOL)</option>
-                <option value="ETH_BIP39_SEED_RECOVERY">ETH - 12-Word Seed (5 ETH)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="w-full bg-white/5 h-3 rounded-full overflow-hidden border border-white/10 p-0.5">
-            <div id="pruningProgressBar" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-500" style="width: 2%"></div>
-          </div>
-
-          <!-- Bloco Condicional para Auditoria Algébrica no Space Pruning -->
-          <div id="pruningAlgebraicAuditNotice" class="hidden p-4 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs font-mono space-y-2">
-            <div class="flex items-center justify-between text-purple-300 font-bold text-sm">
-              <span>⚡ AUDITORIA ALGÉBRICA ECDSA O(1)</span>
-              <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 text-[10px]">CONCLUÍDO</span>
-            </div>
-            <p class="text-slate-300 text-[11px] leading-relaxed">
-              Este desafio não requer força bruta nem particionamento de chaves GPU. As 48 transações on-chain históricas da carteira foram analisadas com 100% de valores de 'r' únicos (sem repetição de nonce). A chave privada não é exposta por via algébrica.
-            </p>
-          </div>
-
-          <!-- Mathematical Discovery Probability & Realistic Midpoint ETA Bar -->
-          <div id="pruningMathGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3 p-3.5 rounded-xl bg-white/5 border border-white/5 font-mono text-xs">
-            <div>
-              <div class="text-[10px] text-slate-400">Probabilidade Cumulativa</div>
-              <div id="pruningProbDisplay" class="text-base font-extrabold text-emerald-400">0.00%</div>
-              <div class="text-[9px] text-slate-500">P(Descoberta) ≤ Fatias</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-slate-400">Meta Estatística 50%</div>
-              <div id="pruningMidpointDisplay" class="text-base font-bold text-amber-300">500 fatias</div>
-              <div class="text-[9px] text-slate-500">Ponto Médio E[X]</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-slate-400">Previsão Realista (50%)</div>
-              <div id="pruningEta50Display" class="text-base font-bold text-cyan-300">Calculando...</div>
-              <div class="text-[9px] text-slate-500">Expectativa Média</div>
-            </div>
-            <div>
-              <div class="text-[10px] text-slate-400">Exaustão Total (100%)</div>
-              <div id="pruningEta100Display" class="text-base font-bold text-slate-300">Calculando...</div>
-              <div class="text-[9px] text-slate-500">Pior Cenário Teórico</div>
-            </div>
-          </div>
-
-          <!-- Multi-Challenge Space Pruning Sub-Cards Grid -->
-          <div class="space-y-2 pt-2 border-t border-white/5">
-            <div class="text-[11px] text-slate-400 font-mono">Status de Poda por Desafio Ativo:</div>
-            <div id="multiChallengePruningGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-              <!-- Populated by JS -->
-            </div>
-          </div>
-        </div>
-
-        <!-- Card Google Sheets Integration -->
-        <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30 bg-cypher-950 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl">📊</div>
-              <div>
-                <h4 class="font-bold text-white text-sm">Integração Google Sheets & Apps Script</h4>
-                <p class="text-[11px] text-slate-400">Espelho de auditoria, registro de fatias e proteção anti-flood</p>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <button onclick="testGoogleSheetsConnection(this)" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/40 transition flex items-center gap-1.5 shadow-md">
-                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 🔄 Testar Conexão Google Sheets
-              </button>
-              <a href="https://docs.google.com/spreadsheets/d/1-rmjfxommqVZ-MNLMozU5EevdMErWQdKIM594lltIpg/edit#gid=0" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black text-xs font-extrabold transition flex items-center gap-1.5 shadow-md">
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> 📊 Abrir Planilha Google (Ranges_Varredura)
-              </a>
-            </div>
-          </div>
-          <div id="sheetsPingFeedback" class="hidden p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs font-mono text-emerald-300">
-            <!-- Retorno dinâmico do teste -->
-          </div>
-        </div>
 
         <!-- Live Recent Ranges Table -->
         <div class="space-y-2">
@@ -2048,77 +1851,6 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
       </div>
     </section>
 
-    <!-- ==================== TAB 5: LEARNING LAB SANDBOX ==================== -->
-    <section id="tab-sandbox" class="tab-content hidden space-y-6">
-      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 space-y-6">
-        <div class="max-w-3xl space-y-2">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold">
-            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i>
-            <span>Sandbox Educacional de Calibração Matemática</span>
-          </div>
-          <h2 class="text-3xl font-extrabold text-white">Laboratório de Teste e Calibração Criptográfica</h2>
-          <p class="text-sm text-slate-300">
-            Treine e valide seu hardware e algoritmos contra chaves reais comprovadas da curva secp256k1, ataques algébricos em $O(1)$ e filtros de entropia antes de alocar poder na pool principal.
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-          <div class="glass-panel p-5 rounded-xl space-y-4">
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-slate-300">Selecione a Técnica / Cenário de Teste</label>
-              <select id="sandboxPuzzleSelect" class="w-full px-3 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-cyan-400">
-                <option value="1">Puzzle #1 (1-bit / Gerador G secp256k1 — Instantâneo)</option>
-                <option value="5">Puzzle #5 (5-bits / 31 chaves — O(N))</option>
-                <option value="10">Puzzle #10 (10-bits / BSGS — O(√N))</option>
-                <option value="20">Puzzle #20 (20-bits / Kangaroo Dist Points — O(√N))</option>
-                <option value="30" selected>Puzzle #30 (30-bits / Benchmark Padrão GPU)</option>
-                <option value="40">Puzzle #40 (40-bits / CUDA Kernel Intenso)</option>
-                <option value="nonce_reuse">ECDSA Nonce Reuse (Ataque Algébrico O(1) Instantâneo)</option>
-                <option value="bip39_entropy">Poda de Entropia BIP39 (Checksum 4-bit — 93,75% Descarte)</option>
-              </select>
-            </div>
-
-            <div class="space-y-2">
-              <button onclick="runSandboxBenchmark()" id="runBenchmarkBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20">
-                <i data-lucide="zap" class="w-4 h-4"></i>
-                <span>Executar Calibração Sandbox</span>
-              </button>
-
-              <button onclick="consultAiOnSandboxScenario()" id="consultSandboxAiBtn" class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs transition flex items-center justify-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
-                <span>Consultar IA sobre este Cálculo / Técnica</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="lg:col-span-2 space-y-3">
-            <div class="terminal-box rounded-xl p-4 font-mono text-xs text-cyan-300 space-y-2 h-64 overflow-y-auto custom-scrollbar flex flex-col justify-between" id="sandboxTerminal">
-              <div id="sandboxLogs" class="space-y-1">
-                <div class="text-slate-500">> Sandbox pronto. Selecione um cenário e clique em 'Executar Calibração'...</div>
-              </div>
-              <div class="text-[10px] text-slate-500 pt-2 border-t border-white/10 flex justify-between">
-                <span>Status: <span id="sandboxStatus" class="text-emerald-400">Pronto</span></span>
-                <span>Offset / Modo: <span id="sandboxOffset">0 chaves</span></span>
-              </div>
-            </div>
-
-            <!-- AI Mathematical Explanation Box -->
-            <div id="sandboxAiAnalysisBox" class="hidden p-4 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-2 text-xs text-slate-200">
-              <div class="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                <div class="flex items-center gap-2 font-bold text-amber-300">
-                  <i data-lucide="brain" class="w-4 h-4"></i>
-                  <span id="sandboxAiTitle">Parecer do Consultor Matemático IA</span>
-                </div>
-                <span id="sandboxAiModelTag" class="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300">Gemini 2.0</span>
-              </div>
-              <div id="sandboxAiContent" class="text-[11px] leading-relaxed font-sans text-slate-300 space-y-1">
-                <!-- Preenchido via API -->
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- ==================== TAB ADMIN: GESTÃO COMPLETA DE USUÁRIOS & MINERADORES ==================== -->
     <section id="tab-admin" class="tab-content hidden space-y-6">

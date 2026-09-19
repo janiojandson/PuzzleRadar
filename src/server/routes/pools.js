@@ -459,12 +459,12 @@ const getTransparencyData = async () => {
     };
   });
 
-  // Reversão de cotas inativas para a Casa
+  // Reversão de cotas de não participantes/inativos: 100% retorna ao rateio dos mineradores ativos (descontadas as taxas de rede)
   const revertedSharesAmountUsd = totalPoolShares > 0 && activeSubscribersShares > 0
     ? parseFloat(((inactiveRevertedShares / totalPoolShares) * distributableSubscribersPoolUsd).toFixed(2))
     : 0;
 
-  const totalHouseTakeUsd = parseFloat((houseBaseUsd + revertedSharesAmountUsd).toFixed(2));
+  const totalHouseTakeUsd = houseBaseUsd;
 
   return {
     totalActiveOperators: operatorsList.length,
@@ -480,7 +480,7 @@ const getTransparencyData = async () => {
       inactiveRevertedShares,
       revertedSharesAmountUsd,
       totalHouseTakeUsd,
-      ruleNotice: '15% de taxa da casa para sustentação do ecossistema. 85% distribuído proporcionalmente aos assinantes ativos. Shares de nós anônimos ou assinaturas inativas são 100% revertidas à Casa.'
+      ruleNotice: '15% de taxa da pool/rede para infraestrutura. 85% do prêmio líquido distribuído integralmente entre os participantes ativos. Shares de nós não participantes ou inativos retornam 100% para o rateio de dividendos dos mineradores participantes ativos.'
     },
     recentDps: recentDpsList.slice(0, 20),
     operators: formattedOperators,
