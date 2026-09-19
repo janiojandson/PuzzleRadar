@@ -147,6 +147,35 @@ class SheetsBufferManager {
   }
 
   /**
+   * Envia o registro de um minerador e sua carteira de recebimento diretamente para a aba Cadastros_Mineradores
+   */
+  async sendPayoutRegistration(payoutData) {
+    const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+    const secretToken = process.env.GOOGLE_SHEETS_WEBHOOK_SECRET || 'puzzleradar_super_secret_jwt_key_2026_production';
+    if (!webhookUrl || !webhookUrl.startsWith('http')) return { skipped: true };
+
+    try {
+      const { postToGoogleWebhook } = require('./googleSheets');
+      const result = await postToGoogleWebhook(webhookUrl, {
+        secretToken,
+        action: 'register_payout',
+        targetSheet: 'Cadastros_Mineradores',
+        sheetName: 'Cadastros_Mineradores',
+        workerName: payoutData.workerName,
+        payoutAddress: payoutData.payoutAddress,
+        hardwareType: payoutData.hardwareType || 'GPU / Cluster',
+        contactInfo: payoutData.contactInfo || null,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`💳 [SheetsBuffer] Cadastro de Payout de '${payoutData.workerName}' enviado ao Google Sheets.`);
+      return { success: true, result };
+    } catch (err) {
+      console.warn(`⚠️ [SheetsBuffer] Falha ao enviar cadastro de payout:`, err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
    * Encerra o timer do buffer
    */
   stop() {

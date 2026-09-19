@@ -160,6 +160,12 @@ router.post('/register-payout', async (req, res) => {
         status: `REGISTRADO (Payout: ${cleanWallet.slice(0, 8)}... | ${hardwareType || 'GPU'})`,
         hashrate: 'Novo Registro'
       });
+      sheetsBuffer.sendPayoutRegistration({
+        workerName: cleanName,
+        payoutAddress: cleanWallet,
+        hardwareType: hardwareType || 'GPU / Cluster',
+        contactInfo: contactInfo || null
+      }).catch(() => {});
     } catch (_) {}
 
     const origin = req.headers.origin || 'https://puzzleradar-production.up.railway.app';
