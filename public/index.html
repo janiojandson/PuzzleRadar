@@ -151,6 +151,10 @@
 
   <!-- Navigation Tabs -->
   <nav class="glass-panel border-b border-white/5 px-4 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar flex-nowrap">
+    <button onclick="switchTab('tab-presell')" id="btn-tab-presell" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-bold flex items-center gap-2 transition bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 text-white border border-amber-500/40 hover:border-emerald-400 shadow-sm shadow-amber-500/10">
+      <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+      <span>🌟 Apresentação & Presell</span>
+    </button>
     <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-xs lg:text-sm font-semibold flex items-center gap-2 transition bg-amber-500/15 text-amber-300 border border-amber-500/30">
       <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-400"></i>
       <span>Central de Comando (Ao Vivo)</span>
@@ -191,6 +195,248 @@
 
   <!-- Main Container -->
   <main class="flex-1 p-4 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- ==================== TAB PRESELL: APRESENTAÇÃO OFICIAL & CONTRATO DA COMUNIDADE ==================== -->
+    <section id="tab-presell" class="tab-content hidden space-y-8">
+      
+      <!-- Hero Presell Card -->
+      <div class="glass-panel-glow rounded-3xl p-6 lg:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-cypher-900/90 via-black to-emerald-950/40 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex flex-wrap items-center gap-2.5 mb-4">
+          <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>Apresentação Oficial da Pool</span>
+          </span>
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            Prêmio: 7.10 BTC (~R$ 2.500.000 / $461.500 USD)
+          </span>
+        </div>
+
+        <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight max-w-4xl">
+          PuzzleRadar — A Primeira Mini-Pool <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-emerald-400">Inteligente de Bitcoin</span>
+        </h1>
+        <p class="text-slate-300 text-sm lg:text-base mt-4 max-w-3xl leading-relaxed">
+          O <strong>Bitcoin Puzzle #71</strong> contém 7.10 BTC trancados em uma chave privada de 71 bits. Sozinha, uma GPU comum levaria séculos para encontrar. No <strong>PuzzleRadar</strong>, nós unimos o poder computacional coletivo à nossa inteligência matemática que <strong>exclui tudo o que o mundo já varreu</strong> e divide 85% do prêmio direto na carteira Bitcoin dos participantes.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="flex flex-wrap items-center gap-3 mt-8">
+          <a href="#cadastro-minerador" onclick="document.getElementById('cadastro-minerador')?.scrollIntoView({behavior:'smooth'})" class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-black font-black text-sm transition shadow-lg shadow-emerald-500/25 flex items-center gap-2">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+            <span>Cadastrar Minha Carteira Bitcoin & Começar</span>
+          </a>
+          <button onclick="switchTab('tab-dashboard')" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-sm border border-white/10 transition flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+            <span>Ver Central de Comando Ao Vivo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 4 Pilares Fundamentais do Projeto -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-panel p-5 rounded-2xl border border-white/10 space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl">⚡</div>
+          <h3 class="font-bold text-white text-sm">Zero Aluguel / 100% Grátis</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Você não paga mensalidade nem adesão. Conecte sua GPU, CPU ou navegador em 1 minuto doando apenas o poder ocioso.</p>
+        </div>
+
+        <div class="glass-panel p-5 rounded-2xl border border-white/10 space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">🧠</div>
+          <h3 class="font-bold text-white text-sm">Filtro de IA Anti-Desperdício</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Nossa IA cruza dados globais e subtrai tudo o que o planeta já varreu, focando 100% nas fatias virgens da Zona Quente (&lt;50%).</p>
+        </div>
+
+        <div class="glass-panel p-5 rounded-2xl border border-white/10 space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl">📜</div>
+          <h3 class="font-bold text-white text-sm">Cartório Aberto no Google Sheets</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Cada bloco minerado por você é salvo em tempo real na Planilha do Google com seu nome e carteira. Auditoria pública e imutável.</p>
+        </div>
+
+        <div class="glass-panel p-5 rounded-2xl border border-white/10 space-y-2">
+          <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl">🤝</div>
+          <h3 class="font-bold text-white text-sm">Rateio Justo 85% / 15%</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">85% do valor total vai diretamente para as carteiras Bitcoin dos mineradores proporcionalmente às chaves validadas. Alinhamento no êxito.</p>
+        </div>
+      </div>
+
+      <!-- Tabela Comparativa: Minerar Sozinho vs Pool Cega vs PuzzleRadar -->
+      <div class="glass-panel rounded-2xl p-6 border border-white/10 space-y-4">
+        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="scale" class="w-5 h-5 text-amber-400"></i>
+          <span>Por que minerar no PuzzleRadar e nunca sozinho?</span>
+        </h2>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-white/10 text-slate-400">
+                <th class="py-3 px-4">Critério</th>
+                <th class="py-3 px-4 text-rose-400">Minerando Sozinho</th>
+                <th class="py-3 px-4 text-amber-400">Pool Oficial Cega</th>
+                <th class="py-3 px-4 text-emerald-400 font-bold">Comunidade PuzzleRadar</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+              <tr>
+                <td class="py-3 px-4 font-bold text-white">Tempo para Varrer o Range</td>
+                <td class="py-3 px-4 text-slate-400">~500 Anos numa RTX 4090</td>
+                <td class="py-3 px-4 text-slate-400">Meses (Fatias de 35 Trilhões)</td>
+                <td class="py-3 px-4 text-emerald-300 font-bold">Dias/Semanas (Cluster Distribuído)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-white">Chance Real de Sucesso</td>
+                <td class="py-3 px-4 text-rose-400">0,0000001% (Loteria Quase Impossível)</td>
+                <td class="py-3 px-4 text-slate-400">Baixa (Fatias aleatórias)</td>
+                <td class="py-3 px-4 text-emerald-300 font-bold">Máxima (Zona Quente &lt;50% Exclusiva)</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-white">Se o seu PC desligar</td>
+                <td class="py-3 px-4 text-slate-400">Sem histórico</td>
+                <td class="py-3 px-4 text-rose-400">Perde tudo (Exige 6 chaves de uma vez)</td>
+                <td class="py-3 px-4 text-emerald-300 font-bold">100% Salvo na Planilha e Creditado</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-white">Inteligência de Keyspace</td>
+                <td class="py-3 px-4 text-slate-400">Nenhuma (Minera no escuro)</td>
+                <td class="py-3 px-4 text-slate-400">Entrega o que a pool manda</td>
+                <td class="py-3 px-4 text-emerald-300 font-bold">IA Exclui blocos já minerados no mundo</td>
+              </tr>
+              <tr>
+                <td class="py-3 px-4 font-bold text-white">Garantia de Pagamento</td>
+                <td class="py-3 px-4 text-slate-400">Não aplicável</td>
+                <td class="py-3 px-4 text-slate-400">Apenas se completar 6 chaves sozinho</td>
+                <td class="py-3 px-4 text-emerald-300 font-bold">Carteira BTC registrada + Planilha Pública</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 📜 CONTRATO DA COMUNIDADE & REGRAS DE RATEIO (JUSTOS E NÃO BESTAS) -->
+      <!-- ========================================================================= -->
+      <div class="glass-panel p-6 rounded-2xl border-2 border-amber-500/30 space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5 text-amber-400"></i>
+            <h2 class="text-base font-extrabold text-white uppercase tracking-wider">Regras de Rateio & Contrato Comunitário de Payout</h2>
+          </div>
+          <span class="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">REGULAMENTO PÚBLICO</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <!-- Regra 1 -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+            <span class="font-bold text-amber-300 block">1. Divisão 85% Comunidade / 15% Casa</span>
+            <p class="text-slate-300 leading-relaxed">
+              No momento em que a chave privada do Puzzle #71 for encontrada e os <strong>7.10 BTC</strong> resgatados, <strong>85% (6.035 BTC ~ R$ 2.130.000)</strong> será dividido matematicamente entre os nós participantes proporcionalmente às chaves verificadas. 15% taxa da Casa para cobrir servidores e IA.
+            </p>
+          </div>
+
+          <!-- Regra 2 -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+            <span class="font-bold text-amber-300 block">2. Cláusula Anti-Poeira (Mínimo de Trabalho)</span>
+            <p class="text-slate-300 leading-relaxed">
+              Para evitar o desperdício de fundos com taxas de mineração da rede Bitcoin (<em>network miner fees</em> de R$ 20 a R$ 50 por envio), apenas carteiras que acumularem no mínimo <strong>100 Milhões de chaves verificadas</strong> (~10 micro-lotes) receberão o envio on-chain. Fatias inferiores a isso são redistribuídas entre os mineradores leais ativos.
+            </p>
+          </div>
+
+          <!-- Regra 3 -->
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 space-y-1.5">
+            <span class="font-bold text-amber-300 block">3. Toda Chave Verificada Conta</span>
+            <p class="text-slate-300 leading-relaxed">
+              Mesmo que a fatia pai não tenha sido concluída na pool oficial do btcpuzzle.info, <strong>todas as chaves reais checadas pela sua máquina contra o endereço do Bitcoin são 100% computadas</strong> para o seu saldo de shares e gravadas no Google Sheets.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================================================= -->
+      <!-- 📝 FORMULÁRIO DE CADASTRO DO MINERADOR & CARTEIRA BITCOIN -->
+      <!-- ========================================================================= -->
+      <div id="cadastro-minerador" class="glass-panel-glow p-6 lg:p-8 rounded-3xl border-2 border-emerald-500/40 bg-cypher-950 space-y-6">
+        <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
+            💳
+          </div>
+          <div>
+            <h2 class="text-xl font-black text-white">Cadastre sua Máquina & Carteira Bitcoin de Recebimento</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Seus blocos minerados serão vinculados diretamente a este endereço para o rateio dos 7.10 BTC.</p>
+          </div>
+        </div>
+
+        <form id="formPayoutRegister" onsubmit="handleMinerPayoutRegister(event)" class="space-y-4 font-mono text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Apelido -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">1. Apelido / Nome da Máquina:</label>
+              <input type="text" id="regWorkerName" required placeholder="Ex: Satoshi_Hunter_SP" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400" />
+              <span class="text-[10px] text-slate-500 block">Aparecerá publicamente no Leaderboard e na Planilha Google.</span>
+            </div>
+
+            <!-- Carteira Bitcoin -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">2. Carteira Bitcoin para Recebimento (Payout BTC):</label>
+              <input type="text" id="regPayoutAddress" required placeholder="Ex: bc1q... ou 1..." class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-amber-300 font-bold focus:outline-none focus:border-amber-400" />
+              <span class="text-[10px] text-slate-500 block">Endereço Bitcoin próprio (Legado 1..., SegWit 3... ou Native SegWit bc1q...).</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Tipo de Hardware -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">3. Tipo de Equipamento / Hardware:</label>
+              <select id="regHardwareType" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-200 focus:outline-none focus:border-emerald-400">
+                <option value="GPU Nvidia RTX 4090 / 4080 / 3090">GPU Dedicada High-End (RTX 4090 / 4080 / 3090)</option>
+                <option value="GPU Nvidia RTX 3060 / 2060 / Série GTX">GPU Intermediária (RTX 3060 / 2060 / Série GTX)</option>
+                <option value="Servidor Nuvem (Vast.ai / RunPod / AWS)">Servidor Nuvem (Vast.ai / RunPod / AWS)</option>
+                <option value="Processador CPU (Intel / AMD Ryzen)">Processador CPU (Intel / AMD Ryzen)</option>
+                <option value="Navegador Web (1-Click Mining)">Navegador Web (1-Click Mining)</option>
+              </select>
+            </div>
+
+            <!-- Contato Opcional -->
+            <div class="space-y-1.5">
+              <label class="text-slate-300 font-bold block">4. Contato Opcional (Telegram / E-mail):</label>
+              <input type="text" id="regContactInfo" placeholder="Ex: @seutelegram ou seu@email.com" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-slate-300 focus:outline-none focus:border-emerald-400" />
+              <span class="text-[10px] text-slate-500 block">Para notificação prioritária imediata no momento do rateio do prêmio.</span>
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 hover:from-emerald-400 text-black font-black text-sm transition shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Salvar Cadastro & Gerar Comando Personalizado de Mineração</span>
+          </button>
+        </form>
+
+        <!-- Caixa de Comando Gerada Dinamicamente -->
+        <div id="payoutCommandBox" class="space-y-2 pt-2 border-t border-white/10">
+          <div class="flex items-center justify-between text-xs font-mono">
+            <span class="text-slate-400 font-bold">Comando de Terminal Pronto para Sua Máquina:</span>
+            <span class="text-emerald-400 text-[10px] font-bold">Vinculado à sua Carteira</span>
+          </div>
+          <div class="p-4 rounded-xl bg-black/80 border border-emerald-500/30 font-mono text-xs text-emerald-300 break-all select-all flex items-center justify-between gap-3">
+            <span id="payoutGeneratedCliCommand">python solver/terminal_worker.py --api="https://puzzleradar-production.up.railway.app" --name="Meu_Minerador" --payout="Minha_Carteira_BTC"</span>
+            <button onclick="copyGeneratedPayoutCli(this)" class="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-bold border border-emerald-500/40 transition shrink-0 flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copiar</span>
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 pt-2">
+            <button onclick="startBrowserMiningWithProfile()" class="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+              <span>Iniciar Mineração no Navegador com Esta Carteira</span>
+            </button>
+            <button onclick="switchTab('tab-connect')" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 transition flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4 text-cyan-400"></i>
+              <span>Ver Scripts para Windows (.bat) e Linux (.sh)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </section>
 
     <!-- ==================== TAB CONECTAR AO POOL / 1-CLICK MINING v5.1 ==================== -->
     <section id="tab-connect" class="tab-content hidden space-y-6">
@@ -1879,6 +2125,47 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
           Entrar na Conta
         </button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Seguro do Consultor IA (Proteção de Custos & Modo Autônomo) -->
+  <div id="advisorSafeModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel-glow max-w-lg w-full p-6 rounded-3xl border-2 border-amber-500/40 bg-cypher-950 space-y-4 font-mono text-xs relative">
+      <button onclick="toggleAdvisorChat()" class="absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+          🧠
+        </div>
+        <div>
+          <h3 class="text-base font-black text-white">Núcleo de Inteligência Artificial Autônoma</h3>
+          <p class="text-[11px] text-slate-400">PuzzleRadar v5.3 • Heurística do Keyspace</p>
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-xl bg-black/60 border border-white/10 space-y-2 text-slate-300 leading-relaxed text-[11px]">
+        <p>
+          O <strong>Consultor IA do PuzzleRadar</strong> opera de forma ininterrupta e <strong>100% autônoma</strong> no núcleo do servidor, cruzando os mapas globais do <em>theCollider</em> e eliminando todas as fatias já mineradas no mundo.
+        </p>
+        <p>
+          Ele direciona automaticamente a sua máquina para os blocos virgens de maior probabilidade estatística (<strong class="text-emerald-300">Zona Quente &lt;50%</strong>).
+        </p>
+        <div class="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px]">
+          🔒 <strong>Proteção de Infraestrutura:</strong> O modo de chat livre para clientes anônimos foi restrito para garantir zero custos de API pública ao ecossistema e proteção contra o vazamento de estratégias heurísticas para pools concorrentes.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-white/10">
+        <span class="text-emerald-400 font-bold flex items-center gap-1.5 text-[10px]">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>IA ATIVA E OTIMIZANDO A FROTA</span>
+        </span>
+        <button onclick="toggleAdvisorChat()" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition text-xs">
+          Entendido
+        </button>
+      </div>
     </div>
   </div>
 

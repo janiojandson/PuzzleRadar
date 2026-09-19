@@ -117,6 +117,93 @@ router.post('/token', async (req, res) => {
 });
 
 /**
+ * POST /api/workers/register-payout
+ * Registra o Apelido do Minerador, sua Carteira Bitcoin de Recebimento, Hardware e Contato
+ */
+router.post('/register-payout', async (req, res) => {
+  try {
+    const { workerName, payoutAddress, hardwareType, contactInfo } = req.body;
+
+    if (!workerName || !payoutAddress) {
+      return res.status(400).json({ success: false, error: 'Apelido do minerador e Carteira Bitcoin são obrigatórios.' });
+    }
+
+    const cleanWallet = String(payoutAddress).trim();
+    const btcRegex = /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$/i;
+    if (!btcRegex.test(cleanWallet)) {
+      return res.status(400).json({ success: false, error: 'Endereço Bitcoin inválido. Forneça um endereço legado (1...), SegWit (3...) ou Native SegWit (bc1q...).' });
+    }
+
+    const cleanName = String(workerName).trim().replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 32);
+
+    const existingNode = activeWorkersMap.get(cleanName) || {};
+    activeWorkersMap.set(cleanName, {
+      ...existingNode,
+      name: cleanName,
+      workerName: cleanName,
+      payoutAddress: cleanWallet,
+      hardware: hardwareType || 'GPU / Cluster',
+      contactInfo: contactInfo ? String(contactInfo).trim().slice(0, 50) : null,
+      registeredAt: new Date().toISOString(),
+      lastSeen: Date.now()
+    });
+
+    try {
+      const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+      sheetsBuffer.enqueueChunkLog({
+        timestamp: new Date().toISOString(),
+        chain: 'BTC',
+        challenge_id: 'BTC_1000_P71',
+        startHex: 'CADASTRO_MINERADOR',
+        endHex: cleanWallet.slice(0, 16) + '...',
+        workerName: cleanName,
+        status: `REGISTRADO (Payout: ${cleanWallet.slice(0, 8)}... | ${hardwareType || 'GPU'})`,
+        hashrate: 'Novo Registro'
+      });
+    } catch (_) {}
+
+    const origin = req.headers.origin || 'https://puzzleradar-production.up.railway.app';
+    const cliCommand = `python solver/terminal_worker.py --api="${origin}" --name="${cleanName}" --payout="${cleanWallet}"`;
+
+    res.json({
+      success: true,
+      message: 'Minerador e Carteira de Recebimento registrados com sucesso!',
+      worker: {
+        name: cleanName,
+        payoutAddress: cleanWallet,
+        hardwareType: hardwareType || 'GPU / Cluster',
+        contactInfo: contactInfo || null,
+        cliCommand
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/workers/payout-profile/:name
+ * Retorna os dados de cadastro e carteira de um minerador
+ */
+router.get('/payout-profile/:name', (req, res) => {
+  const { name } = req.params;
+  const cleanName = String(name).trim().replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const node = activeWorkersMap.get(cleanName);
+  if (node && node.payoutAddress) {
+    return res.json({
+      success: true,
+      worker: {
+        name: cleanName,
+        payoutAddress: node.payoutAddress,
+        hardware: node.hardware,
+        contactInfo: node.contactInfo
+      }
+    });
+  }
+  res.status(404).json({ success: false, error: 'Perfil de payout não encontrado' });
+});
+
+/**
  * GET /api/workers/active
  */
 router.get('/active', async (req, res) => {

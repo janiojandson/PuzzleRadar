@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchMultiChainData();
   fetchFleetData();
   fetchLiveRangesData();
+  loadSavedMinerPayoutProfile();
 
   // Poll intervals
   setInterval(fetchFleetData, 6000);
@@ -1331,8 +1332,14 @@ setTimeout(() => {
   calculateSubscriberYield();
 }, 600);
 
-// ─── ADVISOR CHAT ───
+// ─── ADVISOR CHAT (PROTEÇÃO DE CUSTOS & MODO AUTÔNOMO) ───
 function toggleAdvisorChat() {
+  const safeModal = document.getElementById('advisorSafeModal');
+  if (safeModal) {
+    safeModal.classList.toggle('hidden');
+    if (window.lucide) window.lucide.createIcons();
+    return;
+  }
   isChatOpen = !isChatOpen;
   const modal = document.getElementById('advisorChatModal');
   if (modal) {
@@ -1340,6 +1347,109 @@ function toggleAdvisorChat() {
     if (isChatOpen) document.getElementById('advisorInput')?.focus();
   }
   if (window.lucide) window.lucide.createIcons();
+}
+
+// ─── CADASTRO DE MINERADOR & CARTEIRA BITCOIN (PAYOUT PROFILE) ───
+async function handleMinerPayoutRegister(e) {
+  if (e) e.preventDefault();
+  const workerName = document.getElementById('regWorkerName')?.value?.trim();
+  const payoutAddress = document.getElementById('regPayoutAddress')?.value?.trim();
+  const hardwareType = document.getElementById('regHardwareType')?.value;
+  const contactInfo = document.getElementById('regContactInfo')?.value?.trim();
+
+  if (!workerName || !payoutAddress) {
+    alert('Por favor, preencha o Apelido do minerador e a Carteira Bitcoin.');
+    return;
+  }
+
+  const btcRegex = /^(1[a-km-zA-HJ-NP-Z1-9]{25,34}|3[a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{39,59})$/i;
+  if (!btcRegex.test(payoutAddress)) {
+    alert('Endereço Bitcoin inválido. Forneça um endereço legado (1...), SegWit (3...) ou Native SegWit (bc1q...).');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/workers/register-payout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        workerName,
+        payoutAddress,
+        hardwareType,
+        contactInfo
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('puzzleradar_worker_nickname', workerName);
+      localStorage.setItem('puzzleradar_payout_address', payoutAddress);
+      localStorage.setItem('puzzleradar_hardware_type', hardwareType);
+
+      const cmdEl = document.getElementById('payoutGeneratedCliCommand');
+      if (cmdEl) {
+        cmdEl.innerText = data.worker.cliCommand;
+      }
+
+      const box = document.getElementById('payoutCommandBox');
+      if (box) box.classList.remove('hidden');
+
+      const webInput = document.getElementById('webMinerNickname');
+      if (webInput) webInput.value = workerName;
+      if (window.browserMiner) window.browserMiner.setNickname(workerName);
+
+      alert(`✅ Sucesso! Carteira ${payoutAddress} vinculada com sucesso ao minerador ${workerName}. Seus blocos minerados estão oficialmente registrados para o rateio dos 7.10 BTC.`);
+    } else {
+      alert(`⚠️ Erro ao registrar: ${data.error || 'Falha desconhecida'}`);
+    }
+  } catch (err) {
+    alert(`⚠️ Erro de conexão com o servidor: ${err.message}`);
+  }
+}
+
+function copyGeneratedPayoutCli(btn) {
+  const cmd = document.getElementById('payoutGeneratedCliCommand')?.innerText;
+  if (!cmd) return;
+  navigator.clipboard.writeText(cmd).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span>Copiado! ✓</span>';
+    setTimeout(() => btn.innerHTML = orig, 2000);
+  });
+}
+
+function startBrowserMiningWithProfile() {
+  const nick = localStorage.getItem('puzzleradar_worker_nickname') || document.getElementById('regWorkerName')?.value?.trim() || 'SatoshiHunter';
+  switchTab('tab-connect');
+  const nickInput = document.getElementById('webMinerNickname');
+  if (nickInput) nickInput.value = nick;
+  if (window.browserMiner) {
+    window.browserMiner.setNickname(nick);
+    window.browserMiner.start();
+  }
+}
+
+function loadSavedMinerPayoutProfile() {
+  const savedName = localStorage.getItem('puzzleradar_worker_nickname');
+  const savedPayout = localStorage.getItem('puzzleradar_payout_address');
+  const savedHw = localStorage.getItem('puzzleradar_hardware_type');
+
+  if (savedName && document.getElementById('regWorkerName')) {
+    document.getElementById('regWorkerName').value = savedName;
+  }
+  if (savedPayout && document.getElementById('regPayoutAddress')) {
+    document.getElementById('regPayoutAddress').value = savedPayout;
+  }
+  if (savedHw && document.getElementById('regHardwareType')) {
+    document.getElementById('regHardwareType').value = savedHw;
+  }
+
+  if (savedName && savedPayout) {
+    const origin = window.location.origin;
+    const cmdEl = document.getElementById('payoutGeneratedCliCommand');
+    if (cmdEl) {
+      cmdEl.innerText = `python solver/terminal_worker.py --api="${origin}" --name="${savedName}" --payout="${savedPayout}"`;
+    }
+  }
 }
 
 function updateAdvisorProviderBadge() {

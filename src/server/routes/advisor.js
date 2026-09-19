@@ -56,10 +56,22 @@ router.get('/recommendations', async (req, res) => {
 });
 
 /**
- * POST /api/advisor/chat — Conversar com o Consultor Matemático
+ * POST /api/advisor/chat — Conversar com o Consultor Matemático (Protegido para o Operador Master)
  */
 router.post('/chat', async (req, res) => {
   try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey || (req.body && req.body.adminKey);
+    const configuredAdminKey = process.env.ADMIN_KEY;
+
+    // Se o cliente for anônimo/público, protege os custos de API da LLM com resposta educativa e segura
+    if (!adminKey || (configuredAdminKey && adminKey !== configuredAdminKey)) {
+      return res.json({
+        success: true,
+        isAutonomousMode: true,
+        response: '🧠 O Consultor IA do PuzzleRadar está operando em Modo Autônomo 24/7 no servidor, calculando probabilidades heurísticas do keyspace e distribuindo os lotes mais quentes para as GPUs da frota. O modo de chat aberto foi restrito para preservar a cota e custos de API do ecossistema.'
+      });
+    }
+
     const { message, prompt, context, history, provider } = req.body;
     const userPrompt = message || prompt;
 
