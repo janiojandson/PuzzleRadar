@@ -14,6 +14,7 @@ router.get('/start.ps1', (req, res) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
   const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
+  const queryPower = req.query.power ? parseInt(req.query.power, 10) : '';
 
   const ps1Script = `# =========================================================================
 # 🧩 PuzzleRadar v5.3 — 1-Click Windows Worker Launcher (CPU P+G / GPU)
@@ -33,6 +34,33 @@ if (![string]::IsNullOrWhiteSpace($PresetWorker)) {
         $WorkerName = $DefaultWorker
     }
 }
+
+$TotalCores = [System.Environment]::ProcessorCount
+if (-not $TotalCores -or $TotalCores -lt 1) { $TotalCores = 4 }
+
+$PresetPower = "${queryPower}"
+if (![string]::IsNullOrWhiteSpace($PresetPower)) {
+    $PowerPercent = [int]$PresetPower
+} else {
+    Write-Host ""
+    Write-Host "⚡ Escolha a Intensidade / Forca Maxima da Maquina:" -ForegroundColor Cyan
+    Write-Host "  [1] Leve / Silencioso   (~25% CPU) - Ideal para usar o PC normalmente" -ForegroundColor Green
+    Write-Host "  [2] Moderado            (~50% CPU) - Bom equilibrio [Recomendado]" -ForegroundColor Yellow
+    Write-Host "  [3] Intenso             (~75% CPU) - Alta velocidade de varredura" -ForegroundColor Magenta
+    Write-Host "  [4] Forca Maxima 🚀     (100% CPU) - Todos os $TotalCores nucleos no talo!" -ForegroundColor Red
+    Write-Host ""
+    $PowerInput = Read-Host "Digite sua opcao [1, 2, 3 ou 4] (Pressione Enter para Moderado 50%)"
+    switch ($PowerInput) {
+        "1" { $PowerPercent = 25 }
+        "2" { $PowerPercent = 50 }
+        "3" { $PowerPercent = 75 }
+        "4" { $PowerPercent = 100 }
+        default { $PowerPercent = 50 }
+    }
+}
+
+$Threads = [math]::Max(1, [int][math]::Round($TotalCores * ($PowerPercent / 100.0)))
+Write-Host "[+] Potencia configurada: $PowerPercent% ($Threads de $TotalCores nucleos ativos)" -ForegroundColor Green
 
 $BaseUrl = "${baseUrl}"
 $WorkerDir = "solver"
@@ -56,15 +84,17 @@ $PyCmd = Get-Command py -ErrorAction SilentlyContinue
 $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
 
 if ($PyCmd) {
-    Write-Host "Iniciando minerador via py -3.12..." -ForegroundColor Green
-    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71"
+    Write-Host "Iniciando minerador via py -3.12 com $Threads threads..." -ForegroundColor Green
+    & py -3.12 $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 } elseif ($PythonCmd) {
-    Write-Host "Iniciando minerador via python..." -ForegroundColor Green
-    & python $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71"
+    Write-Host "Iniciando minerador via python com $Threads threads..." -ForegroundColor Green
+    & python $WorkerScript --api="$BaseUrl" --name="$WorkerName" --chain="BTC" --challenge="BTC_1000_P71" --threads=$Threads
     exit
 }
 
+$SleepSec = [math]::Max(1, [int][math]::Round(15 * ((100 - $PowerPercent) / 100.0)))
+if ($PowerPercent -ge 100) { $SleepSec = 1 }
 
 # Fallback: Loop continuo via PowerShell
 while ($true) {
@@ -86,7 +116,7 @@ while ($true) {
             Invoke-RestMethod -Uri "$BaseUrl/api/webhook/btcpuzzle" -Method Post -Headers $Headers -TimeoutSec 5 | Out-Null
             
             Write-Host "[*] Minerando fatia real CPU... Pressione Ctrl+C para pausar." -ForegroundColor Gray
-            Start-Sleep -Seconds 15
+            Start-Sleep -Seconds $SleepSec
             
             # Notifica conclusão
             $DoneHeaders = @{
@@ -118,6 +148,7 @@ router.get('/start.sh', (req, res) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const baseUrl = `${protocol}://${host}`;
   const queryWorker = req.query.worker ? String(req.query.worker).replace(/[^a-zA-Z0-9_\-]/g, '') : '';
+  const queryPower = req.query.power ? parseInt(req.query.power, 10) : '';
 
   const bashScript = `#!/usr/bin/env bash
 # =========================================================================
@@ -134,9 +165,36 @@ if [ -n "$PRESET_WORKER" ]; then
 else
     RANDOM_ID=$((RANDOM % 9000 + 1000))
     DEFAULT_WORKER="Miner_Linux_$RANDOM_ID"
-    read -p "Digite seu Apelido de Contribuidor [$DEFAULT_WORKER]: " INPUT_WORKER
+    read -p "Digite seu Apelido de Contribuidor [$DEFAULT_WORKER]: " INPUT_WORKER < /dev/tty 2>/dev/null || INPUT_WORKER="$DEFAULT_WORKER"
     WORKER_NAME=\${INPUT_WORKER:-$DEFAULT_WORKER}
 fi
+
+TOTAL_CORES=$(nproc 2>/dev/null || echo 4)
+PRESET_POWER="${queryPower}"
+if [ -n "$PRESET_POWER" ]; then
+    CHOSEN_POWER="$PRESET_POWER"
+else
+    echo -e "\\n\\033[1;36m⚡ Escolha a Intensidade / Forca da Maquina:\\033[0m"
+    echo -e "  \\033[1;32m[1] Leve / Silencioso   (~25% CPU) - Ideal para usar o PC normalmente\\033[0m"
+    echo -e "  \\033[1;33m[2] Moderado            (~50% CPU) - Equilibrio perfeito [Recomendado]\\033[0m"
+    echo -e "  \\033[1;35m[3] Intenso             (~75% CPU) - Alta velocidade de varredura\\033[0m"
+    echo -e "  \\033[1;31m[4] Forca Maxima 🚀     (100% CPU) - Todos os $TOTAL_CORES nucleos no talo!\\033[0m\\n"
+    read -p "Digite sua opcao [1, 2, 3 ou 4] (Enter para Moderado 50%): " USER_CHOICE < /dev/tty 2>/dev/null || USER_CHOICE="2"
+    case "$USER_CHOICE" in
+        1) CHOSEN_POWER=25 ;;
+        2) CHOSEN_POWER=50 ;;
+        3) CHOSEN_POWER=75 ;;
+        4) CHOSEN_POWER=100 ;;
+        *) CHOSEN_POWER=50 ;;
+    esac
+fi
+
+THREADS=$(( TOTAL_CORES * CHOSEN_POWER / 100 ))
+[ "$THREADS" -lt 1 ] && THREADS=1
+echo -e "\\033[1;32m[+] Potencia Selecionada: \${CHOSEN_POWER}% ($THREADS de $TOTAL_CORES nucleos ativos)\\033[0m\\n"
+
+SLEEP_SEC=$(( 15 * (100 - CHOSEN_POWER) / 100 ))
+[ "$SLEEP_SEC" -lt 1 ] && SLEEP_SEC=1
 
 BASE_URL="${baseUrl}"
 
@@ -168,7 +226,7 @@ while true; do
              -H "Targetpuzzle: 71" > /dev/null
              
         echo -e "\\033[0;37m[*] Minerando fatia... Pressione Ctrl+C para encerrar.\\033[0m"
-        sleep 15
+        sleep $SLEEP_SEC
         
         # Conclui
         curl -s -X POST "$BASE_URL/api/webhook/btcpuzzle" \\
