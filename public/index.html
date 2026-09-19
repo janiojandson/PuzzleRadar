@@ -2264,7 +2264,7 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
     </form>
   </div>
 
-  <!-- Modal de Autenticação (Login / Cadastro) -->
+  <!-- Modal de Autenticação (Apenas Login) -->
   <div id="authModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="glass-panel-glow w-full max-w-md rounded-2xl p-6 border border-emerald-500/30 space-y-5 relative">
       <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1">
@@ -2272,35 +2272,37 @@ py -3.12 solver/terminal_worker.py --api="https://puzzleradar-production.up.rail
       </button>
 
       <div class="space-y-1">
-        <h3 id="authModalTitle" class="text-xl font-bold text-white">Entrar no PuzzleRadar</h3>
-        <p class="text-xs text-slate-400">Acesse seu painel com token exclusivo de mineração.</p>
-      </div>
-
-      <div class="flex p-1 rounded-xl bg-cypher-900 border border-white/10 text-xs">
-        <button id="authTabLogin" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black">Login</button>
-        <button id="authTabRegister" onclick="switchAuthTab('register')" class="flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white">Criar Conta</button>
+        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+          <i data-lucide="lock" class="w-4 h-4"></i>
+          <span>Autenticação Segura</span>
+        </div>
+        <h3 id="authModalTitle" class="text-xl font-black text-white">Entrar no PuzzleRadar</h3>
+        <p class="text-xs text-slate-400">Acesse sua conta com seu e-mail e senha cadastrados.</p>
       </div>
 
       <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-3">
-        <div id="authNameField" class="space-y-1 hidden">
-          <label class="text-[11px] text-slate-400 font-medium">Nome / Apelido do Minerador:</label>
-          <input type="text" id="authNameInput" placeholder="Ex: CypherMiner" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
+        <div class="space-y-1">
+          <label class="text-[11px] text-slate-300 font-medium">E-mail de Acesso:</label>
+          <input type="email" id="authEmailInput" required placeholder="seu@email.com" class="w-full px-3.5 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400 font-mono">
         </div>
 
         <div class="space-y-1">
-          <label class="text-[11px] text-slate-400 font-medium">E-mail:</label>
-          <input type="email" id="authEmailInput" required placeholder="seu@email.com" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
+          <label class="text-[11px] text-slate-300 font-medium">Senha:</label>
+          <input type="password" id="authPasswordInput" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400 font-mono">
         </div>
 
-        <div class="space-y-1">
-          <label class="text-[11px] text-slate-400 font-medium">Senha:</label>
-          <input type="password" id="authPasswordInput" required placeholder="••••••••" class="w-full px-3.5 py-2 rounded-xl bg-cypher-900 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-400">
-        </div>
-
-        <button type="submit" id="authSubmitBtn" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/20">
-          Entrar na Conta
+        <button type="submit" id="authSubmitBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Entrar na Conta</span>
         </button>
       </form>
+
+      <div class="pt-2 border-t border-white/10 text-center text-xs text-slate-400">
+        <span>Não possui cadastro?</span>
+        <button type="button" onclick="closeAuthModal(); goToCadastroMinerador();" class="text-emerald-400 hover:text-emerald-300 font-bold underline ml-1">
+          Cadastre-se grátis aqui
+        </button>
+      </div>
     </div>
   </div>
 

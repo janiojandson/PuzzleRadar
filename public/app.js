@@ -1840,10 +1840,13 @@ function updateChatMessage(msgId, text) {
 let currentAuthTab = 'login';
 let currentUser = null;
 
-function openAuthModal(mode = 'login') {
-  switchAuthTab(mode);
+function openAuthModal() {
   const modal = document.getElementById('authModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.getElementById('authEmailInput')?.focus();
+  }
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function closeAuthModal() {
@@ -1851,43 +1854,21 @@ function closeAuthModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-function switchAuthTab(tab) {
-  currentAuthTab = tab;
-  const loginBtn = document.getElementById('authTabLogin');
-  const regBtn = document.getElementById('authTabRegister');
-  const nameField = document.getElementById('authNameField');
-  const title = document.getElementById('authModalTitle');
-  const submitBtn = document.getElementById('authSubmitBtn');
-
-  if (tab === 'login') {
-    if (loginBtn) loginBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black';
-    if (regBtn) regBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white';
-    if (nameField) nameField.classList.add('hidden');
-    if (title) title.innerText = 'Entrar no PuzzleRadar';
-    if (submitBtn) submitBtn.innerText = 'Entrar na Conta';
-  } else {
-    if (regBtn) regBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition bg-emerald-500 text-black';
-    if (loginBtn) loginBtn.className = 'flex-1 py-1.5 rounded-lg font-bold transition text-slate-400 hover:text-white';
-    if (nameField) nameField.classList.remove('hidden');
-    if (title) title.innerText = 'Criar Conta de Minerador';
-    if (submitBtn) submitBtn.innerText = 'Gerar Token & Cadastrar';
-  }
-}
-
 async function handleAuthSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const email = document.getElementById('authEmailInput')?.value.trim();
   const password = document.getElementById('authPasswordInput')?.value.trim();
-  const name = document.getElementById('authNameInput')?.value.trim();
 
-  const endpoint = currentAuthTab === 'register' ? '/api/auth/register' : '/api/auth/login';
-  const payload = currentAuthTab === 'register' ? { email, password, name } : { email, password };
+  if (!email || !password) {
+    alert('Por favor, informe seu e-mail e senha.');
+    return;
+  }
 
   try {
-    const res = await fetch(endpoint, {
+    const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ email, password })
     });
     const data = await res.json();
     if (!res.ok || data.error) {
@@ -1900,7 +1881,11 @@ async function handleAuthSubmit(e) {
     updateAuthUI();
     closeAuthModal();
 
-    alert(`🎉 Bem-vindo, ${currentUser.name || currentUser.username}!\nSeu Token de Mineração Exclusivo: ${currentUser.workerToken}`);
+    alert(`👋 Bem-vindo de volta, ${currentUser.name || currentUser.username}! Login realizado com sucesso.`);
+
+    if (currentUser.role === 'ADMIN') {
+      switchTab('tab-admin');
+    }
   } catch (err) {
     alert(`Erro de conexão: ${err.message}`);
   }
