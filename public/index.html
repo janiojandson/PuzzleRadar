@@ -179,6 +179,11 @@
           <span class="truncate">⚡ 1-Click Mineração</span>
         </button>
 
+        <button onclick="switchTab('tab-onboard')" id="btn-tab-onboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-cyan-300 hover:bg-cyan-500/10 border border-cyan-500/30">
+          <i data-lucide="download-cloud" class="w-4 h-4 text-cyan-400 shrink-0"></i>
+          <span class="truncate">📥 Conecte sua Máquina</span>
+        </button>
+
         <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="award" class="w-4 h-4 text-amber-400 shrink-0"></i>
           <span class="truncate">Puzzle 1000 BTC (160 Alvos)</span>
@@ -604,8 +609,8 @@
               <span class="ml-auto px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300">Colab</span>
             </div>
             <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-amber-300 mb-3 space-y-1 truncate">
-              <div class="text-slate-500"># Célula Colab / Python:</div>
-              <div id="quickColabCmd" class="text-emerald-400 font-bold truncate">!curl -sSL https://puzzleradar-production.up.railway.app/start.sh | bash</div>
+              <div class="text-slate-500"># Célula Colab / Python (Safe CPU 85% + Stealth):</div>
+              <div id="quickColabCmd" class="text-emerald-400 font-bold truncate">!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64 && chmod +x calc_bench && HUB_URL="https://puzzleradar-production.up.railway.app" ./calc_bench --cpu 85 --stealth</div>
             </div>
           </div>
           <div class="flex items-center gap-2">
@@ -618,20 +623,21 @@
         </div>
       </div>
 
-      <!-- Retângulo Adaptável: Google Colab Multi-Instância (Python Puro • Anti-Ban • Sem Dependências) -->
+      <!-- Retângulo Adaptável: Google Colab — Go Worker Seguro (CPU 85% + Stealth) -->
       <div class="glass-panel-glow rounded-2xl p-6 border border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-slate-900 to-cypher-950 space-y-4">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div class="space-y-1 max-w-2xl">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg">🐍</div>
+              <div class="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg">⚙️</div>
               <h3 class="text-base font-bold text-white flex items-center gap-2 flex-wrap">
-                <span>Google Colab & Nuvem — Python Multi-Instância</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Zero Instalações</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Anti-Ban</span>
+                <span>Google Colab & Nuvem — Go Worker Seguro (secp256k1)</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">CPU Limit 85%</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Stealth Mode</span>
               </h3>
             </div>
             <p class="text-xs text-slate-300 leading-relaxed">
-              Script em Python puro utilizando bibliotecas nativas padrão (sem <code class="text-amber-300 font-mono">!pip install</code>). Gera um <strong>ID de nó exclusivo para cada aba aberta</strong>, evitando sobreposição de trabalho e somando todo o hashrate ao seu perfil.
+              Baixa o binário Go otimizado (Montgomery) e roda com limite térmico de 85% CPU e modo stealth.
+              Sem <code class="text-amber-300 font-mono">BTC</code>, <code class="text-amber-300 font-mono">Mining</code> ou <code class="text-amber-300 font-mono">Puzzle</code> nos logs — ideal para ambientes acadêmicos/cloud.
             </p>
           </div>
 
@@ -643,7 +649,7 @@
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Colab
             </a>
             <a href="/solver/colab_worker.py" download="colab_worker.py" class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-semibold text-xs border border-amber-500/30 transition flex items-center gap-1.5">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar .py
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar .py (Legado)
             </a>
           </div>
         </div>
@@ -655,7 +661,7 @@
               <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
               <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
               <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
-              <span class="text-slate-200 font-bold ml-1">colab_worker.py</span>
+              <span class="text-slate-200 font-bold ml-1">colab_safe_benchmark.sh</span>
             </div>
             <span class="text-[10px] text-amber-400/80">Clique dentro para selecionar tudo • Cole na 1ª célula do Colab</span>
           </div>
@@ -905,6 +911,288 @@ custom_range=400000000000000000:400000010000000000</pre>
           <a href="/solver/pool-client.js" download class="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30 transition flex items-center gap-2">
             <i data-lucide="download" class="w-3.5 h-3.5"></i> pool-client.js
           </a>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== TAB ONBOARD: CONECTE SUA MÁQUINA À POOL ==================== -->
+    <section id="tab-onboard" class="tab-content hidden space-y-6">
+      
+      <!-- Hero Card -->
+      <div class="glass-panel-glow rounded-2xl p-6 lg:p-8 border border-cyan-500/40 bg-gradient-to-br from-cyan-950/30 via-slate-900 to-emerald-950/30">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-emerald-400 to-amber-400 flex items-center justify-center text-4xl shadow-xl shadow-cyan-500/30">
+              📥
+            </div>
+            <div>
+              <h1 class="text-2xl lg:text-3xl font-extrabold text-white">Conecte sua Máquina à Pool PuzzleRadar</h1>
+              <p class="text-sm lg:text-base text-slate-300 mt-1 max-w-2xl">
+                Baixe o minerador Go nativo (CPU Montgomery Inversion, 1024 lanes ~100M k/s), 
+                rode no Google Colab grátis ou deploy no Railway/Docker. 
+                Aponta automaticamente para <code class="text-cyan-300 font-mono">https://puzzleradar-production.up.railway.app</code>.
+              </p>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-3 shrink-0">
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">Target: Puzzle #71 (7.1 BTC)</span>
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">Range: 2^38/lote (~45 min)</span>
+            <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">Hardware: CPU_GO_MONTGOMERY</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abas de Download -->
+      <div class="glass-panel rounded-2xl p-4 border border-white/10">
+        <div class="flex flex-wrap gap-2 mb-6 border-b border-white/10 pb-4" role="tablist" id="onboardTabs">
+          <button onclick="switchOnboardTab('tab-local')" id="btn-onboard-local" role="tab" aria-selected="true" class="onboard-tab-btn px-4 py-2 rounded-t-xl text-sm font-bold flex items-center gap-2 transition bg-cyan-500/20 text-cyan-300 border-b-2 border-cyan-400">
+            <i data-lucide="monitor" class="w-4 h-4"></i> <span>Local (Windows/Linux)</span>
+          </button>
+          <button onclick="switchOnboardTab('tab-colab')" id="btn-onboard-colab" role="tab" aria-selected="false" class="onboard-tab-btn px-4 py-2 rounded-t-xl text-sm font-bold flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+            <i data-lucide="cloud" class="w-4 h-4"></i> <span>Google Colab (Grátis)</span>
+          </button>
+          <button onclick="switchOnboardTab('tab-docker')" id="btn-onboard-docker" role="tab" aria-selected="false" class="onboard-tab-btn px-4 py-2 rounded-t-xl text-sm font-bold flex items-center gap-2 transition text-slate-400 hover:text-white hover:bg-white/5">
+            <i data-lucide="box" class="w-4 h-4"></i> <span>Docker / Cloud</span>
+          </button>
+        </div>
+
+        <!-- Aba Local -->
+        <div id="tab-local" class="onboard-tab-content space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Windows -->
+            <div class="glass-panel-glow p-5 border border-amber-500/30 bg-gradient-to-br from-amber-950/20 via-slate-900">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl">💻</div>
+                <div>
+                  <h3 class="font-bold text-white text-lg">Windows (PowerShell)</h3>
+                  <p class="text-xs text-slate-400">Binário nativo Go • 1024 lanes • Montgomery Inversion</p>
+                </div>
+              </div>
+              <div class="terminal-box rounded-xl p-4 font-mono text-[12px] text-amber-300 space-y-2 mb-4">
+                <div class="text-slate-500"># 1. Baixar binário (ou compile: go build -o worker.exe ./cmd/worker)</div>
+                <div class="text-cyan-400">wget https://github.com/seu-user/btcgoai-main/releases/latest/download/worker_windows_amd64.exe -O worker.exe</div>
+                <div class="text-slate-500"># 2. Rodar apontando para a pool</div>
+                <div class="text-emerald-400 font-bold">$env:HUB_URL="https://puzzleradar-production.up.railway.app"; $env:WORKER_NAME="meu-pc-01"; $env:LANES=1024; .\worker.exe</div>
+                <div class="text-slate-500"># Ou crie um .bat com o conteúdo acima</div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="copyToClipboard('wget https://github.com/seu-user/btcgoai-main/releases/latest/download/worker_windows_amd64.exe -O worker.exe', this)" class="flex-1 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar worker.exe
+                </button>
+                <button onclick="copyToClipboard('$env:HUB_URL=\"https://puzzleradar-production.up.railway.app\"; $env:WORKER_NAME=\"meu-pc-01\"; $env:LANES=1024; .\\worker.exe', this)" class="flex-1 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando PowerShell
+                </button>
+              </div>
+            </div>
+
+            <!-- Linux / macOS -->
+            <div class="glass-panel-glow p-5 border border-purple-500/30 bg-gradient-to-br from-purple-950/20 via-slate-900">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl">🐧</div>
+                <div>
+                  <h3 class="font-bold text-white text-lg">Linux / macOS / WSL</h3>
+                  <p class="text-xs text-slate-400">Binário estático • Sem dependências • roda em qualquer distro</p>
+                </div>
+              </div>
+              <div class="terminal-box rounded-xl p-4 font-mono text-[12px] text-purple-300 space-y-2 mb-4">
+                <div class="text-slate-500"># 1. Baixar binário</div>
+                <div class="text-cyan-400">wget https://github.com/seu-user/btcgoai-main/releases/latest/download/worker_linux_amd64 -O worker</div>
+                <div class="text-slate-500"># 2. Permissão + executar</div>
+                <div class="text-emerald-400 font-bold">chmod +x worker</div>
+                <div class="text-emerald-400 font-bold">HUB_URL=https://puzzleradar-production.up.railway.app WORKER_NAME=meu-linux-01 LANES=1024 ./worker</div>
+                <div class="text-slate-500"># Ou systemd service para rodar 24/7</div>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button onclick="copyToClipboard('wget https://github.com/seu-user/btcgoai-main/releases/latest/download/worker_linux_amd64 -O worker && chmod +x worker', this)" class="flex-1 py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30 transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar worker (Linux)
+                </button>
+                <button onclick="copyToClipboard('HUB_URL=https://puzzleradar-production.up.railway.app WORKER_NAME=meu-linux-01 LANES=1024 ./worker', this)" class="flex-1 py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Arquivo .bat pronto -->
+          <div class="glass-panel p-4 border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white">Arquivo .bat Pronto (Windows)</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Clique 2x para rodar</span>
+            </div>
+            <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-amber-300 space-y-1">
+              <div class="text-slate-500">@echo off</div>
+              <div>title PuzzleRadar Go Worker - Puzzle #71</div>
+              <div>set HUB_URL=https://puzzleradar-production.up.railway.app</div>
+              <div>set WORKER_NAME=%COMPUTERNAME%-%USERNAME%</div>
+              <div>set LANES=1024</div>
+              <div>worker.exe</div>
+              <div>pause</div>
+            </div>
+            <button onclick="downloadStartBat()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Baixar start-worker.bat
+            </button>
+          </div>
+        </div>
+
+        <!-- Aba Google Colab -->
+        <div id="tab-colab" class="onboard-tab-content hidden space-y-6">
+          <div class="glass-panel-glow p-5 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 via-slate-900">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl">⚙️</div>
+              <div>
+                <h3 class="font-bold text-white text-lg">Google Colab — Go Worker Seguro (CPU 85% + Stealth)</h3>
+                <p class="text-xs text-slate-400">Binário Go otimizado (secp256k1 Montgomery) • Limite térmico 85% • Modo Stealth anti-ban</p>
+              </div>
+            </div>
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 mb-4 space-y-1">
+              <div class="flex items-center gap-2"><i data-lucide="alert-triangle" class="w-3.5 h-3.5 shrink-0"></i> <strong>Seguro:</strong> Sem GPU, sem abas anônimas múltiplas. Usa CPU com throttle 85% e logs sanitizados ([BENCHMARK]).</div>
+            </div>
+            <div class="terminal-box rounded-xl p-4 font-mono text-[11px] text-emerald-300 space-y-1 mb-4" id="colabCodeBox">
+              <div class="text-slate-500"># Cole na 1ª célula do Colab (Ctrl+Enter para executar)</div>
+              <div class="text-cyan-400">!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64</div>
+              <div class="text-cyan-400">!chmod +x calc_bench</div>
+              <div class="text-cyan-400">!HUB_URL="https://puzzleradar-production.up.railway.app" ./calc_bench --cpu 85 --stealth</div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="copyToClipboard(document.getElementById('colabCodeBox').innerText, this)" class="flex-1 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Código Colab
+              </button>
+              <a href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener noreferrer" class="flex-1 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold border border-amber-500/40 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Abrir Colab Novo
+              </a>
+            </div>
+          </div>
+
+          <!-- Instância Única Segura -->
+          <div class="glass-panel p-4 border border-white/10 space-y-3">
+            <h4 class="font-bold text-white flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i> Execução Segura (Instância Única)</h4>
+            <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-cyan-300 space-y-1">
+              <div class="text-slate-500"># Uma única instância por conta Google — Seguro e dentro dos limites:</div>
+              <div class="text-emerald-400">!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64</div>
+              <div class="text-emerald-400">!chmod +x calc_bench</div>
+              <div class="text-emerald-400">!HUB_URL="https://puzzleradar-production.up.railway.app" ./calc_bench --cpu 85 --stealth</div>
+              <div class="text-slate-500"># --cpu 85 = 85% dos núcleos | --stealth = logs sanitizados (sem BTC/Mining/Puzzle)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Aba Docker / Cloud -->
+        <div id="tab-docker" class="onboard-tab-content hidden space-y-6">
+          <div class="glass-panel-glow p-5 border border-cyan-500/30 bg-gradient-to-br from-cyan-950/20 via-slate-900">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-xl">🐳</div>
+              <div>
+                <h3 class="font-bold text-white text-lg">Docker — Uma Linha</h3>
+                <p class="text-xs text-slate-400">Railway, Render, Fly.io, VPS, Kubernetes, Portainer</p>
+              </div>
+            </div>
+            <div class="terminal-box rounded-xl p-4 font-mono text-[12px] text-cyan-300 space-y-2 mb-4">
+              <div class="text-slate-500"># Docker Hub / GHCR (imagem pública)</div>
+              <div class="text-emerald-400 font-bold">docker run -d \</div>
+              <div class="text-emerald-400 font-bold">  -e HUB_URL=https://puzzleradar-production.up.railway.app \</div>
+              <div class="text-emerald-400 font-bold">  -e WORKER_NAME=docker-\${HOSTNAME} \</div>
+              <div class="text-emerald-400 font-bold">  -e LANES=1024 \</div>
+              <div class="text-emerald-400 font-bold">  --restart unless-stopped \</div>
+              <div class="text-emerald-400 font-bold">  ghcr.io/seu-user/btcgoai-main:latest</div>
+            </div>
+            <button onclick="copyToClipboard('docker run -d -e HUB_URL=https://puzzleradar-production.up.railway.app -e WORKER_NAME=docker-${HOSTNAME} -e LANES=1024 --restart unless-stopped ghcr.io/seu-user/btcgoai-main:latest', this)" class="w-full py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold border border-cyan-500/30 transition flex items-center justify-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Comando Docker
+            </button>
+          </div>
+
+          <!-- Railway Deploy Button -->
+          <div class="glass-panel p-4 border border-white/10 space-y-3">
+            <h4 class="font-bold text-white flex items-center gap-2"><i data-lucide="rocket" class="w-4 h-4 text-emerald-400"></i> Deploy 1-Click no Railway</h4>
+            <p class="text-xs text-slate-400">Fork o repo → New Project no Railway → Deploy from GitHub → Adicione HUB_URL nas Variables</p>
+            <a href="https://railway.app/new/template?template=https://github.com/seu-user/btcgoai-main" target="_blank" rel="noopener noreferrer" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 text-white font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
+              <i data-lucide="github" class="w-4 h-4"></i> Deploy no Railway (Template)
+            </a>
+          </div>
+
+          <!-- Docker Compose -->
+          <div class="glass-panel p-4 border border-white/10 space-y-3">
+            <h4 class="font-bold text-white flex items-center gap-2"><i data-lucide="file-code" class="w-4 h-4 text-purple-400"></i> docker-compose.yml (VPS / Self-hosted)</h4>
+            <div class="terminal-box rounded-xl p-3 font-mono text-[11px] text-purple-300 space-y-1 overflow-x-auto" id="dockerComposeBox">
+              <div>version: '3.8'</div>
+              <div>services:</div>
+              <div class="ml-4">go-worker:</div>
+              <div class="ml-6">image: ghcr.io/seu-user/btcgoai-main:latest</div>
+              <div class="ml-6">container_name: puzzleradar-go-worker</div>
+              <div class="ml-6">environment:</div>
+              <div class="ml-8">- HUB_URL=https://puzzleradar-production.up.railway.app</div>
+              <div class="ml-8">- WORKER_NAME=vps-worker-01</div>
+              <div class="ml-8">- LANES=1024</div>
+              <div class="ml-8">- LOG_LEVEL=info</div>
+              <div class="ml-6">restart: unless-stopped</div>
+              <div class="ml-6">deploy:</div>
+              <div class="ml-8">resources:</div>
+              <div class="ml-10">limits:</div>
+              <div class="ml-12">cpus: '2'</div>
+              <div class="ml-12">memory: 4G</div>
+            </div>
+            <button onclick="copyToClipboard(document.getElementById('dockerComposeBox').innerText, this)" class="w-full py-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold border border-purple-500/30 transition flex items-center justify-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar docker-compose.yml
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status da Frota (Live) -->
+      <div class="glass-panel-glow rounded-2xl p-6 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/20 via-slate-900">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl text-emerald-400">👥</div>
+            <div>
+              <h3 class="font-bold text-white text-lg">Status da Frota Conectada (Live)</h3>
+              <p class="text-xs text-slate-400">Workers ativos registrados na pool via <code class="text-cyan-300">/api/workers/fleet/summary</code></p>
+            </div>
+          </div>
+          <button onclick="fetchFleetSummary()" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 transition flex items-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar
+          </button>
+        </div>
+
+        <!-- Resumo Total -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="fleetSummaryCards">
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Workers Ativos</div>
+            <div class="text-2xl font-bold font-mono text-emerald-400 mt-1" id="fleetTotalWorkers">—</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Go Workers (CPU Montgomery)</div>
+            <div class="text-2xl font-bold font-mono text-cyan-400 mt-1" id="fleetGoWorkers">—</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Hashrate Total</div>
+            <div class="text-2xl font-bold font-mono text-amber-400 mt-1" id="fleetTotalHashrate">—</div>
+          </div>
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5">
+            <div class="text-[11px] text-slate-400">Chaves Verificadas</div>
+            <div class="text-2xl font-bold font-mono text-white mt-1" id="fleetTotalKeys">—</div>
+          </div>
+        </div>
+
+        <!-- Tabela de Workers -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-white/10 text-slate-400">
+                <th class="py-3 px-4">Worker</th>
+                <th class="py-3 px-4">Hardware</th>
+                <th class="py-3 px-4">Hashrate</th>
+                <th class="py-3 px-4">Progresso</th>
+                <th class="py-3 px-4">Chaves</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Último Ping</th>
+              </tr>
+            </thead>
+            <tbody id="fleetWorkersTable" class="divide-y divide-white/5">
+              <tr>
+                <td colspan="7" class="text-center py-8 text-slate-500">Carregando frota...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 

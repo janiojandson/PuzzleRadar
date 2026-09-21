@@ -376,8 +376,45 @@ async function markRangeScanned(puzzleId, startHex, endHex, baseStartHex = '4000
   }
 }
 
+/**
+ * Simple key-value set for checkpoint persistence (Redis or memory fallback)
+ */
+async function redisSet(key, value, ttlSeconds = 86400) {
+  if (redisClient && redisClient.status === 'ready') {
+    return await redisClient.set(key, value, 'EX', ttlSeconds);
+  } else {
+    // Memory fallback
+    memoryCheckpointStore.set(key, { value, expires: Date.now() + ttlSeconds * 1000 });
+    return 'OK';
+  }
+}
+
+/**
+ * Simple key-value get for checkpoint persistence
+ */
+async function redisGet(key) {
+  if (redisClient && redisClient.status === 'ready') {
+    return await redisClient.get(key);
+  } else {
+    // Memory fallback
+    const entry = memoryCheckpointStore.get(key);
+    if (entry && entry.expires > Date.now()) {
+      return entry.value;
+    }
+    if (entry) {
+      memoryCheckpointStore.delete(key);
+    }
+    return null;
+  }
+}
+
+// In-memory checkpoint store for development
+const memoryCheckpointStore = new Map();
+
 module.exports = {
   redisClient,
+  redisSet,
+  redisGet,
   markChunkScanned,
   isChunkScanned,
   isRangeScanned,

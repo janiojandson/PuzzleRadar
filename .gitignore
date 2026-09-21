@@ -6,3 +6,4 @@ dist/
 .DS_Store
 prisma/*.db
 persistent_data/
+persistent_data/google_sheets_archive.csv

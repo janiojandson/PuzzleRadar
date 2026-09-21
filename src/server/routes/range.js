@@ -20,6 +20,7 @@ router.get('/next/:worker_id', async (req, res) => {
     const { worker_id } = req.params;
     const hashrate = req.query.hashrate || req.headers['x-hashrate'] || null;
     const isBrowser = req.query.client === 'browser' || req.headers['x-client'] === 'browser';
+    const isGoWorker = req.query.client === 'go' || req.headers['x-client'] === 'go' || worker_id.startsWith('go_') || worker_id.includes('go-worker');
 
     const { parentLoteManager } = require('../../services/parentLoteManager');
     const puzzle = parseInt(req.query.puzzle || '71', 10);
@@ -28,7 +29,7 @@ router.get('/next/:worker_id', async (req, res) => {
     // distribui SEMPRE as micro-fatias contíguas da Fatia Pai Oficial ativa
     // para TODOS os nós (Browser, Colab, Terminal, PowerShell), concentrando
     // o cluster na descoberta das 6 chaves PoW!
-    if (puzzle === 71 && req.query.mode !== 'legacy_grid') {
+    if (puzzle === 71 && req.query.mode !== 'legacy_grid' && !isGoWorker) {
       const microLote = await parentLoteManager.getNextMicroLote(worker_id);
 
       // Registra worker ativo no Google Sheets Buffer de forma assíncrona
@@ -107,7 +108,8 @@ router.get('/next/:worker_id', async (req, res) => {
       });
     }
 
-    const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate, isBrowser);
+    // Para Go Workers ou modo legacy, usa loteManager padrão
+    const rangeAssignment = await loteManager.getNextOptimalRange(worker_id, hashrate, isBrowser, isGoWorker);
     
     // Registra worker ativo no Google Sheets Buffer de forma assíncrona
     try {
@@ -121,8 +123,8 @@ router.get('/next/:worker_id', async (req, res) => {
         startHex,
         endHex,
         workerName: worker_id,
-        status: isBrowser ? 'ONLINE_BROWSER' : 'ONLINE_TERMINAL',
-        hashrate: hashrate || (isBrowser ? '50 kH/s' : '1.0 GH/s')
+        status: isGoWorker ? 'ONLINE_GO_WORKER' : (isBrowser ? 'ONLINE_BROWSER' : 'ONLINE_TERMINAL'),
+        hashrate: hashrate || (isGoWorker ? '100 MH/s' : (isBrowser ? '50 kH/s' : '1.0 GH/s'))
       });
     } catch (_) {}
 

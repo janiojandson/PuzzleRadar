@@ -843,6 +843,277 @@ function formatHashrate(kps = 0) {
   return n.toFixed(0) + ' H/s';
 }
 
+/**
+ * POST /api/worker/register
+ * Registro nativo para Go Workers (btcgoai-main)
+ */
+router.post('/worker/register', async (req, res) => {
+  try {
+    const { name, hardware, gpuModel, cpuModel, lanes, version } = req.body;
+    
+    const workerName = name || `go-worker-${crypto.randomBytes(4).toString('hex')}`;
+    const nodeId = `go_${workerName}_${Date.now()}`;
+
+    const workerRecord = {
+      id: nodeId,
+      name: workerName,
+      hardware: hardware || 'GPU',
+      gpuModel: gpuModel || 'Unknown',
+      cpuModel: cpuModel || 'Unknown',
+      chain: 'BTC',
+      challengeId: 'BTC_1000_P71',
+      keysPerSecond: 0,
+      totalKeysChecked: 0,
+      shares: 0,
+      lanes: lanes || 1024,
+      version: version || '1.0.0',
+      status: 'IDLE',
+      progress: 0,
+      lastSeen: Date.now(),
+      registeredAt: new Date().toISOString(),
+      isGoWorker: true
+    };
+
+    activeWorkersMap.set(nodeId, workerRecord);
+
+    try {
+      const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+      sheetsBuffer.enqueueChunkLog({
+        timestamp: new Date().toISOString(),
+        chain: 'BTC',
+        challenge_id: 'BTC_1000_P71',
+        startHex: 'REGISTER_GO_WORKER',
+        endHex: workerName,
+        workerName,
+        status: `REGISTERED_GO (${hardware} | Lanes: ${lanes || 1024})`,
+        hashrate: 'Pending'
+      });
+    } catch (_) {}
+
+    console.log(`[+] Go Worker registrado: ${workerName} (ID: ${nodeId}, Lanes: ${lanes || 1024})`);
+
+    res.status(201).json({
+      success: true,
+      workerId: nodeId,
+      name: workerName,
+      message: 'Go Worker registrado com sucesso. Use GET /api/range/next/:worker_id para obter range.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/worker/beat
+ * Heartbeat do Go Worker com telemetria de hashrate
+ */
+router.post('/worker/beat', async (req, res) => {
+  try {
+    const { 
+      worker_id, 
+      keys_checked, 
+      hashrate, 
+      progress_pct, 
+      current_key, 
+      status, 
+      lote_id,
+      timestamp 
+    } = req.body;
+
+    const workerId = worker_id || req.headers['x-worker-id'];
+    if (!workerId) {
+      return res.status(400).json({ error: 'worker_id obrigatório' });
+    }
+
+    let worker = activeWorkersMap.get(workerId);
+    if (!worker) {
+      worker = {
+        id: workerId,
+        name: workerId,
+        hardware: 'CPU_GO_MONTGOMERY',
+        gpuModel: 'N/A',
+        chain: 'BTC',
+        challengeId: 'BTC_1000_P71',
+        totalKeysChecked: 0,
+        shares: 0,
+        status: 'RUNNING',
+        isGoWorker: true
+      };
+      activeWorkersMap.set(workerId, worker);
+    }
+
+    const now = Date.now();
+    const prevKeys = worker.totalKeysChecked || 0;
+    const currKeys = Number(keys_checked) || 0;
+    const deltaKeys = Math.max(0, currKeys - prevKeys);
+
+    worker.keysPerSecond = Number(hashrate) || worker.keysPerSecond || 0;
+    worker.totalKeysChecked = currKeys;
+    worker.progress = parseFloat(progress_pct) || worker.progress || 0;
+    worker.status = status || 'RUNNING';
+    worker.currentKey = current_key || worker.currentKey;
+    worker.loteId = lote_id || worker.loteId;
+    worker.lastSeen = now;
+
+    if (deltaKeys > 0) {
+      worker.shares = (worker.shares || 0) + deltaKeys * 0.001;
+    }
+
+    // Checkpoint persistence para Go Workers (Redis)
+    // Salva current_key como ponto de retomada para o lote atual
+    if (worker.isGoWorker && current_key && lote_id) {
+      try {
+        const { redisSet } = require('../../lib/redis');
+        const checkpoint = {
+          workerId,
+          loteId: lote_id,
+          currentKey: current_key,
+          keysChecked: currKeys,
+          hashrate,
+          progress: progress_pct,
+          timestamp: now
+        };
+        // TTL 24h
+        await redisSet(`worker:checkpoint:heartbeat:${workerId}`, JSON.stringify(checkpoint), 86400);
+      } catch (e) {
+        console.warn(`⚠️ [Worker Beat] Falha ao salvar checkpoint heartbeat: ${e.message}`);
+      }
+    }
+
+    try {
+      const { leaderboardService } = require('../../services/leaderboardService');
+      const hr = worker.keysPerSecond >= 1e6
+        ? `${(worker.keysPerSecond / 1e6).toFixed(2)} MH/s`
+        : worker.keysPerSecond >= 1e3
+          ? `${(worker.keysPerSecond / 1e3).toFixed(1)} kH/s`
+          : `${worker.keysPerSecond} H/s`;
+      leaderboardService.recordContribution(worker.name || workerId, {
+        hashrate: hr
+      }).catch(() => {});
+    } catch (_) {}
+
+    res.json({ 
+      ok: true, 
+      timestamp: new Date().toISOString(),
+      workerId
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/worker/stats/:worker_id
+ * Telemetria individual do Go Worker
+ */
+router.get('/worker/stats/:worker_id', async (req, res) => {
+  try {
+    const { worker_id } = req.params;
+    const worker = activeWorkersMap.get(worker_id);
+
+    if (!worker) {
+      return res.status(404).json({ error: 'Worker não encontrado' });
+    }
+
+    const now = Date.now();
+    const uptime = worker.registeredAt 
+      ? Math.floor((now - new Date(worker.registeredAt).getTime()) / 1000)
+      : 0;
+
+    res.json({
+      success: true,
+      worker: {
+        id: worker.id,
+        name: worker.name,
+        hardware: worker.hardware,
+        gpuModel: worker.gpuModel,
+        cpuModel: worker.cpuModel,
+        lanes: worker.lanes,
+        version: worker.version,
+        chain: worker.chain,
+        challengeId: worker.challengeId,
+        status: worker.status,
+        progress: worker.progress,
+        keysPerSecond: worker.keysPerSecond,
+        hashrateFormatted: formatHashrate(worker.keysPerSecond),
+        totalKeysChecked: worker.totalKeysChecked,
+        shares: worker.shares,
+        currentKey: worker.currentKey,
+        loteId: worker.loteId,
+        uptimeSeconds: uptime,
+        lastSeen: worker.lastSeen,
+        lastSeenAgo: Math.floor((now - worker.lastSeen) / 1000),
+        isGoWorker: worker.isGoWorker || false
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/workers/fleet/summary
+ * Resumo agregado da frota (compatível com dashboard)
+ */
+router.get('/fleet/summary', async (req, res) => {
+  try {
+    const now = Date.now();
+    const activeList = [];
+    let totalHashrate = 0;
+    let totalKeysChecked = 0;
+    let totalShares = 0;
+    let goWorkers = 0;
+    let otherWorkers = 0;
+
+    for (const [id, worker] of activeWorkersMap.entries()) {
+      if (now - worker.lastSeen <= 180000) {
+        const kps = Number(worker.keysPerSecond) || 0;
+        totalHashrate += kps;
+        totalKeysChecked += Number(worker.totalKeysChecked) || 0;
+        totalShares += Number(worker.shares) || 0;
+        
+        if (worker.isGoWorker) goWorkers++;
+        else otherWorkers++;
+
+        activeList.push({
+          id,
+          name: worker.name,
+          hardware: worker.hardware,
+          gpuModel: worker.gpuModel,
+          chain: worker.chain,
+          challengeId: worker.challengeId,
+          keysPerSecond: kps,
+          hashrateFormatted: formatHashrate(kps),
+          status: worker.status,
+          progress: worker.progress,
+          totalKeysChecked: worker.totalKeysChecked,
+          shares: worker.shares,
+          isGoWorker: worker.isGoWorker || false,
+          lanes: worker.lanes,
+          lastSeenAgo: Math.floor((now - worker.lastSeen) / 1000)
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      summary: {
+        activeCount: activeList.length,
+        goWorkers,
+        otherWorkers,
+        totalHashrate,
+        totalHashrateFormatted: formatHashrate(totalHashrate),
+        totalKeysChecked,
+        totalShares,
+        timestamp: new Date().toISOString()
+      },
+      workers: activeList
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.activeWorkersMap = activeWorkersMap;
 
 module.exports = router;
