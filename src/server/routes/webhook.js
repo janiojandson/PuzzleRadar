@@ -217,10 +217,10 @@ router.post('/btcpuzzle', (req, res) => {
 });
 
 /**
- * POST /api/admin/test-whatsapp
+ * POST /api/admin/test-whatsapp & POST /api/webhook/admin/test-whatsapp
  * Endpoint de teste para disparar mensagem WhatsApp simulada (somente Admin)
  */
-router.post('/admin/test-whatsapp', async (req, res) => {
+router.post(['/admin/test-whatsapp', '/test-whatsapp'], async (req, res) => {
   try {
     // Verifica se é admin (pode ser expandido com JWT)
     const authHeader = req.headers.authorization || '';
