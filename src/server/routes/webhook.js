@@ -25,13 +25,25 @@ async function sendWhatsAppAlert(eventData) {
     return { skipped: true, reason: 'URL not configured' };
   }
 
-  const payload = {
-    event: eventData.event || 'puzzle_key_found',
-    puzzle: eventData.puzzle || 71,
-    worker: eventData.worker || 'unknown',
-    private_key_hex: eventData.privateKey || eventData.private_key_hex || '',
-    message: eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`
-  };
+  // Schema compatível com financas-backend (Evolution API / Baileys)
+  // Espera: { number: "5511999999999", text: "mensagem" } ou { to: "5511999999999", message: "mensagem" }
+  const adminPhone = process.env.ADMIN_PHONE || process.env.WHATSAPP_ADMIN_NUMBER || '5511999999999';
+  const messageText = eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`;
+
+  // Tenta múltiplos schemas comuns para Evolution API / Baileys / WPPConnect
+  const payloads = [
+    // Schema Evolution API v2
+    { number: adminPhone, text: messageText },
+    // Schema Baileys/WPPConnect
+    { to: adminPhone, message: messageText },
+    // Schema genérico
+    { phone: adminPhone, body: messageText },
+    // Schema com event type
+    { event: eventData.event || 'puzzle_key_found', number: adminPhone, text: messageText }
+  ];
+
+  // Use o primeiro schema que parece mais compatível (Evolution API v2 é o mais comum)
+  const payload = payloads[0];
 
   try {
     const nexusSecret = process.env.NEXUS_WEBHOOK_SECRET || 'SenhaMuitoForteFamilia123';

@@ -264,6 +264,13 @@ function switchTab(tabId) {
     }
   }
 
+  // Activity ticker lifecycle
+  if (tabId === 'tab-dashboard') {
+    startActivityTicker();
+  } else {
+    stopActivityTicker();
+  }
+
   if (tabId === 'tab-admin') {
     fetchAdminUsers();
   }
@@ -382,6 +389,76 @@ function startFleetSummaryPolling() {
     }
   }, 10000);
   fetchFleetSummary(); // Initial fetch
+}
+
+// ─── ACTIVITY TICKER (Live Terminal) ───
+let activityTickerInterval = null;
+async function fetchActivityTicker() {
+  try {
+    const res = await fetch('/api/workers/fleet/activity');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success || !data.events) return;
+    
+    const events = data.events;
+    const terminalEl = document.getElementById('telemetryTerminalStream');
+    if (!terminalEl) return;
+    
+    // Render events (newest first)
+    terminalEl.innerHTML = events.map(event => {
+      const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--:--:--';
+      const workerName = event.workerName || event.workerId || 'unknown';
+      let lineClass = 'text-slate-400';
+      let prefix = '> [SYSTEM]';
+      
+      if (event.type === 'MILESTONE') {
+        prefix = '> [MILESTONE]';
+        lineClass = 'text-cyan-300';
+      } else if (event.type === 'DP_SUBMITTED') {
+        prefix = '> [DP]';
+        lineClass = 'text-emerald-400';
+      } else if (event.type === 'COLLISION_ALERT') {
+        prefix = '> [ALERT]';
+        lineClass = 'text-amber-400';
+      } else if (event.type === 'KEY_FOUND') {
+        prefix = '> [KEY FOUND]';
+        lineClass = 'text-rose-400 animate-pulse';
+      }
+      
+      let message = '';
+      if (event.type === 'MILESTONE') {
+        message = `🟢 ${workerName} confirmou Marco #${event.milestone}/10 (${event.currentKey || '...'}) | ${event.hashrate || 'N/A'}`;
+      } else if (event.type === 'DP_SUBMITTED') {
+        message = event.message || `📍 ${workerName} atingiu marco ${event.milestonePct || 0}%`;
+      } else {
+        message = event.message || JSON.stringify(event);
+      }
+      
+      return `<div class="${lineClass}"><span class="text-slate-500">[${time}]</span> ${prefix} ${message}</div>`;
+    }).join('');
+    
+    // Auto-scroll to bottom
+    terminalEl.scrollTop = terminalEl.scrollHeight;
+  } catch (err) {
+    console.warn('[ActivityTicker] Erro:', err.message);
+  }
+}
+
+function startActivityTicker() {
+  if (activityTickerInterval) clearInterval(activityTickerInterval);
+  activityTickerInterval = setInterval(() => {
+    if (currentTab === 'tab-dashboard') {
+      fetchActivityTicker();
+    }
+  }, 4000);
+  fetchActivityTicker(); // Initial fetch
+}
+
+function stopActivityTicker() {
+  if (activityTickerInterval) {
+    clearInterval(activityTickerInterval);
+    activityTickerInterval = null;
+  }
 }
 
 // ─── 1000 BTC PUZZLE DATA & TABLE ───
@@ -2959,77 +3036,6 @@ setTimeout(checkPoolConnectionDiagnostics, 1200);
 
 // Inicializa checagem de sessão
 checkAuthSession();
-
-// ─── ACTIVITY TICKER / LIVE TERMINAL CONSOLE ───
-let activityTickerInterval = null;
-let lastActivityEventCount = 0;
-
-async function fetchActivityTicker() {
-  try {
-    const res = await fetch('/api/workers/fleet/activity');
-    if (!res.ok) return;
-    const data = await res.json();
-    if (!data.success || !data.events) return;
-    
-    const events = data.events;
-    if (events.length === lastActivityEventCount) return;
-    lastActivityEventCount = events.length;
-    
-    const terminalEl = document.getElementById('telemetryTerminalStream');
-    if (!terminalEl) return;
-    
-    // Render events in reverse order (newest first)
-    terminalEl.innerHTML = events.map(event => {
-      const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--:--:--';
-      const workerName = event.workerName || event.workerId || 'unknown';
-      let lineClass = 'text-slate-400';
-      let prefix = '> [SYSTEM]';
-      
-      if (event.type === 'MILESTONE') {
-        prefix = '> [MILESTONE]';
-        lineClass = 'text-cyan-300';
-      } else if (event.type === 'DP_SUBMITTED') {
-        prefix = '> [DP]';
-        lineClass = 'text-emerald-400';
-      } else if (event.type === 'COLLISION_ALERT') {
-        prefix = '> [ALERT]';
-        lineClass = 'text-amber-400';
-      } else if (event.type === 'KEY_FOUND') {
-        prefix = '> [KEY FOUND]';
-        lineClass = 'text-rose-400 animate-pulse';
-      }
-      
-      let message = '';
-      if (event.type === 'MILESTONE') {
-        message = `🟢 ${workerName} confirmou Marco #${event.milestone}/10 (${event.currentKey || '...'}) | ${event.hashrate || 'N/A'}`;
-      } else if (event.type === 'DP_SUBMITTED') {
-        message = event.message || `📍 ${workerName} atingiu marco ${event.milestonePct || 0}%`;
-      } else {
-        message = event.message || JSON.stringify(event);
-      }
-      
-      return `<div class="${lineClass}"><span class="text-slate-500">[${time}]</span> ${prefix} ${message}</div>`;
-    }).join('');
-    
-    // Auto-scroll to bottom
-    terminalEl.scrollTop = terminalEl.scrollHeight;
-  } catch (err) {
-    console.warn('[ActivityTicker] Erro:', err.message);
-  }
-}
-
-function startActivityTicker() {
-  if (activityTickerInterval) clearInterval(activityTickerInterval);
-  activityTickerInterval = setInterval(fetchActivityTicker, 4000);
-  fetchActivityTicker(); // Initial fetch
-}
-
-function stopActivityTicker() {
-  if (activityTickerInterval) {
-    clearInterval(activityTickerInterval);
-    activityTickerInterval = null;
-  }
-}
 
 // ─── WHATSAPP ADMIN PANEL ───
 async function checkWhatsAppStatus() {
