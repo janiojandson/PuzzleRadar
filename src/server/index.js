@@ -103,6 +103,7 @@ app.use('/api/pool', poolRoutes); // Alias para /api/pool/job, /api/pool/submit-
 app.use('/api/ranges', rangeRoutes);
 app.use('/api/range', rangeRoutesV5); // Coordenador v5.0 (/api/range/next/:worker_id)
 app.use('/api/webhook', webhookRoutes); // Webhook btcpuzzle (/api/webhook/btcpuzzle)
+app.use('/api/admin', webhookRoutes); // Admin routes (/api/admin/test-whatsapp, /api/admin/whatsapp-status)
 app.use('/api/leaderboard', leaderboardRoutes); // Leaderboard Comunitário (/api/leaderboard)
 app.use('/api/status', rangeRoutesV5); // Alias direto para status do coordenador
 app.use('/api/progress', rangeRoutesV5); // Alias direto para progresso do coordenador

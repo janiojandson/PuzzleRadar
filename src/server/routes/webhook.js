@@ -34,9 +34,13 @@ async function sendWhatsAppAlert(eventData) {
   };
 
   try {
+    const nexusSecret = process.env.NEXUS_WEBHOOK_SECRET || 'SenhaMuitoForteFamilia123';
     const response = await fetch(WHATSAPP_WEBHOOK_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-nexus-secret': nexusSecret
+      },
       body: JSON.stringify(payload)
     });
     
