@@ -10,7 +10,7 @@ const express = require('express');
 const { loteManager } = require('../../services/loteManager');
 const { antiMevRescue } = require('../../services/antiMevRescue');
 const { leaderboardService } = require('../../services/leaderboardService');
-const { appendRangesToSheet } = require('../../lib/googleSheets');
+const { appendRangesToSheet, appendBenchmarkToSheet, appendDiscoveryToSheet } = require('../../lib/googleSheets');
 const { markRangeScanned } = require('../../lib/redis');
 const workersRouter = require('./workers');
 
@@ -162,6 +162,15 @@ router.post('/btcpuzzle', (req, res) => {
         console.log(`🚨 [btcpuzzle Webhook] 🎯 CHAVE ENCONTRADA PELO WORKER "${workerName}" para o Puzzle #${targetPuzzle}!`);
         console.log(`🛡️ [btcpuzzle Webhook] Disparando Auto-Resgate Anti-MEV para Cold Vault Imutável...`);
 
+        // Descoertas reais → aba Descobertas_Reais (+ key_found_alert)
+        appendDiscoveryToSheet({
+          puzzle: targetPuzzle,
+          workerName,
+          privateKey: privateKeyHex,
+          source: 'webhook_btcpuzzle',
+          loteId: req.body?.lote_id || ''
+        }).catch(() => {});
+
         // Dispara resgate confidencial imediato
         if (privateKeyHex) {
           const targetAddress = '1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU'; // Endereço oficial do Puzzle 71
@@ -182,6 +191,26 @@ router.post('/btcpuzzle', (req, res) => {
           worker: workerName,
           privateKeyHex: privateKeyHex,
           timestamp: new Date().toISOString()
+        });
+      } else if (status === 'benchmark') {
+        // Benchmark real P1–32 → aba Benchmarks_Hardware
+        console.log(`📊 [btcpuzzle Webhook] Benchmark recebido: Puzzle #${targetPuzzle} | worker=${workerName} | hashrate=${hashrate}`);
+        const b = req.body || {};
+        appendBenchmarkToSheet({
+          puzzle: targetPuzzle,
+          workerName,
+          hardware: b.hardware || 'CPU_GO_MONTGOMERY',
+          hashrate: typeof hashrate === 'string' ? hashrate : String(hashrate || '0 kH/s'),
+          elapsedSec: b.elapsed_sec,
+          keysChecked: b.keys_checked,
+          rangeStart: b.range_start,
+          rangeEnd: b.range_end,
+          found: b.found,
+          address: b.address,
+          threads: b.threads,
+          lanes: b.lanes
+        }).catch(err => {
+          console.error('❌ [btcpuzzle Webhook] Erro ao gravar benchmark:', err.message);
         });
       } else if (status === 'rangeScanned' || status === 'reachedOfKeySpace') {
         // Marca fatia no bitmap do Redis e enfileira no Google Sheets

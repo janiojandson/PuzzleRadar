@@ -15,7 +15,7 @@ const P71_END = 0x7fffffffffffffffffn;
 const P71_TOTAL_SPAN = P71_END - P71_START;
 
 // Configuração de Range Customizado (via env vars)
-const RANGE_MODE = process.env.RANGE_MODE || 'full'; // 'full' | 'half' | 'custom'
+const RANGE_MODE = process.env.RANGE_MODE || 'half'; // 'full' | 'half' | 'custom' — padrão P71: segunda metade
 const RANGE_EXCLUDE_START_PCT = parseInt(process.env.RANGE_EXCLUDE_START_PCT || '0', 10); // 0-100
 
 function computeEffectiveRange() {

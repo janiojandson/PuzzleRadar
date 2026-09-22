@@ -275,6 +275,53 @@ async function notifyKeyFound(puzzleData) {
   });
 }
 
+// ─── BENCHMARK REAL (P1–32) → aba Benchmarks_Hardware ─────────────────────────
+async function appendBenchmarkToSheet(bench = {}) {
+  if (!GOOGLE_APPS_SCRIPT_WEBHOOK_URL) return { skipped: true };
+  console.log('[GoogleSheets] 📊 Enviando benchmark real para Benchmarks_Hardware...');
+  return postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
+    secretToken: SHEETS_WEBHOOK_SECRET,
+    action:      'benchmark_result',
+    sheetName:   'Benchmarks_Hardware',
+    targetSheet: 'Benchmarks_Hardware',
+    puzzle:      bench.puzzle,
+    workerName:  bench.workerName || 'Anonimo',
+    hardware:    bench.hardware || 'CPU_GO_MONTGOMERY',
+    hashrate:    bench.hashrate || '0 kH/s',
+    elapsedSec:  bench.elapsedSec,
+    keysChecked: bench.keysChecked,
+    rangeStart:  bench.rangeStart,
+    rangeEnd:    bench.rangeEnd,
+    found:       Boolean(bench.found),
+    address:     bench.address || '',
+    threads:     bench.threads,
+    lanes:       bench.lanes,
+    timestamp:   new Date().toISOString(),
+  });
+}
+
+// ─── DESCOBERTAS REAIS (keyFound) → aba Descobertas_Reais ─────────────────────
+async function appendDiscoveryToSheet(disc = {}) {
+  if (!GOOGLE_APPS_SCRIPT_WEBHOOK_URL) return { skipped: true };
+  console.log('[GoogleSheets] 🏆 Enviando descoberta real para Descobertas_Reais...');
+  // Notificar também via key_found_alert (flush imediato)
+  await notifyKeyFound(disc).catch(() => {});
+  return postToGoogleWebhook(GOOGLE_APPS_SCRIPT_WEBHOOK_URL, {
+    secretToken: SHEETS_WEBHOOK_SECRET,
+    action:      'discovery_real',
+    sheetName:   'Descobertas_Reais',
+    targetSheet: 'Descobertas_Reais',
+    puzzle:      disc.puzzle,
+    workerName:  disc.workerName || disc.worker || 'Anonimo',
+    privateKey:  disc.privateKey || disc.privateKeyHex || '',
+    address:     disc.address || '',
+    hash160:     disc.hash160 || '',
+    loteId:      disc.loteId || disc.lote_id || '',
+    source:      disc.source || 'worker',
+    timestamp:   new Date().toISOString(),
+  });
+}
+
 // ─── STATS ────────────────────────────────────────────────────────────────────
 async function getSheetsStats() {
   let lineCount = 0;
@@ -301,6 +348,8 @@ async function getSheetsStats() {
 
 module.exports = {
   appendRangesToSheet,
+  appendBenchmarkToSheet,
+  appendDiscoveryToSheet,
   getSheetsStats,
   notifyKeyFound,
   postToGoogleWebhook,

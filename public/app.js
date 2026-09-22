@@ -3120,34 +3120,87 @@ async function renderWhatsAppAdminPanel() {
   if (window.lucide) window.lucide.createIcons();
 }
 
-// ─── PUZZLE SELECTOR FOR ONBOARDING ───
+// ─── PUZZLE SELECTOR FOR ONBOARDING (all 160) ───
 const puzzleOptions = [
   { id: 71, label: 'Puzzle 71 (Alvo Principal - 7.10 BTC)', value: '71', target: 'BTC_1000_P71', primary: true },
   { id: 130, label: 'Puzzle 130 (Chave Pública Conhecida - 13.0 BTC)', value: '130', target: 'BTC_1000_P130' },
   { id: 10, label: 'Modo Teste / Benchmark (Validação em 15s)', value: 'test', target: 'BTC_1000_P10', testMode: true }
 ];
 
-function renderPuzzleSelector() {
-  const container = document.getElementById('puzzleSelectorContainer');
-  if (!container) return;
-  
-  container.innerHTML = puzzleOptions.map(p => `
-    <option value="${p.value}" data-target="${p.target}" data-test="${p.testMode ? 'true' : 'false'}" ${p.primary ? 'selected' : ''}>
-      ${p.label}
-    </option>
-  `).join('');
-  
-  const select = document.getElementById('onboardPuzzleSelect');
-  if (select) {
-    select.addEventListener('change', (e) => {
-      const opt = e.target.options[e.target.selectedIndex];
-      const target = opt.dataset.target;
-      const isTest = opt.dataset.test === 'true';
-      
-      updateOnboardingCommands(e.target.value, target, isTest);
-      showToast(`🎯 Alvo selecionado: ${opt.text}`);
-    });
+function buildPuzzleOptionGroups(dataset) {
+  const solved = [];
+  const open = [];
+  const benchmark = [];
+  const source = (dataset && dataset.puzzles) ? dataset.puzzles : [];
+
+  for (const p of source) {
+    const n = p.puzzleNumber;
+    const prize = p.prizeBtc != null ? ` (${p.prizeBtc} BTC)` : '';
+    const label = `Puzzle ${n}${prize}${p.solved ? ' ✅' : ''}`;
+    const item = { value: String(n), label, target: `BTC_1000_P${n}`, testMode: false, primary: n === 71, solved: !!p.solved, bits: p.bits || n };
+    if (p.solved) solved.push(item);
+    else open.push(item);
+    if (n >= 1 && n <= 32 && p.solved && (p.privKey || p.privateKey)) benchmark.push(item);
   }
+
+  // Keep hero options at top (unique by value)
+  const hero = puzzleOptions.filter(h => !benchmark.some(b => b.value === h.value) && !solved.some(s => s.value === h.value) && !open.some(o => o.value === h.value));
+  if (!open.some(o => o.value === '71')) {
+    open.unshift({ value: '71', label: 'Puzzle 71 (Alvo Principal - 7.10 BTC)', target: 'BTC_1000_P71', primary: true });
+  }
+
+  const groups = [];
+  if (hero.length) groups.push({ label: '⭐ Destaques', items: hero });
+  if (benchmark.length) groups.push({ label: '⚡ Benchmark 1–32', items: benchmark.sort((a, b) => a.value - b.value) });
+  if (open.length) groups.push({ label: '🔓 Abertos (em disputa)', items: open.sort((a, b) => Number(a.value) - Number(b.value)) });
+  if (solved.length) groups.push({ label: '🏆 Resolvidos', items: solved.sort((a, b) => Number(a.value) - Number(b.value)) });
+  return groups;
+}
+
+function renderPuzzleSelector(dataset) {
+  const select = document.getElementById('onboardPuzzleSelect') || document.getElementById('puzzleSelectorContainer');
+  if (!select) return;
+
+  const groups = buildPuzzleOptionGroups(dataset || window.__PUZZLES_DATASET__);
+  select.innerHTML = groups.map(g => `
+    <optgroup label="${g.label}">
+      ${g.items.map(p => `
+        <option value="${p.value}" data-target="${p.target}" data-test="${p.testMode ? 'true' : 'false'}" ${p.primary ? 'selected' : ''}>
+          ${p.label}
+        </option>
+      `).join('')}
+    </optgroup>
+  `).join('');
+
+  if (select.dataset.bound === '1') return;
+  select.dataset.bound = '1';
+  select.addEventListener('change', (e) => {
+    const opt = e.target.options[e.target.selectedIndex];
+    const target = opt.dataset.target;
+    const isTest = opt.dataset.test === 'true';
+
+    updateOnboardingCommands(e.target.value, target, isTest);
+    showToast(`🎯 Alvo selecionado: ${opt.text}`);
+  });
+}
+
+async function loadPuzzleDataset() {
+  if (window.__PUZZLES_DATASET__) {
+    renderPuzzleSelector(window.__PUZZLES_DATASET__);
+    return window.__PUZZLES_DATASET__;
+  }
+  try {
+    const res = await fetch('/api/puzzle1000btc?limit=160', { headers: { Accept: 'application/json' } });
+    if (res.ok) {
+      const data = await res.json();
+      const dataset = Array.isArray(data) ? { puzzles: data } : (data.puzzles ? data : { puzzles: data.data || data.all || [] });
+      window.__PUZZLES_DATASET__ = dataset;
+      renderPuzzleSelector(dataset);
+      return dataset;
+    }
+  } catch (_) {}
+  renderPuzzleSelector(null);
+  return null;
 }
 
 function updateOnboardingCommands(puzzleValue, challengeId, isTestMode) {
@@ -3238,7 +3291,7 @@ switchTab = function(tabId) {
   }
 
   if (tabId === 'tab-onboard') {
-    renderPuzzleSelector();
+    loadPuzzleDataset();
   }
 };
 
