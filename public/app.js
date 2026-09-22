@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetchFleetData();
   fetchLiveRangesData();
   loadSavedMinerPayoutProfile();
+  startActivityTicker(); // Live Terminal Activity Ticker
 
   // Poll intervals
   setInterval(fetchFleetData, 6000);
