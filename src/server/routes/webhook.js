@@ -247,10 +247,10 @@ router.post(['/admin/test-whatsapp', '/test-whatsapp'], async (req, res) => {
 });
 
 /**
- * GET /api/admin/whatsapp-status
+ * GET /api/admin/whatsapp-status & GET /api/webhook/admin/whatsapp-status
  * Verifica status da configuração do WhatsApp
  */
-router.get('/admin/whatsapp-status', async (req, res) => {
+router.get(['/admin/whatsapp-status', '/whatsapp-status'], async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
     if (!authHeader.startsWith('Bearer ')) {
