@@ -45,7 +45,7 @@ async function sendWhatsAppAlert(eventData) {
     });
     
     const result = await response.text();
-    console.log(`[WhatsApp] Disparado com status ${response.status}:`, result);
+    console.log("[WHATSAPP] Resposta da API de Finanças:", response.status, result);
     return { success: true, status: response.status, response: result };
   } catch (err) {
     console.error('[WhatsApp] Erro ao disparar webhook:', err.message);

@@ -42,18 +42,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   switchTab('tab-dashboard');
   initTelemetryStream();
-  fetch1000BtcData();
-  fetchMultiChainData();
-  fetchFleetData();
-  fetchLiveRangesData();
-  loadSavedMinerPayoutProfile();
-  startActivityTicker(); // Live Terminal Activity Ticker
+  
+  // Defensive initialization with try/catch
+  try { fetch1000BtcData(); } catch (e) { console.warn('fetch1000BtcData failed:', e); }
+  try { fetchMultiChainData(); } catch (e) { console.warn('fetchMultiChainData failed:', e); }
+  try { fetchFleetData(); } catch (e) { console.warn('fetchFleetData failed:', e); }
+  try { fetchLiveRangesData(); } catch (e) { console.warn('fetchLiveRangesData failed:', e); }
+  try { loadSavedMinerPayoutProfile(); } catch (e) { console.warn('loadSavedMinerPayoutProfile failed:', e); }
+  try { startActivityTicker(); } catch (e) { console.warn('startActivityTicker failed:', e); }
+  try { startFleetSummaryPolling(); } catch (e) { console.warn('startFleetSummaryPolling failed:', e); }
 
   // Poll intervals
-  setInterval(fetchFleetData, 6000);
-  setInterval(fetchLiveRangesData, 8000);
+  setInterval(() => { try { fetchFleetData(); } catch (e) {} }, 6000);
+  setInterval(() => { try { fetchLiveRangesData(); } catch (e) {} }, 8000);
+  setInterval(() => { try { fetchPoolStatus(); } catch (e) {} }, 15000);
   fetchPoolStatus();
-  setInterval(fetchPoolStatus, 15000);
+
+  // Explicit button handler for scroll to live terminal
+  const btnScrollLive = document.getElementById('btnScrollLive');
+  if (btnScrollLive) {
+    btnScrollLive.addEventListener('click', () => {
+      switchTab('tab-dashboard');
+      setTimeout(() => {
+        const terminal = document.getElementById('telemetryTerminalStream');
+        if (terminal) terminal.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    });
+  }
+
+  // Ensure Live Terminal has a default message
+  const terminalEl = document.getElementById('telemetryTerminalStream');
+  if (terminalEl && terminalEl.children.length === 0) {
+    terminalEl.innerHTML = '<div class="text-slate-500">> [SISTEMA] Hub conectado. Aguardando heartbeats e marcos da frota...</div>';
+  }
 });
 
 async function fetchPoolStatus() {
