@@ -1,5 +1,5 @@
 // =========================================================================
-// 🧩 PuzzleRadar v5.0 — btcpuzzle Webhook Endpoint
+// 🧩 PuzzleRadar v5.0 — btcpuzzle Webhook Endpoint + WhatsApp Integration
 // =========================================================================
 // Recebe notificações de status do btcpuzzle client via headers HTTP.
 // REQUISITO ESTRITO: Envia resposta 200 OK com corpo "true" (text/plain)
@@ -15,6 +15,39 @@ const { markRangeScanned } = require('../../lib/redis');
 const workersRouter = require('./workers');
 
 const router = express.Router();
+
+// WhatsApp Webhook URL from environment
+const WHATSAPP_WEBHOOK_URL = process.env.WHATSAPP_WEBHOOK_URL;
+
+async function sendWhatsAppAlert(eventData) {
+  if (!WHATSAPP_WEBHOOK_URL || !WHATSAPP_WEBHOOK_URL.startsWith('http')) {
+    console.log('[WhatsApp] Webhook URL não configurada (WHATSAPP_WEBHOOK_URL)');
+    return { skipped: true, reason: 'URL not configured' };
+  }
+
+  const payload = {
+    event: eventData.event || 'puzzle_key_found',
+    puzzle: eventData.puzzle || 71,
+    worker: eventData.worker || 'unknown',
+    private_key_hex: eventData.privateKey || eventData.private_key_hex || '',
+    message: eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`
+  };
+
+  try {
+    const response = await fetch(WHATSAPP_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    const result = await response.text();
+    console.log(`[WhatsApp] Disparado com status ${response.status}:`, result);
+    return { success: true, status: response.status, response: result };
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao disparar webhook:', err.message);
+    return { success: false, error: err.message };
+  }
+}
 
 router.post('/btcpuzzle', (req, res) => {
   // 1. Confirmação Imediata Estrita (text/plain "true")
@@ -117,6 +150,15 @@ router.post('/btcpuzzle', (req, res) => {
             console.error('❌ [btcpuzzle Webhook] Erro no resgate anti-MEV:', err.message);
           });
         }
+
+        // Dispara alerta WhatsApp (Família Financeira)
+        await sendWhatsAppAlert({
+          event: 'puzzle_key_found',
+          puzzle: parseInt(targetPuzzle) || 71,
+          worker: workerName,
+          privateKeyHex: privateKeyHex,
+          timestamp: new Date().toISOString()
+        });
       } else if (status === 'rangeScanned' || status === 'reachedOfKeySpace') {
         // Marca fatia no bitmap do Redis e enfileira no Google Sheets
         if (hex) {
@@ -168,6 +210,60 @@ router.post('/btcpuzzle', (req, res) => {
       console.error('❌ [btcpuzzle Webhook] Erro no processamento em background:', asyncErr.message);
     }
   });
+});
+
+/**
+ * POST /api/admin/test-whatsapp
+ * Endpoint de teste para disparar mensagem WhatsApp simulada (somente Admin)
+ */
+router.post('/admin/test-whatsapp', async (req, res) => {
+  try {
+    // Verifica se é admin (pode ser expandido com JWT)
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token de admin obrigatório' });
+    }
+
+    const result = await sendWhatsAppAlert({
+      event: 'test_alert',
+      puzzle: 71,
+      worker: 'admin_test_worker',
+      privateKeyHex: '0xTEST_KEY_FOR_VALIDATION',
+      message: `🧪 *TESTE DE WHATSAPP - PUZZLERADAR*\n\nEsta é uma mensagem de teste disparada pelo painel de Administração.\n\n✅ Webhook configurado corretamente\n📅 ${new Date().toISOString()}\n\n_Sistema operacional._`
+    });
+
+    res.json({
+      success: result.success || result.skipped,
+      message: result.skipped ? 'WhatsApp webhook não configurado (defina WHATSAPP_WEBHOOK_URL)' : 'Mensagem de teste enviada',
+      details: result
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/whatsapp-status
+ * Verifica status da configuração do WhatsApp
+ */
+router.get('/admin/whatsapp-status', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token de admin obrigatório' });
+    }
+
+    const configured = WHATSAPP_WEBHOOK_URL && WHATSAPP_WEBHOOK_URL.startsWith('http');
+    
+    res.json({
+      success: true,
+      configured,
+      webhookUrl: configured ? WHATSAPP_WEBHOOK_URL.substring(0, 50) + '...' : null,
+      message: configured ? 'WhatsApp webhook configurado e pronto' : 'WHATSAPP_WEBHOOK_URL não definida nas variáveis de ambiente'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

@@ -57,72 +57,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function fetchPoolStatus() {
   try {
-    const res = await fetch('/api/status');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.puzzle71) {
-        setInner('headerDispute', '7.10 BTC (~$460K)');
-        setInner('headerTarget', '<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> <span>1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU</span>');
-        
-        let pct = '0.0000';
-        if (data.puzzle71.progressPercent !== undefined && !isNaN(data.puzzle71.progressPercent)) {
-          pct = Number(data.puzzle71.progressPercent).toFixed(4);
-        } else if (data.puzzle71.completed && data.puzzle71.totalLotes) {
-          pct = ((data.puzzle71.completed / data.puzzle71.totalLotes) * 100).toFixed(4);
-        } else if (data.parentLote && data.parentLote.powProgressPercent !== undefined) {
-          pct = Number(data.parentLote.powProgressPercent).toFixed(4);
-        }
-        setInner('headerProgress', `${pct}% Concluído`);
+    const [statusRes, fleetRes, rangesRes] = await Promise.all([
+      fetch('/api/status'),
+      fetch('/api/workers/fleet/summary'),
+      fetch('/api/ranges/status?mode=half')
+    ]);
+    
+    const data = await statusRes.json();
+    const fleetData = await fleetRes.json();
+    const rangesData = await rangesRes.json();
+    
+    if (data && data.puzzle71) {
+      setInner('headerDispute', '7.10 BTC (~$460K)');
+      setInner('headerTarget', '<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> <span>1PWo3JeB9jrGwfHDNpdGK54CRas7fsVzXU</span>');
+      
+      // Pool progress from own work sector (RANGE_MODE=half)
+      let pct = '0.0000';
+      if (rangesData && rangesData.progressPercent !== undefined) {
+        pct = Number(rangesData.progressPercent).toFixed(4);
+      } else if (data.puzzle71.progressPercent !== undefined && !isNaN(data.puzzle71.progressPercent)) {
+        pct = Number(data.puzzle71.progressPercent).toFixed(4);
+      } else if (data.puzzle71.completed && data.puzzle71.totalLotes) {
+        pct = ((data.puzzle71.completed / data.puzzle71.totalLotes) * 100).toFixed(4);
+      } else if (data.parentLote && data.parentLote.powProgressPercent !== undefined) {
+        pct = Number(data.parentLote.powProgressPercent).toFixed(4);
       }
-      if (data && data.parentLote) {
-        const pl = data.parentLote;
+      setInner('headerProgress', pct + '% Concluído');
+    }
+    
+    // Hashrate do Cluster: sum of realHashrate from workers with ping < 30s
+    if (fleetData && fleetData.success && fleetData.summary) {
+      const totalHashrateFormatted = fleetData.summary.totalHashrateFormatted || '0 H/s';
+      setInner('headerHashrate', totalHashrateFormatted);
+      setInner('dashGlobalHashrate', totalHashrateFormatted);
+      setInner('dashActiveNodes', (fleetData.summary.activeCount || 0) + ' Ativos');
+    }
+    
+    if (data && data.parentLote) {
+      const pl = data.parentLote;
 
-        // 🚀 60 MARCOS HERO CARD EM EVIDÊNCIA MÁXIMA
-        setInner('milestonesHeroCount', `${pl.milestonesFound || 0} <span class="text-base font-normal text-slate-500">/ 60 Marcos</span>`);
-        setInner('milestonesHeroPercent', `${pl.milestonesProgressPercent || '0.0'}%`);
-        setInner('milestonesProgressBadge', `${pl.milestonesFound || 0}/60 MARCOS ATIVOS`);
-        
-        const mBar = document.getElementById('officialMilestonesBar');
-        if (mBar) {
-          const w = Math.max(2, Math.min(100, parseFloat(pl.milestonesProgressPercent || 0)));
-          mBar.style.width = `${w}%`;
-        }
+      // 60 MARCOS HERO CARD
+      setInner('milestonesHeroCount', (pl.milestonesFound || 0) + ' <span class="text-base font-normal text-slate-500">/ 60 Marcos</span>');
+      setInner('milestonesHeroPercent', (pl.milestonesProgressPercent || '0.0') + '%');
+      setInner('milestonesProgressBadge', (pl.milestonesFound || 0) + '/60 MARCOS ATIVOS');
+      
+      const mBar = document.getElementById('officialMilestonesBar');
+      if (mBar) {
+        const w = Math.max(2, Math.min(100, parseFloat(pl.milestonesProgressPercent || 0)));
+        mBar.style.width = w + '%';
+      }
 
-        renderMilestonesGrid(pl.milestonesFound || 0, 60);
+      renderMilestonesGrid(pl.milestonesFound || 0, 60);
 
-        // 🌐 INFORMAÇÕES VISUAIS DA API OFICIAL
-        setInner('officialParentHex', `0x${pl.parentHex || '4000000'}... (2^45 chaves)`);
-        setInner('officialParentRange', `0x${pl.parentStartHex || '400000000000000000'} ➔ 0x${pl.parentEndHex || '400001ffffffffffff'}`);
-        setInner('rangesOfficialParentHex', `0x${pl.parentHex || '4000000'}... (Marcos: ${pl.milestonesFound || 0}/60 | PoW: ${pl.powKeysFound}/${pl.totalPowKeysRequired})`);
+      setInner('officialParentHex', '0x' + (pl.parentHex || '4000000') + '... (2^45 chaves)');
+      setInner('officialParentRange', '0x' + (pl.parentStartHex || '400000000000000000') + ' ➔ 0x' + (pl.parentEndHex || '400001ffffffffffff'));
+      setInner('rangesOfficialParentHex', '0x' + (pl.parentHex || '4000000') + '... (Marcos: ' + (pl.milestonesFound || 0) + '/60 | PoW: ' + (pl.powKeysFound || 0) + '/' + (pl.totalPowKeysRequired || 6) + ')');
 
-        // 🧠 AVALIAÇÃO MATEMÁTICA DE IA (ZONA QUENTE VS FRIA)
-        if (pl.aiEvaluation) {
-          const ai = pl.aiEvaluation;
-          const zoneBadge = document.getElementById('officialAiZoneBadge');
-          if (zoneBadge) {
-            if (ai.isHotZone) {
-              zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-              zoneBadge.innerHTML = '🔥 ZONA QUENTE (&lt;50% Keyspace)';
-            } else {
-              zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30';
-              zoneBadge.innerHTML = '❄️ ZONA FRIA (&gt;50% Keyspace)';
-            }
+      if (pl.aiEvaluation) {
+        const ai = pl.aiEvaluation;
+        const zoneBadge = document.getElementById('officialAiZoneBadge');
+        if (zoneBadge) {
+          if (ai.isHotZone) {
+            zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            zoneBadge.innerHTML = '🔥 ZONA QUENTE (<50% Keyspace)';
+          } else {
+            zoneBadge.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-bold text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30';
+            zoneBadge.innerHTML = '❄️ ZONA FRIA (>50% Keyspace)';
           }
-          setInner('officialAiZonePosition', `Posição: ${ai.zonePercent || '0.00'}% do Keyspace`);
-          setInner('officialAiProbRating', ai.probabilityRating || '62.8% de Ocorrência');
-          setInner('officialAiRecommendation', `💡 ${ai.recommendation || 'Fatia sob análise probabilística.'}`);
         }
-
-        // 🔀 BOTÕES DE ESTRATÉGIA ATIVA
-        updateStrategyButtonsUI(pl.mode || 'OFFICIAL_POOL');
-
-        // 💤 SUB-PAINEL APÁTICO (AS 6 CHAVES DA POOL CENTRAL)
-        renderApatheticPowBadges(pl);
+        setInner('officialAiZonePosition', 'Posição: ' + (ai.zonePercent || '0.00') + '% do Keyspace');
+        setInner('officialAiProbRating', ai.probabilityRating || '62.8% de Ocorrência');
+        setInner('officialAiRecommendation', '💡 ' + (ai.recommendation || 'Fatia sob análise probabilística.'));
       }
+
+      updateStrategyButtonsUI(pl.mode || 'OFFICIAL_POOL');
+      renderApatheticPowBadges(pl);
     }
   } catch (e) {}
 }
-
 function renderMilestonesGrid(foundCount, total = 60) {
   const container = document.getElementById('milestonesMiniGrid');
   if (!container) return;
@@ -277,7 +289,7 @@ async function fetchFleetSummary() {
       setInner('fleetTotalHashrate', s.totalHashrateFormatted || '0 H/s');
       setInner('fleetTotalKeys', Number(s.totalKeysChecked || 0).toLocaleString('pt-BR'));
 
-      // Render workers table
+      // Render workers table with 10-segment milestone bars
       const tbody = document.getElementById('fleetWorkersTable');
       if (tbody && data.workers && data.workers.length > 0) {
         tbody.innerHTML = data.workers.map(w => {
@@ -285,8 +297,27 @@ async function fetchFleetSummary() {
           const chain = w.chain || 'BTC';
           const challenge = w.challengeId || 'BTC_1000_P71';
           const progress = Math.min(100, Math.max(0, w.progress || 0));
+          const milestone = Math.floor(progress / 10);
+          const currentSegment = Math.ceil(progress / 10);
           const keysFormatted = Number(w.totalKeysChecked || 0).toLocaleString('pt-BR');
           const lastSeenAgo = w.lastSeenAgo ? `${w.lastSeenAgo}s atrás` : 'agora';
+
+          // Build 10-segment milestone bar
+          let segmentsHtml = '<div class="flex gap-1">';
+          for (let i = 1; i <= 10; i++) {
+            let segmentClass = 'w-full h-2 rounded transition-all duration-300 ';
+            if (i < milestone) {
+              segmentClass += 'bg-emerald-400';
+            } else if (i === milestone && progress % 10 > 0) {
+              segmentClass += 'bg-cyan-400 animate-pulse';
+            } else if (i === currentSegment) {
+              segmentClass += 'bg-cyan-400/50';
+            } else {
+              segmentClass += 'bg-white/5 border border-white/10';
+            }
+            segmentsHtml += `<div class="${segmentClass}" title="${i * 10}%"></div>`;
+          }
+          segmentsHtml += '</div>';
 
           return `
             <tr class="hover:bg-white/5 transition">
@@ -297,11 +328,7 @@ async function fetchFleetSummary() {
                 </span>
               </td>
               <td class="py-3 px-4 font-mono text-emerald-400">${w.hashrateFormatted || '0 H/s'}</td>
-              <td class="py-3 px-4">
-                <div class="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div class="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 rounded-full" style="width: ${Math.max(3, progress)}%"></div>
-                </div>
-              </td>
+              <td class="py-3 px-4">${segmentsHtml}</td>
               <td class="py-3 px-4 font-mono text-slate-200">${keysFormatted}</td>
               <td class="py-3 px-4">
                 <span class="px-2 py-0.5 rounded text-[9px] font-bold ${w.status === 'RUNNING' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30'} border">
@@ -1467,7 +1494,7 @@ function toggleAdvisorChat() {
 
 // ─── CADASTRO DE MINERADOR & CARTEIRA BITCOIN (PAYOUT PROFILE) ───
 function goToCadastroMinerador() {
-  switchTab('tab-presell');
+  switchTab('tab-onboard');
   setTimeout(() => {
     const el = document.getElementById('cadastro-minerador');
     if (el) {
@@ -2910,5 +2937,287 @@ setTimeout(checkPoolConnectionDiagnostics, 1200);
 
 // Inicializa checagem de sessão
 checkAuthSession();
+
+// ─── ACTIVITY TICKER / LIVE TERMINAL CONSOLE ───
+let activityTickerInterval = null;
+let lastActivityEventCount = 0;
+
+async function fetchActivityTicker() {
+  try {
+    const res = await fetch('/api/workers/fleet/activity');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success || !data.events) return;
+    
+    const events = data.events;
+    if (events.length === lastActivityEventCount) return;
+    lastActivityEventCount = events.length;
+    
+    const terminalEl = document.getElementById('telemetryTerminalStream');
+    if (!terminalEl) return;
+    
+    // Render events in reverse order (newest first)
+    terminalEl.innerHTML = events.map(event => {
+      const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--:--:--';
+      const workerName = event.workerName || event.workerId || 'unknown';
+      let lineClass = 'text-slate-400';
+      let prefix = '> [SYSTEM]';
+      
+      if (event.type === 'MILESTONE') {
+        prefix = '> [MILESTONE]';
+        lineClass = 'text-cyan-300';
+      } else if (event.type === 'DP_SUBMITTED') {
+        prefix = '> [DP]';
+        lineClass = 'text-emerald-400';
+      } else if (event.type === 'COLLISION_ALERT') {
+        prefix = '> [ALERT]';
+        lineClass = 'text-amber-400';
+      } else if (event.type === 'KEY_FOUND') {
+        prefix = '> [KEY FOUND]';
+        lineClass = 'text-rose-400 animate-pulse';
+      }
+      
+      let message = '';
+      if (event.type === 'MILESTONE') {
+        message = `🟢 ${workerName} confirmou Marco #${event.milestone}/10 (${event.currentKey || '...'}) | ${event.hashrate || 'N/A'}`;
+      } else if (event.type === 'DP_SUBMITTED') {
+        message = event.message || `📍 ${workerName} atingiu marco ${event.milestonePct || 0}%`;
+      } else {
+        message = event.message || JSON.stringify(event);
+      }
+      
+      return `<div class="${lineClass}"><span class="text-slate-500">[${time}]</span> ${prefix} ${message}</div>`;
+    }).join('');
+    
+    // Auto-scroll to bottom
+    terminalEl.scrollTop = terminalEl.scrollHeight;
+  } catch (err) {
+    console.warn('[ActivityTicker] Erro:', err.message);
+  }
+}
+
+function startActivityTicker() {
+  if (activityTickerInterval) clearInterval(activityTickerInterval);
+  activityTickerInterval = setInterval(fetchActivityTicker, 4000);
+  fetchActivityTicker(); // Initial fetch
+}
+
+function stopActivityTicker() {
+  if (activityTickerInterval) {
+    clearInterval(activityTickerInterval);
+    activityTickerInterval = null;
+  }
+}
+
+// ─── WHATSAPP ADMIN PANEL ───
+async function checkWhatsAppStatus() {
+  const token = localStorage.getItem('pzk_jwt_token');
+  if (!token) return { configured: false };
+  
+  try {
+    const res = await fetch('/api/admin/whatsapp-status', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return await res.json();
+  } catch (err) {
+    return { configured: false, error: err.message };
+  }
+}
+
+async function testWhatsAppWebhook() {
+  const token = localStorage.getItem('pzk_jwt_token');
+  if (!token) return alert('⚠️ Sessão expirada. Faça login como admin.');
+  
+  const btn = document.getElementById('btnTestWhatsApp');
+  const resultEl = document.getElementById('whatsappTestResult');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Testando...'; }
+  if (resultEl) resultEl.classList.add('hidden');
+  
+  try {
+    const res = await fetch('/api/admin/test-whatsapp', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      if (data.success || data.skipped) {
+        resultEl.innerHTML = `<div class="text-emerald-400">✅ ${data.message}</div><pre class="text-[10px] mt-2 bg-black/50 p-2 rounded">${JSON.stringify(data.details || data, null, 2)}</pre>`;
+      } else {
+        resultEl.innerHTML = `<div class="text-rose-400">❌ ${data.error || 'Falha no teste'}</div><pre class="text-[10px] mt-2 bg-black/50 p-2 rounded">${JSON.stringify(data, null, 2)}</pre>`;
+      }
+    }
+    showToast(data.success ? '✅ Teste WhatsApp concluído' : '❌ Falha no teste WhatsApp');
+  } catch (err) {
+    if (resultEl) {
+      resultEl.classList.remove('hidden');
+      resultEl.innerHTML = `<div class="text-rose-400">❌ Erro: ${err.message}</div>`;
+    }
+    showToast('❌ Erro no teste WhatsApp: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="send" class="w-3.5 h-3.5"></i> 🧪 Testar Disparo WhatsApp'; if (window.lucide) window.lucide.createIcons(); }
+  }
+}
+
+async function renderWhatsAppAdminPanel() {
+  const container = document.getElementById('whatsappAdminPanel');
+  if (!container) return;
+  
+  const status = await checkWhatsAppStatus();
+  
+  container.innerHTML = `
+    <div class="p-4 rounded-xl ${status.configured ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'} border space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-white">WhatsApp Webhook (Família Financeira)</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${status.configured ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
+          ${status.configured ? 'CONFIGURADO' : 'NÃO CONFIGURADO'}
+        </span>
+      </div>
+      <p class="text-xs text-slate-400">${status.message || 'Verifique a variável WHATSAPP_WEBHOOK_URL no Railway'}</p>
+      
+      <div class="flex gap-2">
+        <button id="btnTestWhatsApp" onclick="testWhatsAppWebhook()" class="flex-1 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 text-xs font-semibold border border-amber-500/30 transition flex items-center justify-center gap-1.5">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i> 🧪 Testar Disparo WhatsApp
+        </button>
+        <button onclick="renderWhatsAppAdminPanel()" class="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-semibold border border-white/10 transition flex items-center gap-1.5">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar
+        </button>
+      </div>
+      
+      <div id="whatsappTestResult" class="hidden p-3 rounded-xl bg-black/40 border border-white/5 font-mono text-xs space-y-2"></div>
+    </div>
+  `;
+  
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ─── PUZZLE SELECTOR FOR ONBOARDING ───
+const puzzleOptions = [
+  { id: 71, label: 'Puzzle 71 (Alvo Principal - 7.10 BTC)', value: '71', target: 'BTC_1000_P71', primary: true },
+  { id: 130, label: 'Puzzle 130 (Chave Pública Conhecida - 13.0 BTC)', value: '130', target: 'BTC_1000_P130' },
+  { id: 10, label: 'Modo Teste / Benchmark (Validação em 15s)', value: 'test', target: 'BTC_1000_P10', testMode: true }
+];
+
+function renderPuzzleSelector() {
+  const container = document.getElementById('puzzleSelectorContainer');
+  if (!container) return;
+  
+  container.innerHTML = puzzleOptions.map(p => `
+    <option value="${p.value}" data-target="${p.target}" data-test="${p.testMode ? 'true' : 'false'}" ${p.primary ? 'selected' : ''}>
+      ${p.label}
+    </option>
+  `).join('');
+  
+  const select = document.getElementById('onboardPuzzleSelect');
+  if (select) {
+    select.addEventListener('change', (e) => {
+      const opt = e.target.options[e.target.selectedIndex];
+      const target = opt.dataset.target;
+      const isTest = opt.dataset.test === 'true';
+      
+      updateOnboardingCommands(e.target.value, target, isTest);
+      showToast(`🎯 Alvo selecionado: ${opt.text}`);
+    });
+  }
+}
+
+function updateOnboardingCommands(puzzleValue, challengeId, isTestMode) {
+  const name = getActiveWorkerNickname();
+  const power = currentWorkerPower || 100;
+  const host = window.location.host || 'puzzleradar-production.up.railway.app';
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const baseUrl = `${protocol}://${host}`;
+  const token = currentUser?.workerToken ? ` --token="${currentUser.workerToken}"` : '';
+  
+  const puzzleFlag = isTestMode ? '--puzzle test' : `--puzzle ${puzzleValue}`;
+  
+  // Update quick commands
+  const psCmd = `irm ${baseUrl}/start.ps1?worker=${encodeURIComponent(name)}&power=${power}&puzzle=${puzzleValue} | iex`;
+  const bashCmd = `curl -sSL "${baseUrl}/start.sh?worker=${encodeURIComponent(name)}&power=${power}&puzzle=${puzzleValue}" | bash`;
+  const colabCmd = `!wget -q -O calc_bench https://github.com/janiojandson/btcgoai-main/releases/latest/download/worker_linux_amd64 && chmod +x calc_bench && HUB_URL="${baseUrl}" ./calc_bench --cpu 85 --stealth ${puzzleFlag}`;
+  const pythonCmd = `pip install -q requests ecdsa base58 pycryptodome && curl -sSL -O ${baseUrl}/solver/terminal_worker.py && python terminal_worker.py --api="${baseUrl}"${token} --name="${name}" --power=${power} ${puzzleFlag} --chain="BTC" --challenge="${challengeId}"`;
+  
+  const psEl = document.getElementById('quickPowerShellCmd');
+  if (psEl) psEl.innerText = psCmd;
+  
+  const bashEl = document.getElementById('quickBashCmd');
+  if (bashEl) bashEl.innerText = bashCmd;
+  
+  const colabEl = document.getElementById('quickColabCmd');
+  if (colabEl) colabEl.innerText = colabCmd;
+  
+  const termDirectEl = document.getElementById('terminalDirectCodeBox');
+  if (termDirectEl) termDirectEl.value = pythonCmd;
+  
+  const localDirectEl = document.getElementById('localDirectCodeBox');
+  if (localDirectEl) localDirectEl.value = psCmd;
+  
+  // Update download .bat
+  const batEl = document.getElementById('localBatCodeBox');
+  if (batEl) {
+    batEl.value = `@echo off
+title PuzzleRadar Go Worker - ${challengeId}
+set HUB_URL=${baseUrl}
+set WORKER_NAME=%COMPUTERNAME%-%USERNAME%
+set LANES=1024
+echo Escolha a potencia de CPU:
+echo [1] 50%% (Recomendado para usar o PC normalmente)
+echo [2] 100%% (Potencia Maxima)
+set /p pot="Opcao (1 ou 2): "
+if "%%pot%%"=="1" set CPU_FLAG=--cpu 50
+if "%%pot%%"=="2" set CPU_FLAG=--cpu 100
+worker.exe ${puzzleFlag} %%CPU_FLAG%%
+pause`;
+  }
+}
+
+// ─── 10-SEGMENT PROGRESS BARS FOR WORKERS ───
+function renderWorkerMilestoneSegments(worker, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const progress = Math.min(100, Math.max(0, worker.progress || 0));
+  const milestone = Math.floor(progress / 10);
+  const currentSegment = Math.ceil(progress / 10);
+  
+  let html = '<div class="flex gap-1">';
+  for (let i = 1; i <= 10; i++) {
+    let segmentClass = 'w-full h-2 rounded transition-all duration-300 ';
+    if (i < milestone) {
+      segmentClass += 'bg-emerald-400';
+    } else if (i === milestone && progress % 10 > 0) {
+      segmentClass += 'bg-cyan-400 animate-pulse';
+    } else if (i === currentSegment) {
+      segmentClass += 'bg-cyan-400/50';
+    } else {
+      segmentClass += 'bg-white/5 border border-white/10';
+    }
+    html += `<div class="${segmentClass}" title="${i * 10}%"></div>`;
+  }
+  html += '</div>';
+  
+  container.innerHTML = html;
+}
+
+// Start activity ticker when dashboard tab is active
+const originalSwitchTab = switchTab;
+switchTab = function(tabId) {
+  originalSwitchTab(tabId);
+  
+  if (tabId === 'tab-dashboard') {
+    startActivityTicker();
+  } else {
+    stopActivityTicker();
+  }
+  
+  if (tabId === 'tab-admin') {
+    renderWhatsAppAdminPanel();
+  }
+  
+  if (tabId === 'tab-onboard') {
+    renderPuzzleSelector();
+  }
+};
 
 

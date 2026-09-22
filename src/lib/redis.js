@@ -411,10 +411,59 @@ async function redisGet(key) {
 // In-memory checkpoint store for development
 const memoryCheckpointStore = new Map();
 
+/**
+ * LPUSH para Activity Ticker (fila circular)
+ */
+async function redisLPush(key, value) {
+  if (redisClient && redisClient.status === 'ready') {
+    return await redisClient.lpush(key, value);
+  } else {
+    if (!memoryActivityTickerStore.has(key)) {
+      memoryActivityTickerStore.set(key, []);
+    }
+    memoryActivityTickerStore.get(key).unshift(value);
+    return memoryActivityTickerStore.get(key).length;
+  }
+}
+
+/**
+ * LRANGE para Activity Ticker
+ */
+async function redisLRange(key, start, stop) {
+  if (redisClient && redisClient.status === 'ready') {
+    return await redisClient.lrange(key, start, stop);
+  } else {
+    const arr = memoryActivityTickerStore.get(key) || [];
+    const end = stop === -1 ? arr.length : stop + 1;
+    return arr.slice(start, end);
+  }
+}
+
+/**
+ * LTRIM para Activity Ticker (mantém apenas os últimos N)
+ */
+async function redisLTrim(key, start, stop) {
+  if (redisClient && redisClient.status === 'ready') {
+    return await redisClient.ltrim(key, start, stop);
+  } else {
+    const arr = memoryActivityTickerStore.get(key) || [];
+    if (arr.length > stop + 1) {
+      memoryActivityTickerStore.set(key, arr.slice(start, stop + 1));
+    }
+    return 'OK';
+  }
+}
+
+// In-memory Activity Ticker store for development
+const memoryActivityTickerStore = new Map();
+
 module.exports = {
   redisClient,
   redisSet,
   redisGet,
+  redisLPush,
+  redisLRange,
+  redisLTrim,
   markChunkScanned,
   isChunkScanned,
   isRangeScanned,

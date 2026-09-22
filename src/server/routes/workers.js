@@ -16,12 +16,17 @@ const { antiMevRescue } = require('../../services/antiMevRescue');
 const { broadcastTelemetryEvent } = require('./telemetry');
 const { fleetState } = require('../../lib/fleetState');
 const { parentLoteManager } = require('../../services/parentLoteManager');
+const { redisLPush, redisLRange, redisLTrim } = require('../../lib/redis');
 
 const router = express.Router();
 
 // Armazenamento em memória unificado de workers ativos
 const activeWorkersMap = fleetState.nodes;
 router.activeWorkersMap = activeWorkersMap;
+
+// Activity Ticker - fila circular dos últimos 50 eventos
+const ACTIVITY_TICKER_KEY = 'fleet:activity_ticker';
+const ACTIVITY_TICKER_MAX = 50;
 
 /**
  * GET /api/workers/download-bat — Gera e baixa o script Windows .bat com token, identificador e desafio
@@ -1115,5 +1120,122 @@ router.get('/fleet/summary', async (req, res) => {
 });
 
 router.activeWorkersMap = activeWorkersMap;
+
+/**
+ * POST /api/workers/worker/milestone
+ * Recebe marcos de progresso dos Go Workers (a cada 10% do range)
+ */
+router.post('/worker/milestone', async (req, res) => {
+  try {
+    const { worker_id, milestone, current_key, hashrate, keys_delta, lote_id, timestamp } = req.body;
+    
+    if (!worker_id || milestone === undefined) {
+      return res.status(400).json({ error: 'worker_id e milestone são obrigatórios' });
+    }
+
+    let worker = activeWorkersMap.get(worker_id);
+    if (!worker) {
+      worker = {
+        id: worker_id,
+        name: worker_id,
+        hardware: 'CPU_GO_MONTGOMERY',
+        chain: 'BTC',
+        challengeId: 'BTC_1000_P71',
+        totalKeysChecked: 0,
+        keysPerSecond: 0,
+        shares: 0,
+        isGoWorker: true
+      };
+      activeWorkersMap.set(worker_id, worker);
+    }
+
+    worker.lastSeen = Date.now();
+    worker.currentKey = current_key || worker.currentKey;
+    worker.loteId = lote_id || worker.loteId;
+    if (hashrate) worker.keysPerSecond = Number(hashrate);
+    
+    const keysDeltaNum = Number(keys_delta) || 0;
+    if (keysDeltaNum > 0) {
+      worker.totalKeysChecked = (worker.totalKeysChecked || 0) + keysDeltaNum;
+      worker.shares = (worker.shares || 0) + keysDeltaNum * 0.001;
+    }
+
+    // Atualiza progresso baseado no marco (0-10 -> 0-100%)
+    worker.progress = Math.min(100, milestone * 10);
+
+    // Adiciona ao Activity Ticker (Redis LPUSH + LTRIM)
+    const activityEvent = {
+      type: 'MILESTONE',
+      timestamp: timestamp || new Date().toISOString(),
+      workerId: worker_id,
+      workerName: worker.name || worker_id,
+      milestone: milestone,
+      milestonePct: milestone * 10,
+      currentKey: current_key,
+      hashrate: hashrate ? formatHashrate(Number(hashrate)) : '0 H/s',
+      keysDelta: keysDeltaNum,
+      loteId: lote_id,
+      puzzle: worker.challengeId || 'BTC_1000_P71'
+    };
+
+    try {
+      await redisLPush(ACTIVITY_TICKER_KEY, JSON.stringify(activityEvent));
+      await redisLTrim(ACTIVITY_TICKER_KEY, 0, ACTIVITY_TICKER_MAX - 1);
+    } catch (redisErr) {
+      console.warn('[Milestone] Falha ao salvar no activity ticker:', redisErr.message);
+    }
+
+    // Envia para Google Sheets
+    try {
+      const { sheetsBuffer } = require('../../lib/googleSheetsBuffer');
+      sheetsBuffer.enqueueChunkLog({
+        timestamp: timestamp || new Date().toISOString(),
+        chain: 'BTC',
+        challenge_id: worker.challengeId || 'BTC_1000_P71',
+        startHex: 'MILESTONE',
+        endHex: `${milestone}/10`,
+        workerName: worker.name || worker_id,
+        status: `MILESTONE ${milestone}/10 (${milestone * 10}%)`,
+        hashrate: hashrate ? formatHashrate(Number(hashrate)) : '0 H/s',
+        milestone: milestone,
+        keysDelta: keysDeltaNum
+      });
+    } catch (_) {}
+
+    try {
+      broadcastTelemetryEvent('DP_SUBMITTED', `📍 [MARCO ${milestone}/10] Worker ${worker.name || worker_id} atingiu ${milestone * 10}% da fatia atual (${formatHashrate(Number(hashrate) || 0)})`);
+    } catch (_) {}
+
+    res.json({ 
+      ok: true, 
+      milestone,
+      timestamp: new Date().toISOString(),
+      workerId: worker_id
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/workers/fleet/activity
+ * Retorna eventos recentes do Activity Ticker (últimos 50)
+ */
+router.get('/fleet/activity', async (req, res) => {
+  try {
+    const events = await redisLRange(ACTIVITY_TICKER_KEY, 0, ACTIVITY_TICKER_MAX - 1);
+    const parsed = events.map(e => {
+      try { return JSON.parse(e); } catch { return null; }
+    }).filter(Boolean);
+    
+    res.json({
+      success: true,
+      events: parsed,
+      count: parsed.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;

@@ -11,13 +11,43 @@ const https = require('https');
 class SheetsBufferManager {
   constructor(options = {}) {
     this.buffer = [];
-    this.flushIntervalMs = options.flushIntervalMs || 15000; // 15 segundos
-    this.maxBatchSize = options.maxBatchSize || 5;
+    this.flushIntervalMs = options.flushIntervalMs || 60000; // 60 segundos
+    this.maxBatchSize = options.maxBatchSize || 10;
     this.timer = setInterval(() => this.flush(), this.flushIntervalMs);
     this.lastFlushTime = null;
     this.totalBatchesSent = 0;
     this.totalRowsSent = 0;
     this.targetSheetName = 'Ranges_Varredura';
+    
+    // Validar variáveis de ambiente obrigatórias na inicialização
+    this._validateEnvVars();
+  }
+
+  _validateEnvVars() {
+    const missing = [];
+    if (!process.env.GOOGLE_SHEET_ID && !process.env.GOOGLE_SPREADSHEET_ID) {
+      missing.push('GOOGLE_SHEET_ID (ou GOOGLE_SPREADSHEET_ID)');
+    }
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
+      missing.push('GOOGLE_SERVICE_ACCOUNT_EMAIL');
+    }
+    if (!process.env.GOOGLE_PRIVATE_KEY) {
+      missing.push('GOOGLE_PRIVATE_KEY');
+    }
+    if (!process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL && !process.env.GOOGLE_SHEETS_WEBHOOK_URL) {
+      missing.push('GOOGLE_APPS_SCRIPT_WEBHOOK_URL (ou GOOGLE_SHEETS_WEBHOOK_URL)');
+    }
+    
+    if (missing.length > 0) {
+      console.warn('⚠️ [SheetsBuffer] Variáveis de ambiente ausentes para Google Sheets:', missing.join(', '));
+      console.warn('   → Configure no Railway/Environment:');
+      missing.forEach(m => console.warn(`      - ${m}`));
+      if (missing.includes('GOOGLE_SERVICE_ACCOUNT_EMAIL') || missing.includes('GOOGLE_PRIVATE_KEY')) {
+        console.warn('   → Para Service Account: compartilhe a planilha com o email da service account com permissão de EDITOR');
+      }
+    } else {
+      console.log('✅ [SheetsBuffer] Variáveis de ambiente do Google Sheets validadas com sucesso');
+    }
   }
 
   /**
@@ -137,13 +167,41 @@ class SheetsBufferManager {
         batchMode: true,
         rows: itemsToSend
       });
+      
+      // Tratamento explícito de erros 401/403
+      if (result && (result.statusCode === 401 || result.statusCode === 403 || (result.error && (result.error.includes('401') || result.error.includes('403'))))) {
+        console.error('❌ [SheetsBuffer] Erro de permissão (401/403) ao escrever no Google Sheets');
+        console.error('   → AÇÃO NECESSÁRIA: Compartilhe a planilha com o email da Service Account (GOOGLE_SERVICE_ACCOUNT_EMAIL) com permissão de EDITOR');
+        console.error('   → No Google Sheets: Botão "Compartilhar" → Cole o email → Selecione "Editor" → Enviar');
+        return { flushed: false, error: 'PERMISSION_DENIED_401_403', targetSheet: this.targetSheetName, instruction: 'Compartilhe a planilha com a Service Account como EDITOR' };
+      }
+      
       this.lastFlushTime = new Date().toISOString();
       console.log(`📡 [SheetsBuffer] Lote de ${itemsToSend.length} chunks enviado para '${this.targetSheetName}':`, result?.status || 'OK');
       return { flushed: true, count: itemsToSend.length, result, targetSheet: this.targetSheetName };
     } catch (err) {
-      console.warn(`⚠️ [SheetsBuffer] Falha ao despachar lote para '${this.targetSheetName}':`, err.message);
-      return { flushed: false, error: err.message, targetSheet: this.targetSheetName };
+      const errMsg = err.message || String(err);
+      console.warn(`⚠️ [SheetsBuffer] Falha ao despachar lote para '${this.targetSheetName}':`, errMsg);
+      
+      // Verificar se é erro de permissão
+      if (errMsg.includes('401') || errMsg.includes('403') || errMsg.includes('PERMISSION_DENIED') || errMsg.includes('unauthorized') || errMsg.includes('forbidden')) {
+        console.error('❌ [SheetsBuffer] Erro de permissão detectado:', errMsg);
+        console.error('   → AÇÃO NECESSÁRIA: Compartilhe a planilha com o email da Service Account (GOOGLE_SERVICE_ACCOUNT_EMAIL) com permissão de EDITOR');
+        console.error('   → No Google Sheets: Botão "Compartilhar" → Cole o email → Selecione "Editor" → Enviar');
+      }
+      
+      return { flushed: false, error: errMsg, targetSheet: this.targetSheetName };
     }
+  }
+
+  /**
+   * Flush forçado - chamado quando um lote Go é concluído
+   */
+  async flushOnBatchComplete(logEntry) {
+    if (logEntry) {
+      this.enqueueChunkLog(logEntry);
+    }
+    return this.flush();
   }
 
   /**
@@ -170,8 +228,12 @@ class SheetsBufferManager {
       console.log(`💳 [SheetsBuffer] Cadastro de Payout de '${payoutData.workerName}' enviado ao Google Sheets.`);
       return { success: true, result };
     } catch (err) {
-      console.warn(`⚠️ [SheetsBuffer] Falha ao enviar cadastro de payout:`, err.message);
-      return { success: false, error: err.message };
+      const errMsg = err.message || String(err);
+      console.warn(`⚠️ [SheetsBuffer] Falha ao enviar cadastro de payout:`, errMsg);
+      if (errMsg.includes('401') || errMsg.includes('403')) {
+        console.error('   → Compartilhe a planilha com a Service Account como EDITOR');
+      }
+      return { success: false, error: errMsg };
     }
   }
 

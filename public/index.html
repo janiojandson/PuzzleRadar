@@ -163,62 +163,39 @@
           <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Hub Online"></span>
         </div>
 
-        <!-- Botões de Navegação (de Cima para Baixo) -->
-        <button onclick="switchTab('tab-presell')" id="btn-tab-presell" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 text-white border border-amber-500/40 hover:border-emerald-400 shadow-sm shadow-amber-500/10">
-          <i data-lucide="sparkles" class="w-4 h-4 text-amber-400 shrink-0"></i>
-          <span class="truncate">🌟 Apresentação & Presell</span>
-        </button>
-
+        <!-- 5 Seções Principais Consolidados -->
         <button onclick="switchTab('tab-dashboard')" id="btn-tab-dashboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="layout-dashboard" class="w-4 h-4 text-amber-400 shrink-0"></i>
-          <span class="truncate">Central de Comando</span>
+          <span class="truncate">🎯 Central de Comando</span>
         </button>
 
-        <button onclick="switchTab('tab-connect')" id="btn-tab-connect" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30">
-          <i data-lucide="zap" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span class="truncate">⚡ 1-Click Mineração</span>
+        <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30">
+          <i data-lucide="server" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span class="truncate">📡 Monitor da Frota</span>
         </button>
 
         <button onclick="switchTab('tab-onboard')" id="btn-tab-onboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-semibold flex items-center gap-3 transition text-cyan-300 hover:bg-cyan-500/10 border border-cyan-500/30">
           <i data-lucide="download-cloud" class="w-4 h-4 text-cyan-400 shrink-0"></i>
-          <span class="truncate">📥 Conecte sua Máquina</span>
-        </button>
-
-        <button onclick="switchTab('tab-1000btc')" id="btn-tab-1000btc" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="award" class="w-4 h-4 text-amber-400 shrink-0"></i>
-          <span class="truncate">Puzzle 1000 BTC (160 Alvos)</span>
-        </button>
-
-        <button onclick="switchTab('tab-pool')" id="btn-tab-pool" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="users" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span class="truncate">Mural PoS & DPs</span>
-        </button>
-
-        <button onclick="switchTab('tab-fleet')" id="btn-tab-fleet" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="cloud" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span class="truncate">Terminal & Worker Nodes</span>
-        </button>
-
-        <button onclick="switchTab('tab-farm')" id="btn-tab-farm" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
-          <i data-lucide="server" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-          <span class="truncate">Nós Ativos na Fazenda</span>
+          <span class="truncate">🔧 Conecte sua Máquina</span>
         </button>
 
         <button onclick="switchTab('tab-ranges')" id="btn-tab-ranges" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="database" class="w-4 h-4 text-blue-400 shrink-0"></i>
-          <span class="truncate">Ranges & Pruning</span>
+          <span class="truncate">🗺️ Mapa de Ranges & Pruning</span>
         </button>
 
         <button onclick="switchTab('tab-leaderboard')" id="btn-tab-leaderboard" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-medium flex items-center gap-3 transition text-slate-400 hover:text-white hover:bg-white/5 border border-transparent">
           <i data-lucide="trophy" class="w-4 h-4 text-amber-400 shrink-0"></i>
-          <span class="truncate">Leaderboard</span>
+          <span class="truncate">🏆 Leaderboard & Descobertas</span>
         </button>
 
-        <!-- Botão Admin -->
-        <button onclick="switchTab('tab-admin')" id="btn-tab-admin" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition text-purple-300 hover:bg-purple-500/10 border border-purple-500/30">
-          <i data-lucide="shield-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
-          <span class="truncate">🛡️ Gestão de Usuários (Admin)</span>
-        </button>
+        <!-- Admin (mantido separado) -->
+        <div class="pt-3 mt-1.5 border-t border-white/10 space-y-1.5">
+          <button onclick="switchTab('tab-admin')" id="btn-tab-admin" class="tab-btn w-full text-left px-3.5 py-2.5 rounded-xl text-xs lg:text-sm font-bold flex items-center gap-3 transition text-purple-300 hover:bg-purple-500/10 border border-purple-500/30">
+            <i data-lucide="shield-check" class="w-4 h-4 text-purple-400 shrink-0"></i>
+            <span class="truncate">🛡️ Gestão de Usuários (Admin)</span>
+          </button>
+        </div>
 
         <div class="pt-3 mt-1.5 border-t border-white/10 space-y-2">
           <button onclick="goToCadastroMinerador()" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
@@ -232,8 +209,8 @@
     <!-- Main Container (Lado Direito) -->
     <main class="flex-1 min-w-0 w-full space-y-6">
 
-    <!-- ==================== TAB PRESELL: APRESENTAÇÃO OFICIAL & CONTRATO DA COMUNIDADE ==================== -->
-    <section id="tab-presell" class="tab-content hidden space-y-8">
+    <!-- ==================== TAB DASHBOARD: CENTRAL DE COMANDO (MAIN) ==================== -->
+    <section id="tab-dashboard" class="tab-content hidden space-y-6">
       
       <!-- Hero Presell Card -->
       <div class="glass-panel-glow rounded-3xl p-6 lg:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-cypher-900/90 via-black to-emerald-950/40 shadow-2xl relative overflow-hidden">
@@ -489,6 +466,24 @@
               <i data-lucide="download" class="w-4 h-4 text-cyan-400"></i>
               <span>Ver Scripts para Windows (.bat) e Linux (.sh)</span>
             </button>
+</div>
+        </div>
+      </div>
+
+      <!-- WhatsApp Webhook Admin Panel -->
+      <div class="mt-6">
+        <div class="glass-panel rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl">📱</div>
+              <div>
+                <h3 class="font-bold text-white text-lg">Alertas WhatsApp — Família Financeira</h3>
+                <p class="text-xs text-slate-400">Disparo automático em caso de chave encontrada + teste manual</p>
+              </div>
+            </div>
+          </div>
+          <div id="whatsappAdminPanel">
+            <!-- Rendered by JS: renderWhatsAppAdminPanel() -->
           </div>
         </div>
       </div>
@@ -941,6 +936,21 @@ custom_range=400000000000000000:400000010000000000</pre>
             <span class="px-3 py-1.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">Hardware: CPU_GO_MONTGOMERY</span>
           </div>
         </div>
+      </div>
+
+      <!-- Seletor de Puzzle / Desafio -->
+      <div class="glass-panel rounded-2xl p-4 border border-white/10 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-white flex items-center gap-2">
+            <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+            Alvo de Mineração
+          </h3>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">Define o --puzzle no worker</span>
+        </div>
+        <select id="onboardPuzzleSelect" id="puzzleSelectorContainer" class="w-full px-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-sm font-mono text-amber-300 focus:outline-none focus:border-amber-400">
+          <!-- Populated by JS: renderPuzzleSelector() -->
+        </select>
+        <p class="text-xs text-slate-500 mt-2">Selecione o puzzle alvo. O comando de download (.bat/.sh/Colab) será atualizado automaticamente com a flag --puzzle correspondente.</p>
       </div>
 
       <!-- Abas de Download -->
