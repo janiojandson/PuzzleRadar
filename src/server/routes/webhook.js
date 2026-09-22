@@ -19,35 +19,33 @@ const router = express.Router();
 // WhatsApp Webhook URL from environment
 const WHATSAPP_WEBHOOK_URL = process.env.WHATSAPP_WEBHOOK_URL;
 
+// Rota correta do financas-backend para ENVIO de alerta: POST /api/webhook/alert
+// (a rota /api/webhook é INBOUND e apenas reconhece mensagens — não envia)
+function resolveAlertWebhookUrl(rawUrl) {
+  if (!rawUrl || !rawUrl.startsWith('http')) return null;
+  if (/\/webhook\/alert\/?(\?.*)?$/.test(rawUrl)) return rawUrl;
+  if (/\/webhook\/?(\?.*)?$/.test(rawUrl)) {
+    return rawUrl.replace(/\/webhook(\/?)(\?.*)?$/, (_m, _sl, qs) => `/webhook/alert${qs || ''}`);
+  }
+  return rawUrl;
+}
+
 async function sendWhatsAppAlert(eventData) {
-  if (!WHATSAPP_WEBHOOK_URL || !WHATSAPP_WEBHOOK_URL.startsWith('http')) {
+  const alertUrl = resolveAlertWebhookUrl(WHATSAPP_WEBHOOK_URL);
+  if (!alertUrl) {
     console.log('[WhatsApp] Webhook URL não configurada (WHATSAPP_WEBHOOK_URL)');
     return { skipped: true, reason: 'URL not configured' };
   }
 
-  // Schema compatível com financas-backend (Evolution API / Baileys)
-  // Espera: { number: "5511999999999", text: "mensagem" } ou { to: "5511999999999", message: "mensagem" }
-  const adminPhone = process.env.ADMIN_PHONE || process.env.WHATSAPP_ADMIN_NUMBER || '5511999999999';
-  const messageText = eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`;
+  // Schema aceito por /api/webhook/alert: { number, text } (aliases: to/phone + message/body)
+  const adminPhone = process.env.ADMIN_PHONE || process.env.WHATSAPP_ADMIN_NUMBER || '5521977440606';
+  const messageText = eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || eventData.privateKeyHex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`;
 
-  // Tenta múltiplos schemas comuns para Evolution API / Baileys / WPPConnect
-  const payloads = [
-    // Schema Evolution API v2
-    { number: adminPhone, text: messageText },
-    // Schema Baileys/WPPConnect
-    { to: adminPhone, message: messageText },
-    // Schema genérico
-    { phone: adminPhone, body: messageText },
-    // Schema com event type
-    { event: eventData.event || 'puzzle_key_found', number: adminPhone, text: messageText }
-  ];
-
-  // Use o primeiro schema que parece mais compatível (Evolution API v2 é o mais comum)
-  const payload = payloads[0];
+  const payload = { number: adminPhone, text: messageText };
 
   try {
     const nexusSecret = process.env.NEXUS_WEBHOOK_SECRET || 'SenhaMuitoForteFamilia123';
-    const response = await fetch(WHATSAPP_WEBHOOK_URL, {
+    const response = await fetch(alertUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,9 +53,19 @@ async function sendWhatsAppAlert(eventData) {
       },
       body: JSON.stringify(payload)
     });
-    
+
     const result = await response.text();
-    console.log("[WHATSAPP] Resposta da API de Finanças:", response.status, result);
+    console.log(`[WHATSAPP] POST ${alertUrl} => ${response.status} ${result}`);
+
+    let parsed = null;
+    try { parsed = JSON.parse(result); } catch (_) { /* resposta não-JSON */ }
+
+    // O financas retorna { success: false } quando o Comunicação Hub falha
+    if (!response.ok || (parsed && parsed.success === false)) {
+      console.error('[WHATSAPP] Falha no disparo:', response.status, result);
+      return { success: false, status: response.status, response: result };
+    }
+
     return { success: true, status: response.status, response: result };
   } catch (err) {
     console.error('[WhatsApp] Erro ao disparar webhook:', err.message);

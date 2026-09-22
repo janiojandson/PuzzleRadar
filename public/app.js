@@ -1593,7 +1593,7 @@ function toggleAdvisorChat() {
 
 // ─── CADASTRO DE MINERADOR & CARTEIRA BITCOIN (PAYOUT PROFILE) ───
 function goToCadastroMinerador() {
-  switchTab('tab-onboard');
+  switchTab('tab-presell');
   setTimeout(() => {
     const el = document.getElementById('cadastro-minerador');
     if (el) {
@@ -3232,17 +3232,11 @@ function renderWorkerMilestoneSegments(worker, containerId) {
 const originalSwitchTab = switchTab;
 switchTab = function(tabId) {
   originalSwitchTab(tabId);
-  
-  if (tabId === 'tab-dashboard') {
-    startActivityTicker();
-  } else {
-    stopActivityTicker();
-  }
-  
+
   if (tabId === 'tab-admin') {
     renderWhatsAppAdminPanel();
   }
-  
+
   if (tabId === 'tab-onboard') {
     renderPuzzleSelector();
   }

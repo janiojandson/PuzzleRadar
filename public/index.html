@@ -209,8 +209,8 @@
     <!-- Main Container (Lado Direito) -->
     <main class="flex-1 min-w-0 w-full space-y-6">
 
-    <!-- ==================== TAB DASHBOARD: CENTRAL DE COMANDO (MAIN) ==================== -->
-    <section id="tab-dashboard" class="tab-content hidden space-y-6">
+    <!-- ==================== TAB PRESENTAÇÃO / HERO / CADASTRO ==================== -->
+    <section id="tab-presell" class="tab-content hidden space-y-6">
       
       <!-- Hero Presell Card -->
       <div class="glass-panel-glow rounded-3xl p-6 lg:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-cypher-900/90 via-black to-emerald-950/40 shadow-2xl relative overflow-hidden">
@@ -467,24 +467,6 @@
               <span>Ver Scripts para Windows (.bat) e Linux (.sh)</span>
             </button>
 </div>
-        </div>
-      </div>
-
-      <!-- WhatsApp Webhook Admin Panel -->
-      <div class="mt-6">
-        <div class="glass-panel rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl">📱</div>
-              <div>
-                <h3 class="font-bold text-white text-lg">Alertas WhatsApp — Família Financeira</h3>
-                <p class="text-xs text-slate-400">Disparo automático em caso de chave encontrada + teste manual</p>
-              </div>
-            </div>
-          </div>
-          <div id="whatsappAdminPanel">
-            <!-- Rendered by JS: renderWhatsAppAdminPanel() -->
-          </div>
         </div>
       </div>
 
@@ -1589,49 +1571,8 @@ custom_range=400000000000000000:400000010000000000</pre>
           </div>
         </div>
 
-        <!-- COLUNA 2: TERMINAL DE TELEMETRIA AO VIVO COM STREAM (4 Cols) -->
-        <div class="lg:col-span-4 space-y-4">
-          <div class="glass-panel rounded-2xl p-5 border border-cyan-500/30 space-y-3 bg-cypher-950 flex flex-col h-[560px]">
-            <div class="flex items-center justify-between border-b border-white/10 pb-3">
-              <div class="flex items-center gap-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-                <h3 class="font-mono text-xs font-bold text-white uppercase tracking-wider">Live Stream Hacker Terminal</h3>
-              </div>
-              <span class="text-[10px] font-mono text-slate-500" id="sseStreamStatus">🟢 SSE CONECTADO</span>
-            </div>
-
-            <!-- Pinned Critical Discovery Banner (Fixo até o admin descartar) -->
-            <div id="pinnedDiscoveryBanner" class="hidden p-3.5 rounded-xl bg-gradient-to-r from-amber-950/90 via-red-950/80 to-amber-900/90 border-2 border-amber-400 shadow-xl shadow-amber-500/20 text-xs font-mono space-y-2 animate-pulse">
-              <div class="flex items-center justify-between border-b border-amber-500/30 pb-1.5">
-                <div class="flex items-center gap-2 text-amber-300 font-extrabold text-[12px]">
-                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                  <span>🚨 [CHAVE CRIPTOGRÁFICA ENCONTRADA / RESGATE ACIONADO]</span>
-                </div>
-                <button onclick="dismissDiscoveryBanner()" class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold transition flex items-center gap-1">
-                  <span>✖ Fechar Alerta</span>
-                </button>
-              </div>
-              <div id="pinnedDiscoveryDetails" class="text-amber-100 text-[11px] leading-relaxed space-y-1">
-                <!-- Preenchido via SSE / Telemetria -->
-              </div>
-            </div>
-
-            <!-- Terminal Feed Box -->
-            <div id="telemetryTerminalStream" class="flex-1 overflow-y-auto space-y-2 font-mono text-[11px] custom-scrollbar pr-1">
-              <div class="text-slate-500">> [SISTEMA] Conectando ao canal de telemetria /api/telemetry/stream...</div>
-              <div class="text-emerald-400">> [STREAM] 🛡️ Sentinela On-Chain ativo: Mempool verificado (Puzzle #71 INTACTO)</div>
-              <div class="text-cyan-300">> [STREAM] 🚀 Cluster PuzzleRadar operacional com aceleração Kangaroo secp256k1</div>
-            </div>
-
-            <div class="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] font-mono text-slate-400">
-              <span>Auto-Scroll: <strong class="text-emerald-400">ATIVADO</strong></span>
-              <button onclick="clearTerminalLogs()" class="hover:text-white transition text-slate-500 underline">Limpar Console</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- COLUNA 3: MURAL PROOF-OF-SHARE & DIVIDENDOS (4 Cols) -->
-        <div class="lg:col-span-4 space-y-5">
+        <!-- COLUNA 3: MURAL PROOF-OF-SHARE & DIVIDENDOS (3 Cols) -->
+        <div class="lg:col-span-3 space-y-5">
           <!-- PoS Snapshot Card -->
           <div class="glass-panel-glow p-5 rounded-2xl border border-emerald-500/30 space-y-4">
             <div class="flex items-center justify-between">
@@ -2478,6 +2419,24 @@ custom_range=400000000000000000:400000010000000000</pre>
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- WhatsApp Webhook Admin Panel -->
+        <div class="mt-6">
+          <div class="glass-panel rounded-2xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-950/30 via-slate-900">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl">📱</div>
+                <div>
+                  <h3 class="font-bold text-white text-lg">Alertas WhatsApp — Família Financeira</h3>
+                  <p class="text-xs text-slate-400">Disparo automático em caso de chave encontrada + teste manual</p>
+                </div>
+              </div>
+            </div>
+            <div id="whatsappAdminPanel">
+              <!-- Rendered by JS: renderWhatsAppAdminPanel() -->
+            </div>
           </div>
         </div>
 
