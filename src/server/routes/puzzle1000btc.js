@@ -106,13 +106,16 @@ router.post('/:num/set-target', (req, res) => {
       return res.status(404).json({ error: `Puzzle #${num} não encontrado.` });
     }
 
-    if (puzzle.solved) {
-      return res.status(400).json({
-        error: `Puzzle #${num} já foi resolvido. Escolha um puzzle ativo (não resolvido).`,
-        solved: true,
-        privateKey: puzzle.privateKey
-      });
-    }
+      if (puzzle.solved) {
+        // ZERO-LEAK: nunca expor chave completa em endpoint público
+        return res.status(400).json({
+          error: `Puzzle #${num} já foi resolvido. Escolha um puzzle ativo (não resolvido).`,
+          solved: true,
+          privateKey: puzzle.privateKey
+            ? puzzle.privateKey.substring(0, 6) + '...[PROTEGIDO / EXCLUSIVO ADMIN]'
+            : null
+        });
+      }
 
     // Retorna configuração pronta para uso no pool-client e colab worker
     const config = {

@@ -40,6 +40,8 @@ async function sendWhatsAppAlert(eventData) {
   // Schema aceito por /api/webhook/alert: { number, text } (aliases: to/phone + message/body)
   const adminPhone = process.env.ADMIN_PHONE || process.env.WHATSAPP_ADMIN_NUMBER || '5521977440606';
   const messageText = eventData.message || `🚨 *PUZZLE BITCOIN RESOLVIDO!*\n\n• *Alvo:* Puzzle #${eventData.puzzle || 71}\n• *Worker:* ${eventData.worker || 'unknown'}\n• *Chave Privada:* ${eventData.privateKey || eventData.private_key_hex || eventData.privateKeyHex || 'N/A'}\n• *Horário:* ${eventData.timestamp || new Date().toISOString()}\n\n_Verifique imediatamente o painel do PuzzleRadar._`;
+  // NOTA: chave completa só sai neste canal admin autenticado (ADMIN_PHONE).
+  // NUNCA reencaminhar messageText para grupos/webhooks públicos.
 
   const payload = { number: adminPhone, text: messageText };
 
@@ -82,6 +84,10 @@ router.post('/btcpuzzle', (req, res) => {
   const status = (headers['status'] || req.body?.status || '').toString().trim();
   const hex = (headers['hex'] || req.body?.hex || '').toString().trim();
   const privateKeyHex = (headers['privatekey'] || req.body?.privatekey || '').toString().trim();
+  // ZERO-LEAK: nunca logar chave completa no console do servidor
+  const privateKeyMasked = privateKeyHex
+    ? privateKeyHex.substring(0, 6) + '...[PROTEGIDO]'
+    : '';
   const targetPuzzle = (headers['targetpuzzle'] || req.body?.targetpuzzle || '71').toString().trim();
   const workerName = (headers['workername'] || req.body?.workername || 'btcpuzzle_worker').toString().trim();
   const nodeId = (headers['nodeid'] || headers['node_id'] || req.body?.nodeId || workerName).toString().trim();
@@ -93,7 +99,7 @@ router.post('/btcpuzzle', (req, res) => {
   // 3. Processamento Assíncrono Desacoplado
   setImmediate(async () => {
     try {
-      console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${operatorName}" | node="${nodeId}" | hex="${hex}" | puzzle="${targetPuzzle}"`);
+      console.log(`📡 [btcpuzzle Webhook] Evento recebido: status="${status}" | worker="${operatorName}" | node="${nodeId}" | hex="${hex}" | puzzle="${targetPuzzle}" | key=${privateKeyMasked || 'N/A'}`);
 
       // Update active workers map for telemetry hashrate
       const activeWorkersMap = workersRouter.activeWorkersMap;
@@ -159,7 +165,8 @@ router.post('/btcpuzzle', (req, res) => {
       });
 
       if (status === 'keyFound') {
-        console.log(`🚨 [btcpuzzle Webhook] 🎯 CHAVE ENCONTRADA PELO WORKER "${workerName}" para o Puzzle #${targetPuzzle}!`);
+        // Console: nunca logar chave completa (zero-leak)
+      console.log(`🚨 [btcpuzzle Webhook] 🎯 CHAVE ENCONTRADA PELO WORKER "${workerName}" para o Puzzle #${targetPuzzle}! chave=${privateKeyHex ? privateKeyHex.substring(0, 6) + '...[PROTEGIDO]' : 'N/A'}`);
         console.log(`🛡️ [btcpuzzle Webhook] Disparando Auto-Resgate Anti-MEV para Cold Vault Imutável...`);
 
         // Descoertas reais → aba Descobertas_Reais (+ key_found_alert)
@@ -184,7 +191,7 @@ router.post('/btcpuzzle', (req, res) => {
           });
         }
 
-        // Dispara alerta WhatsApp (Família Financeira)
+        // Dispara alerta WhatsApp (Família Financeira) — chave completa apenas no canal admin
         await sendWhatsAppAlert({
           event: 'puzzle_key_found',
           puzzle: parseInt(targetPuzzle) || 71,
@@ -193,16 +200,33 @@ router.post('/btcpuzzle', (req, res) => {
           timestamp: new Date().toISOString()
         });
       } else if (status === 'benchmark') {
-        // Benchmark real P1–32 → aba Benchmarks_Hardware
+        // Benchmark real P1–32 → WhatsApp + aba Benchmarks_Hardware
         console.log(`📊 [btcpuzzle Webhook] Benchmark recebido: Puzzle #${targetPuzzle} | worker=${workerName} | hashrate=${hashrate}`);
         const b = req.body || {};
+        const elapsedSec = b.elapsed_sec != null ? Number(b.elapsed_sec) : 0;
+        const keysChecked = b.keys_checked != null ? Number(b.keys_checked) : 0;
+        const hashrateStr = typeof hashrate === 'string' ? hashrate : String(hashrate || '0 kH/s');
+        // Convert kH/s → MH/s for the message (directive asks MH/s)
+        const hrNum = parseFloat(hashrateStr) || 0;
+        const hrMh = /mh\/s/i.test(hashrateStr) ? hrNum : (/kh\/s/i.test(hashrateStr) ? hrNum / 1000 : hrNum / 1e6);
+        const privConfirmed = b.privatekey || b.found ? (b.privatekey || 'CONFIRMADA') : 'N/A';
+
+        await sendWhatsAppAlert({
+          event: 'benchmark_completed',
+          puzzle: targetPuzzle,
+          worker: workerName,
+          message: `🧪 *[BENCHMARK CONCLUÍDO - PUZZLE #${targetPuzzle}]*\n• Worker: ${workerName}\n• Chaves: ${keysChecked.toLocaleString('pt-BR')}\n• Tempo: ${elapsedSec.toFixed(2)}s\n• Hashrate: ${hrMh.toFixed(2)} MH/s\n• Chave Privada Confirmada: ${privConfirmed}\n• Hardware: ${b.hardware || 'CPU_GO_MONTGOMERY'}\n• Horário: ${new Date().toISOString()}`
+        }).catch(err => {
+          console.error('❌ [btcpuzzle Webhook] Erro WhatsApp benchmark:', err.message);
+        });
+
         appendBenchmarkToSheet({
           puzzle: targetPuzzle,
           workerName,
           hardware: b.hardware || 'CPU_GO_MONTGOMERY',
-          hashrate: typeof hashrate === 'string' ? hashrate : String(hashrate || '0 kH/s'),
-          elapsedSec: b.elapsed_sec,
-          keysChecked: b.keys_checked,
+          hashrate: hashrateStr,
+          elapsedSec,
+          keysChecked,
           rangeStart: b.range_start,
           rangeEnd: b.range_end,
           found: b.found,

@@ -83,7 +83,7 @@ router.post('/benchmark', (req, res) => {
         `[SHA256 CHECKSUM] Aplicando filtro de 4 bits de paridade SHA-256...`,
         `[PRUNING ENGINE] 15 em cada 16 permutações descartadas sem gerar chaves secp256k1!`,
         `🎯 [ENTROPY_REDUCTION] Espaço de busca reduzido com sucesso em 93.75%!`,
-        `🔑 [RESULT] Candidato Válido Confirmado: 0x${scenario.privKey}`,
+        `🔑 [RESULT] Candidato Válido Confirmado: ${scenario.privKey.substring(0, 6)}...[PROTEGIDO]`,
         `🏷️ [ADDRESS MATCH] Endereço Bitcoin correspondente: ${targetAddress}`,
         `✅ [CALIBRAÇÃO APROVADA] Filtro de Entropia ativo com aceleração de 16x!`
       ];
@@ -109,7 +109,9 @@ router.post('/benchmark', (req, res) => {
       hashrate: (kps / 1e9).toFixed(2) + ' GH/s',
       executionTimeMs: timeMs.toFixed(3),
       keyFound: true,
-      privateKey: scenario.privKey,
+      privateKey: scenario.privKey
+        ? scenario.privKey.substring(0, 6) + '...[PROTEGIDO / EXCLUSIVO ADMIN]'
+        : null,
       targetAddress,
       pubCompressed: derived.pubCompressedHex,
       logs: logHistory

@@ -605,7 +605,8 @@ router.post('/:id/result', async (req, res) => {
       }
 
       isRealKeyFound = true;
-      console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE AUTÊNTICA ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey} 🎉🎉🎉\n`);
+      // ZERO-LEAK: máscara no console — chave completa só vai para WhatsApp admin / Sheets / arquivo local
+      console.log(`\n🎉🎉🎉 [PuzzleRadar] CHAVE AUTÊNTICA ENCONTRADA PELO WORKER ${id}! Chave: ${foundPrivateKey ? foundPrivateKey.substring(0, 6) + '...[PROTEGIDO]' : 'N/A'} 🎉🎉🎉\n`);
 
       // 🛡️ Executa o Resgate Automático Anti-MEV via Túnel Privado para o COLD VAULT
       try {
@@ -778,7 +779,7 @@ router.post('/:id/dps', async (req, res) => {
         );
 
         if (resolution.isValid) {
-          console.log(`🎉🎉🎉 [Cluster Kangaroo] CHAVE PRIVADA DEDUZIDA COM SUCESSO! Chave: ${resolution.privateKeyHex} (${resolution.hypothesis}) 🎉🎉🎉`);
+          console.log(`🎉🎉🎉 [Cluster Kangaroo] CHAVE PRIVADA DEDUZIDA COM SUCESSO! Chave: ${resolution.privateKeyHex ? resolution.privateKeyHex.substring(0, 6) + '...[PROTEGIDO]' : 'N/A'} (${resolution.hypothesis}) 🎉🎉🎉`);
           broadcastTelemetryEvent('SENTINEL', `🚨🎉 [CHAVE AUTÊNTICA ENCONTRADA!] Colisão Kangaroo em [${challengeId}]! Chave deduzida. Resgate acionado!`);
           
           antiMevRescue.executeRescue({

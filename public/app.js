@@ -70,10 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Ensure Live Terminal has a default message
+  // Ensure Live Terminal has a default message (boot line fixado)
   const terminalEl = document.getElementById('telemetryTerminalStream');
   if (terminalEl && terminalEl.children.length === 0) {
-    terminalEl.innerHTML = '<div class="text-slate-500">> [SISTEMA] Hub conectado. Aguardando heartbeats e marcos da frota...</div>';
+    const boot = document.createElement('div');
+    boot.setAttribute('data-boot-line', '1');
+    boot.className = 'text-slate-500';
+    boot.textContent = '> [SISTEMA] Hub conectado. Aguardando heartbeats e marcos da frota...';
+    terminalEl.appendChild(boot);
   }
 });
 
@@ -393,24 +397,73 @@ function startFleetSummaryPolling() {
 
 // ─── ACTIVITY TICKER (Live Terminal) ───
 let activityTickerInterval = null;
+// ─── LIVE TERMINAL: buffer de retenção (não limpa com eventos vazios) ───
+const terminalEventHistory = [];   // ordem de chegada (mais antigo primeiro)
+const seenTerminalEventIds = new Set();
+const TERMINAL_MAX_HISTORY = 200;
+const TERMINAL_HUB_BANNER = '<div class="text-slate-500">> [HUB] Coordenador online | Alvo: Puzzle #71</div>';
+
+function terminalEventId(ev) {
+  return `${ev.timestamp || ''}|${ev.type || ''}|${ev.workerName || ev.workerId || ''}|${ev.milestone || ''}|${ev.message || ''}|${ev.currentKey || ''}`;
+}
+
+function appendTerminalLine(html) {
+  const terminalEl = document.getElementById('telemetryTerminalStream');
+  if (!terminalEl) return;
+  // Banner fixo sempre primeira linha
+  if (!terminalEl.querySelector('[data-hub-banner]')) {
+    const banner = document.createElement('div');
+    banner.setAttribute('data-hub-banner', '1');
+    banner.innerHTML = TERMINAL_HUB_BANNER;
+    terminalEl.insertBefore(banner, terminalEl.firstChild);
+  }
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  while (wrap.firstChild) terminalEl.appendChild(wrap.firstChild);
+  terminalEl.scrollTop = terminalEl.scrollHeight;
+}
+
 async function fetchActivityTicker() {
   try {
     const res = await fetch('/api/workers/fleet/activity');
     if (!res.ok) return;
     const data = await res.json();
-    if (!data.success || !data.events) return;
-    
+    if (!data.success || !Array.isArray(data.events)) return;
+
     const events = data.events;
     const terminalEl = document.getElementById('telemetryTerminalStream');
     if (!terminalEl) return;
-    
-    // Render events (newest first)
-    terminalEl.innerHTML = events.map(event => {
+
+    // Nunca limpar container com 0 eventos — apenas anexar novos
+    if (events.length === 0) {
+      // garante banner mesmo sem eventos
+      if (!terminalEl.querySelector('[data-hub-banner]')) appendTerminalLine('');
+      return;
+    }
+
+    // Detecta novos eventos (IDs únicos); não re-renderiza os já vistos
+    const newOnes = [];
+    for (const ev of events) {
+      const id = terminalEventId(ev);
+      if (seenTerminalEventIds.has(id)) continue;
+      seenTerminalEventIds.add(id);
+      terminalEventHistory.push(ev);
+      newOnes.push(ev);
+    }
+    // Limita histórico em memória
+    while (terminalEventHistory.length > TERMINAL_MAX_HISTORY) {
+      const old = terminalEventHistory.shift();
+      seenTerminalEventIds.delete(terminalEventId(old));
+    }
+
+    // API retorna newest-first; inverte para append em ordem cronológica
+    newOnes.reverse();
+    for (const event of newOnes) {
       const time = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : '--:--:--';
       const workerName = event.workerName || event.workerId || 'unknown';
       let lineClass = 'text-slate-400';
       let prefix = '> [SYSTEM]';
-      
+
       if (event.type === 'MILESTONE') {
         prefix = '> [MILESTONE]';
         lineClass = 'text-cyan-300';
@@ -423,8 +476,11 @@ async function fetchActivityTicker() {
       } else if (event.type === 'KEY_FOUND') {
         prefix = '> [KEY FOUND]';
         lineClass = 'text-rose-400 animate-pulse';
+      } else if (event.type === 'BENCHMARK') {
+        prefix = '> [BENCH]';
+        lineClass = 'text-amber-300';
       }
-      
+
       let message = '';
       if (event.type === 'MILESTONE') {
         message = `🟢 ${workerName} confirmou Marco #${event.milestone}/10 (${event.currentKey || '...'}) | ${event.hashrate || 'N/A'}`;
@@ -433,12 +489,9 @@ async function fetchActivityTicker() {
       } else {
         message = event.message || JSON.stringify(event);
       }
-      
-      return `<div class="${lineClass}"><span class="text-slate-500">[${time}]</span> ${prefix} ${message}</div>`;
-    }).join('');
-    
-    // Auto-scroll to bottom
-    terminalEl.scrollTop = terminalEl.scrollHeight;
+
+      appendTerminalLine(`<div class="${lineClass}"><span class="text-slate-500">[${time}]</span> ${prefix} ${message}</div>`);
+    }
   } catch (err) {
     console.warn('[ActivityTicker] Erro:', err.message);
   }
@@ -582,10 +635,14 @@ function render1000Table(puzzles) {
       roiBadge = '<span class="text-slate-500 text-[10px]">Calculando...</span>';
     }
 
+    // ZERO-LEAK: máscara de segurança — nunca expor chave completa na UI
+    const maskedKey = p.privateKey
+      ? p.privateKey.substring(0, 6) + '...[PROTEGIDO / EXCLUSIVO ADMIN]'
+      : '';
     const privKeyDisplay = p.privateKey
       ? `<div class="flex items-center gap-1">
-          <span class="text-emerald-300 font-mono text-[10px] truncate max-w-[120px]" title="${p.privateKey}">0x${p.privateKey}</span>
-          <button onclick="copyText('${p.privateKey}')" class="p-1 hover:text-white text-slate-400"><i data-lucide="copy" class="w-3 h-3"></i></button>
+          <span class="text-amber-300 font-mono text-[10px] truncate max-w-[160px]" title="Chave protegida — exclusivo admin">${maskedKey}</span>
+          <span class="text-[9px] text-slate-500" title="A chave completa está em BENCHMARK_REAL_P*.txt / WhatsApp Admin / Aba Descobertas_Reais">🔒</span>
         </div>`
       : '<span class="text-slate-600 italic text-[10px]">Oculta</span>';
 
