@@ -43,7 +43,9 @@ function cacheUser(user) {
 }
 
 async function ensureUserSchema(prismaClient = prisma) {
+  await prismaClient.$executeRawUnsafe("DO $$ BEGIN CREATE TYPE \"UserRole\" AS ENUM ('USER', 'SUBSCRIBER', 'ADMIN'); EXCEPTION WHEN duplicate_object THEN NULL; END $$");
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "username" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "role" "UserRole" NOT NULL DEFAULT \'USER\'');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "displayName" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "workerToken" TEXT');
