@@ -61,6 +61,10 @@ model User {
   displayName   String?
   role          UserRole   @default(USER)
   workerToken   String?    @unique
+  whatsapp      String
+  emailVerified Boolean    @default(false)
+  payoutAddress String?
+  hardwareType  String?
   activePlan    String     @default("FREE_COMMUNITY")
   avatarUrl     String?
   gpuModel      String?    // ex: "RTX 4090", "Tesla T4 Farm"
@@ -79,8 +83,24 @@ model User {
   discoveryHints  DiscoveryHint[]
   distinguishedPoints DistinguishedPoint[]
   payoutShares    PoolSharePayout[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("email_verification_tokens")
 }
 
 enum UserRole {

@@ -224,6 +224,7 @@ app.use((err, req, res, next) => {
 
 // ─── START SE EXECUTADO DIRETAMENTE ───
 if (require.main === module) {
+  authRoutes.bootstrapAdmin().then(() => {
   // 1. Verificação Criptográfica de Boot (Quarentena preventiva)
   const { verifySecp256k1KeyPair } = require('../lib/cryptoVerifier');
   const samplePubKey = '03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895';
@@ -244,6 +245,10 @@ if (require.main === module) {
     console.log(`📊 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🛡️ Sentinela On-Chain & Anti-MEV Engine Ativos`);
     console.log(`🦘 Kangaroo Pool: /api/kangaroo/submit-dp | /api/kangaroo/seed | /api/kangaroo/stats`);
+  });
+  }).catch((error) => {
+    console.error('[PuzzleRadar] Falha ao inicializar o administrador configurado:', error.message);
+    process.exit(1);
   });
 }
 

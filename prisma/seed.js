@@ -1,3 +1,4 @@
+/*
 // ============================================
 // 🧩 PuzzleRadar — Seed Data (Puzzles & Hints)
 // ============================================
@@ -23,23 +24,12 @@ async function main() {
   console.log(`✅ Organização criada: ${org.name}`);
   
   // ─── CRIAR USUÁRIO ADMIN ───
-  const bcrypt = require('bcryptjs');
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@puzzleradar.io' },
-    update: {},
-    create: {
-      email: 'admin@puzzleradar.io',
-      username: 'admin',
-      passwordHash: await bcrypt.hash('changeme123', 12),
-      displayName: 'Admin PuzzleRadar',
-      hasGpu: true,
-      gpuModel: 'NVIDIA RTX 4090'
-    }
-  });
-  console.log(`✅ Admin criado: ${admin.username}`);
+  const { bootstrapAdmin } = require('../src/server/routes/auth');
+  const admin = await bootstrapAdmin(prisma);
+  if (!admin) console.log('ℹ️ Admin não criado: ADMIN_EMAIL e ADMIN_PASSWORD não foram configurados.');
   
   // ─── ADICIONAR ADMIN À ORG ───
-  await prisma.member.upsert({
+  if (admin) await prisma.member.upsert({
     where: { userId_organizationId: { userId: admin.id, organizationId: org.id } },
     update: {},
     create: {
@@ -53,6 +43,7 @@ async function main() {
 // 🧩 PuzzleRadar — Seed Data com Validação Criptográfica Rigorosa (Anti-Waste)
 // ============================================
 
+*/
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
@@ -77,23 +68,12 @@ async function main() {
   console.log(`✅ Organização criada: ${org.name}`);
   
   // ─── CRIAR USUÁRIO ADMIN ───
-  const bcrypt = require('bcryptjs');
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@puzzleradar.io' },
-    update: {},
-    create: {
-      email: 'admin@puzzleradar.io',
-      username: 'admin',
-      passwordHash: await bcrypt.hash('changeme123', 12),
-      displayName: 'Admin PuzzleRadar',
-      hasGpu: true,
-      gpuModel: 'NVIDIA RTX 4090'
-    }
-  });
-  console.log(`✅ Admin criado: ${admin.username}`);
+  const { bootstrapAdmin } = require('../src/server/routes/auth');
+  const admin = await bootstrapAdmin(prisma);
+  if (!admin) console.log('ℹ️ Admin não criado: ADMIN_EMAIL e ADMIN_PASSWORD não foram configurados.');
   
   // ─── ADICIONAR ADMIN À ORG ───
-  await prisma.member.upsert({
+  if (admin) await prisma.member.upsert({
     where: { userId_organizationId: { userId: admin.id, organizationId: org.id } },
     update: {},
     create: {
