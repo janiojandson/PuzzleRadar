@@ -50,6 +50,9 @@ async function ensureUserSchema(prismaClient = prisma) {
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "displayName" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "workerToken" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "whatsapp" TEXT');
+  await prismaClient.$executeRawUnsafe("UPDATE \"users\" SET \"whatsapp\" = '+10000000000' WHERE \"whatsapp\" IS NULL");
+  await prismaClient.$executeRawUnsafe("ALTER TABLE \"users\" ALTER COLUMN \"whatsapp\" SET DEFAULT '+10000000000'");
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ALTER COLUMN "whatsapp" SET NOT NULL');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "payoutAddress" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hardwareType" TEXT');

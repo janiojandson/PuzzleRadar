@@ -143,6 +143,7 @@ test('adds legacy authentication columns before administrator bootstrap on an ol
   assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "displayName"')));
   assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "role"')));
   assert.ok(statements.some(statement => statement.includes('ALTER COLUMN password DROP NOT NULL')));
+  assert.ok(statements.some(statement => statement.includes('SET "whatsapp" = \'+10000000000\'')));
 });
 
 test('requires a valid international WhatsApp number, email PIN, and matching password before customer login', async () => {
