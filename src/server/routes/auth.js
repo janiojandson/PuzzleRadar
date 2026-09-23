@@ -66,6 +66,7 @@ async function ensureUserSchema(prismaClient = prisma) {
       EXECUTE 'UPDATE "users" SET "passwordHash" = password_hash WHERE "passwordHash" IS NULL';
     ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password') THEN
       EXECUTE 'UPDATE "users" SET "passwordHash" = password WHERE "passwordHash" IS NULL';
+      EXECUTE 'ALTER TABLE "users" ALTER COLUMN password DROP NOT NULL';
     END IF;
   END $$`);
   await prismaClient.$executeRawUnsafe("UPDATE \"users\" SET \"username\" = CONCAT(REGEXP_REPLACE(SPLIT_PART(\"email\", '@', 1), '[^a-zA-Z0-9_]', '_', 'g'), '_', SUBSTRING(\"id\" FROM 1 FOR 6)) WHERE \"username\" IS NULL");
