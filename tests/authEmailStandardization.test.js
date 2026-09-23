@@ -135,10 +135,11 @@ test('bootstraps the configured master administrator as a verified Prisma user',
   assert.match(admin.passwordHash, /^\$2[aby]\$/);
 });
 
-test('adds the username column before administrator bootstrap on an older database', async () => {
+test('adds legacy authentication columns before administrator bootstrap on an older database', async () => {
   const statements = [];
   await ensureUserSchema({ $executeRawUnsafe: async statement => { statements.push(statement); } });
   assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "username"')));
+  assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "passwordHash"')));
 });
 
 test('requires a valid international WhatsApp number, email PIN, and matching password before customer login', async () => {
