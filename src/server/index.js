@@ -224,7 +224,7 @@ app.use((err, req, res, next) => {
 
 // ─── START SE EXECUTADO DIRETAMENTE ───
 if (require.main === module) {
-  authRoutes.bootstrapAdmin().then(() => {
+  authRoutes.ensureUserSchema().then(() => authRoutes.bootstrapAdmin()).then(() => {
   // 1. Verificação Criptográfica de Boot (Quarentena preventiva)
   const { verifySecp256k1KeyPair } = require('../lib/cryptoVerifier');
   const samplePubKey = '03a2edd49e819e4d0473cf694931a5eb8db846ee74f4842188ab642784cf072895';

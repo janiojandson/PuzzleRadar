@@ -42,6 +42,12 @@ function cacheUser(user) {
   return user;
 }
 
+async function ensureUserSchema(prismaClient = prisma) {
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "username" TEXT');
+  await prismaClient.$executeRawUnsafe("UPDATE \"users\" SET \"username\" = CONCAT(REGEXP_REPLACE(SPLIT_PART(\"email\", '@', 1), '[^a-zA-Z0-9_]', '_', 'g'), '_', SUBSTRING(\"id\" FROM 1 FOR 6)) WHERE \"username\" IS NULL");
+  await prismaClient.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "users_username_key" ON "users"("username")');
+}
+
 async function bootstrapAdmin(prismaClient = prisma, config = defaultConfig()) {
   const adminEmail = config.adminEmail?.trim().toLowerCase();
   const adminPassword = config.adminPassword;
@@ -269,6 +275,7 @@ const router = createAuthRouter();
 router.usersStore = usersStore;
 router.createAuthRouter = createAuthRouter;
 router.bootstrapAdmin = bootstrapAdmin;
+router.ensureUserSchema = ensureUserSchema;
 router.E164_WHATSAPP = E164_WHATSAPP;
 
 module.exports = router;

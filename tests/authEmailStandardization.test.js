@@ -5,7 +5,7 @@ const {
   formatFromAddress,
   sendEmailVerificationPin
 } = require('../src/services/resendService');
-const { bootstrapAdmin, createAuthRouter } = require('../src/server/routes/auth');
+const { bootstrapAdmin, createAuthRouter, ensureUserSchema } = require('../src/server/routes/auth');
 const express = require('express');
 const http = require('node:http');
 
@@ -133,6 +133,12 @@ test('bootstraps the configured master administrator as a verified Prisma user',
   assert.equal(admin.role, 'ADMIN');
   assert.equal(admin.emailVerified, true);
   assert.match(admin.passwordHash, /^\$2[aby]\$/);
+});
+
+test('adds the username column before administrator bootstrap on an older database', async () => {
+  const statements = [];
+  await ensureUserSchema({ $executeRawUnsafe: async statement => { statements.push(statement); } });
+  assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "username"')));
 });
 
 test('requires a valid international WhatsApp number, email PIN, and matching password before customer login', async () => {
