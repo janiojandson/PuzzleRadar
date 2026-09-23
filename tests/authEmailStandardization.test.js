@@ -140,6 +140,7 @@ test('adds legacy authentication columns before administrator bootstrap on an ol
   await ensureUserSchema({ $executeRawUnsafe: async statement => { statements.push(statement); } });
   assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "username"')));
   assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "passwordHash"')));
+  assert.ok(statements.some(statement => statement.includes('ADD COLUMN IF NOT EXISTS "displayName"')));
 });
 
 test('requires a valid international WhatsApp number, email PIN, and matching password before customer login', async () => {

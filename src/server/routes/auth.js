@@ -45,6 +45,20 @@ function cacheUser(user) {
 async function ensureUserSchema(prismaClient = prisma) {
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "username" TEXT');
   await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "passwordHash" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "displayName" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "workerToken" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "whatsapp" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "payoutAddress" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hardwareType" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "activePlan" TEXT NOT NULL DEFAULT \'FREE_COMMUNITY\'');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "avatarUrl" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "gpuModel" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "cpuModel" TEXT');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "hasGpu" BOOLEAN NOT NULL DEFAULT FALSE');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "totalShares" DOUBLE PRECISION NOT NULL DEFAULT 0');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()');
+  await prismaClient.$executeRawUnsafe('ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()');
   await prismaClient.$executeRawUnsafe(`DO $$ BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'password_hash') THEN
       EXECUTE 'UPDATE "users" SET "passwordHash" = password_hash WHERE "passwordHash" IS NULL';
